@@ -12,4 +12,5 @@ import UIKit
 struct CommonUI {
   static let titleTextColor = UIColor.init(red: 0.07443947345, green: 0.1100651398, blue: 0.4330537915, alpha: 1)
   static let mainBackgroudColor = UIColor.init(red: 0.9762657285, green: 0.602692306, blue: 0.713306129, alpha: 1)
+  static let subBackgroundColor = UIColor.init(red: 0.8800329566, green: 0.8836347461, blue: 0.9829493165, alpha: 1)
 }

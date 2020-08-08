@@ -15,51 +15,24 @@ class MainVC: UIViewController {
   // MARK: - Properties
   lazy var tableView: UITableView = {
     let tableView = UITableView(frame: .zero, style: .grouped)
-//    tableView.delegate = self
     tableView.dataSource = self
+    tableView.delegate = self
+    tableView.separatorStyle = .none
+    tableView.allowsSelection = false
+    
+    let mainTableHeaderView = MainTableHeaderView()
+    mainTableHeaderView.logoutButton.addTarget(self, action: #selector(tabLogoutButton), for: .touchUpInside)
+    
+    tableView.tableHeaderView = mainTableHeaderView
+    tableView.tableHeaderView?.frame.size = CGSize(width: view.frame.width, height: 90)
+    
+    tableView.register(UITableViewCell.self, forCellReuseIdentifier: "Cell")
+    tableView.register(MainVCBookListCell.self, forCellReuseIdentifier: MainVCBookListCell.identifier)
+    tableView.register(BookInfoCell.self, forCellReuseIdentifier: BookInfoCell.identifier)
+    
     return tableView
   }()
-  
-  let profileImageView: UIImageView = {
-    let imageView = UIImageView()
-    imageView.image = UIImage(named: "SwiftUI")
-    imageView.layer.cornerRadius = 25
-    imageView.clipsToBounds = true
-    return imageView
-  }()
-  
-  let nameLabel: UILabel = {
-    let label = UILabel()
-    label.text = "kks"
-    label.font = .systemFont(ofSize: 20, weight: .medium)
-    label.textColor = CommonUI.titleTextColor
-    return label
-  }()
-  
-  let logoutButton: UIButton = {
-    let button = UIButton(type: .system)
-    button.setTitle("Logout", for: .normal)
-    button.setTitleColor(.white, for: .normal)
-    button.backgroundColor = CommonUI.titleTextColor
-    button.sizeToFit()
-    button.addTarget(self, action: #selector(tabLogoutButton), for: .touchUpInside)
-    return button
-  }()
-  
-  let titleLabel: UILabel = {
-    let label = UILabel()
-    label.text = "My Book Lists"
-    label.font = .systemFont(ofSize: 30, weight: .medium)
-    label.textColor = CommonUI.titleTextColor
-    return label
-  }()
-  
-  let collectionView: UICollectionView = {
-    let layout = UICollectionViewFlowLayout()
-    layout.scrollDirection = .horizontal
-    return UICollectionView(frame: .zero, collectionViewLayout: layout)
-  }()
-  
+
   // MARK: - Init
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -82,34 +55,15 @@ class MainVC: UIViewController {
   
   private func configureLayout() {
     
-    [profileImageView, nameLabel, logoutButton, titleLabel].forEach{
+    [tableView].forEach{
       view.addSubview($0)
     }
     
-    let safeGuide = view.safeAreaLayoutGuide
-
-    profileImageView.snp.makeConstraints {
-      $0.top.equalTo(safeGuide.snp.top).offset(16)
-      $0.leading.equalTo(safeGuide.snp.leading).offset(16)
-      $0.height.width.equalTo(50)
+    tableView.snp.makeConstraints{
+      $0.top.equalTo(view.safeAreaLayoutGuide).offset(10)
+      $0.leading.trailing.bottom.equalTo(view.safeAreaLayoutGuide)
     }
     
-    nameLabel.snp.makeConstraints {
-      $0.leading.equalTo(profileImageView.snp.trailing).offset(16)
-      $0.top.equalTo(profileImageView.snp.top)
-    }
-    
-    logoutButton.snp.makeConstraints {
-      $0.trailing.equalTo(safeGuide.snp.trailing).offset(-16)
-      $0.centerY.equalTo(profileImageView.snp.centerY)
-      $0.height.width.equalTo(50)
-    }
-    
-    titleLabel.snp.makeConstraints{
-      $0.top.equalTo(profileImageView.snp.bottom).offset(20)
-      $0.leading.equalTo(profileImageView.snp.leading)
-      $0.trailing.equalTo(safeGuide.snp.trailing).offset(16)
-    }
   }
   
   // MARK: - Handler
@@ -138,13 +92,73 @@ class MainVC: UIViewController {
   }
 }
 
+// MARK: - UITableViewDataSource
 extension MainVC: UITableViewDataSource {
+  
+  func numberOfSections(in tableView: UITableView) -> Int {
+    return 1
+  }
+  
   func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
     return 2
   }
   
   func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-    <#code#>
+    var cell = UITableViewCell(style: .default, reuseIdentifier: "Cell")
+    
+    
+    if indexPath.row == 0 {
+      
+      guard let myCell = tableView.dequeueReusableCell(
+        withIdentifier: MainVCBookListCell.identifier,
+        for: indexPath
+        ) as? MainVCBookListCell else { fatalError() }
+      
+      cell = myCell
+      
+    } else if indexPath.row == 1 {
+      
+      guard let myCell = tableView.dequeueReusableCell(
+        withIdentifier: BookInfoCell.identifier,
+        for: indexPath
+        ) as? BookInfoCell else { fatalError() }
+      
+      cell = myCell
+      
+    }
+    
+    return cell
   }
 }
 
+// MARK: - UITableViewDelegate
+extension MainVC: UITableViewDelegate {
+  
+  func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+    let rowHeight = CGFloat(indexPath.row == 0 ? 230 : 300)
+    return rowHeight
+  }
+
+  func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
+    let view = UIView(frame: CGRect(x: 10, y: 0, width: self.view.frame.width, height: 40))
+    let sectionTitleLabel = UILabel()
+    sectionTitleLabel.font = .boldSystemFont(ofSize: 30)
+    sectionTitleLabel.textColor = CommonUI.titleTextColor
+    
+    if section == 0 {
+      sectionTitleLabel.text = "Reading..."
+    }
+    
+    view.addSubview(sectionTitleLabel)
+    sectionTitleLabel.frame = view.frame
+    view.backgroundColor = .white
+    
+    self.view.bringSubviewToFront(sectionTitleLabel)
+    
+    return view
+  }
+  
+  func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
+    return 40
+  }
+}
