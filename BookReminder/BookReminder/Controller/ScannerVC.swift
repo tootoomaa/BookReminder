@@ -15,7 +15,7 @@ class ScannerVC: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
   var captureSession: AVCaptureSession!
   var previewLayer: AVCaptureVideoPreviewLayer!
   
-  var passBookInfoClosure:((Book) -> ())? // handle Result return closure
+  var passBookInfoClosure:((String, Book) -> ())? // handle Result return closure
   
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -96,10 +96,11 @@ class ScannerVC: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
   }
   
   func found(code: String) {
-    print("Get ISBN Code by Scan",code)
     getBookInfoByISBN(forSearch: code) { (bookInfo) in
-      
-      self.passBookInfoClosure!(bookInfo)
+      guard let passBookInfoClosure = self.passBookInfoClosure else {
+        return print("fail to get Closure")
+      }
+      passBookInfoClosure(code, bookInfo)
     }
     self.dismiss(animated: true)
   }
@@ -151,8 +152,6 @@ class ScannerVC: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
         
         do {
           let bookInfo = try JSONDecoder().decode(Book.self, from: data)
-//          print(bookInfo.documents)
-//          print(bookInfo.meta)
           complitionHandler(bookInfo)
         } catch {
           print("get fail to get BookInfo in ",self)
@@ -161,7 +160,6 @@ class ScannerVC: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
       }.resume()
     }
   }
-  
 }
 
 

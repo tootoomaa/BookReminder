@@ -32,7 +32,7 @@ class MainVC: UIViewController {
     
     return tableView
   }()
-
+  
   // MARK: - Init
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -45,7 +45,7 @@ class MainVC: UIViewController {
   override func viewWillAppear(_ animated: Bool) {
     navigationController?.navigationBar.isHidden = true
   }
-    
+  
   private func configureView() {
     
     view.backgroundColor = .white
@@ -138,7 +138,7 @@ extension MainVC: UITableViewDelegate {
     let rowHeight = CGFloat(indexPath.row == 0 ? 230 : 300)
     return rowHeight
   }
-
+  
   func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
     let view = UIView(frame: CGRect(x: 10, y: 0, width: self.view.frame.width, height: 40))
     let sectionTitleLabel = UILabel()

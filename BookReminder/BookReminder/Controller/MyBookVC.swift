@@ -8,6 +8,7 @@
 
 import UIKit
 import SnapKit
+import Firebase
 
 class MyBookVC: UIViewController {
   
@@ -20,7 +21,7 @@ class MyBookVC: UIViewController {
   let bounceDistance: CGFloat = 25
   
   var bookScanedCode: String = ""
-  var bookInfo: [Book] = []
+  var bookDetailInfoArray: [BookDetailInfo] = []
   
   lazy var searchBar: UISearchBar = {
     let sBar = UISearchBar(frame: .zero)
@@ -99,8 +100,8 @@ class MyBookVC: UIViewController {
   }()
   
   struct Standard {
-    static let myEdgeInset = UIEdgeInsets(top: 0, left: 8, bottom: 0, right: 8)
-    static let lineSpacing: CGFloat = 10
+    static let myEdgeInset = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 10)
+    static let lineSpacing: CGFloat = 20
     static let itemSpacing: CGFloat = 10
     static let myheight: CGFloat = 174
     static let rowCount: Int = 3
@@ -110,7 +111,8 @@ class MyBookVC: UIViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
     
-//    configureJSON()
+    fetchUserBookIndex()
+    
     configureUI()
     
     configureLayout()
@@ -152,14 +154,7 @@ class MyBookVC: UIViewController {
         }
         
         guard let data = data else { return print("Data is nil") }
-        print("data",data)
         
-//        if let jsonData = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
-//          print("-=========-")
-//          print(jsonData["documents"])
-//          print("-=========-")
-//        }
-
         do {
           let bookInfo = try JSONDecoder().decode(Book.self, from: data)
           print(bookInfo.documents)
@@ -171,24 +166,23 @@ class MyBookVC: UIViewController {
       }.resume()
     }
   }
-
+  
   override func viewWillDisappear(_ animated: Bool) {
     // multiButton 에니메이션 초기화
-    multibuttomActive = false
-    UIView.animate(withDuration: 0.1) {
-      [self.multiButton, self.bookSearchButton, self.barcodeButton, self.deleteBookButton].forEach{
-        $0.transform = .identity
-      }
-    }
+    initializationMultiButton()
   }
   
   private func configureUI() {
+    
+    navigationItem.title = "My Books"
+    
     view.backgroundColor = .white
     
     collectionView.backgroundColor = .white
     collectionView.delegate = self
     collectionView.dataSource = self
-    collectionView.register(UICollectionViewCell.self, forCellWithReuseIdentifier: "Cell")
+    collectionView.isMultipleTouchEnabled = false
+    collectionView.register(MyBookCustomCell.self, forCellWithReuseIdentifier: MyBookCustomCell.identifier)
   }
   
   private func configureLayout() {
@@ -292,8 +286,17 @@ class MyBookVC: UIViewController {
         
       })
     }
-    
     multibuttomActive.toggle()
+  }
+  
+  // multiButton 에니메이션 초기화
+  private func initializationMultiButton() {
+    multibuttomActive = false
+    UIView.animate(withDuration: 0.1) {
+      [self.multiButton, self.bookSearchButton, self.barcodeButton, self.deleteBookButton].forEach{
+        $0.transform = .identity
+      }
+    }
   }
   
   @objc private func tabFeatureButton(_ sender: UIButton) {
@@ -303,17 +306,108 @@ class MyBookVC: UIViewController {
     
   }
   
+  
+  // Barcode handler
   @objc private func tabBarcodeButton(_ sender: UIButton) {
     
+    guard let uid = Auth.auth().currentUser?.uid else { return }
     let scannerVC = ScannerVC()
-    scannerVC.passBookInfoClosure = { bookInfo in
+    
+    // 스켄을 통한 데이터 받기
+    scannerVC.passBookInfoClosure = { isbnCode, bookData in
       DispatchQueue.main.async {
-        self.bookInfo.append(bookInfo)
-        print("bookInfo Vlaue in MyBookVC bookInfo",self.bookInfo)
+        
+        let creationDate = Int(NSDate().timeIntervalSince1970)
+        let documents = bookData.documents[0]
+        let bookDetailValue = [
+          "authors": documents.authors,
+          "contents": documents.contents,
+          "datetime": documents.datetime,
+          "isbn": documents.isbn,
+          "price": documents.price,
+          "publisher": documents.publisher,
+          "sale_price": documents.sale_price,
+          "status": documents.status,
+          "thumbnail": documents.thumbnail,
+          "title": documents.title,
+          "translators": documents.translators,
+          "url": documents.url,
+          "creationDate": creationDate
+          ] as Dictionary<String, AnyObject>
+        
+        let bookDetailInfo = BookDetailInfo(isbnCode: isbnCode, dictionary: bookDetailValue)
+        
+        self.bookDetailInfoArray.append(bookDetailInfo)
         self.collectionView.reloadData()
+        
+        DB_REF_USERBOOKS.child(uid).updateChildValues([isbnCode:bookDetailValue])
       }
     }
-    present(scannerVC, animated: true)
+    
+    // 바코드 스켄창 띄우기
+    present(scannerVC, animated: true) {
+      // 멀티 버튼 초기화
+      self.initializationMultiButton()
+    }
+  }
+  
+  
+  // fetch User Book Data
+  private func fetchUserBookIndex() {
+    guard let uid = Auth.auth().currentUser?.uid else { return }
+    DB_REF_USERBOOKS.child(uid).observeSingleEvent(of: .value) { (snapshot) in
+      
+      guard let bookDetailInfos = snapshot.value as? Dictionary<String, AnyObject> else { return }
+      for bookInfo in bookDetailInfos {
+        
+        guard let value = bookInfo.value as? Dictionary<String, AnyObject> else {
+          return print("Fail to change detail Book info ")
+          
+        }
+        
+        let bookDetailInfo = BookDetailInfo(isbnCode: bookInfo.key, dictionary: value)
+        
+        DispatchQueue.main.async {
+          self.bookDetailInfoArray.append(bookDetailInfo)
+          
+          self.bookDetailInfoArray.sort { (book1, book2) -> Bool in
+            book1.creationDate > book2.creationDate
+          }
+          
+          self.collectionView.reloadData()
+        }
+      }
+    }
+  }
+  
+  // cell 에서 리턴 받은 버튼에 종류에 따라서 처리
+  private func tabBookDetailButton(buttonName: String, isbnCode: String, isMarked: Bool) {
+    // mark: 즐겨찾기, comment: 코멘트, info: 자세한 설명 화면
+    print("Print Button Name in mybookList",buttonName)
+    
+    if buttonName == "mark" {
+      print("mark Handler Section")
+      
+      guard let uid = Auth.auth().currentUser?.uid else { return }
+      if !isMarked  {
+        // 체크가 되어 있다면
+        print("unMark -> mark")
+        DB_REF_MARKBOOKS.child(uid).updateChildValues([isbnCode:1])
+        
+      } else {
+        // 체크 해제
+        print("mark -> unMark")
+        DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue()
+        
+      }
+    } else if buttonName == "comment" {
+      print("Tab Comment Button in myBookVC")
+      
+    } else if buttonName == "info" {
+      print("Tab info Button in myBookVC")
+      
+    }
+    
   }
   
 }
@@ -323,21 +417,55 @@ extension MyBookVC: UISearchBarDelegate {
   
 }
 
+// MARK: - UICollectionViewDelegate
+extension MyBookVC: UICollectionViewDelegate {
+  func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+    
+    // 선택한 cell의 블러효과 활성화
+    guard let cell = collectionView.cellForItem(at: indexPath) as? MyBookCustomCell else { return }
+    cell.blurView.alpha = cell.blurView.alpha == 1 ? 0 : 1
+    
+  }
+  
+  func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
+    guard let cell = collectionView.cellForItem(at: indexPath) as? MyBookCustomCell else { return }
+    cell.blurView.alpha = 0
+  }
+  
+  func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+    guard let uid = Auth.auth().currentUser?.uid else { return }
+    guard let cell = cell as? MyBookCustomCell else { return }
+    guard let isbnCode = cell.isbnCode else { return }
+    
+    DB_REF_MARKBOOKS.child(uid).child(isbnCode).observeSingleEvent(of: .value) { (snapshot) in
+      guard let value = snapshot.value as? Int else { return }
+      if value == 1 {
+        cell.markImage.isHidden = false
+        cell.markButton.isSelected = true
+      }
+    }
+  }
+}
+
+
 // MARK: - UIcollecionViewDataSource
 extension MyBookVC: UICollectionViewDataSource {
   
   func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-    return 30
+    return bookDetailInfoArray.count
   }
   
   func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-    let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "Cell", for: indexPath)
+    guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: MyBookCustomCell.identifier, for: indexPath) as? MyBookCustomCell else { fatalError() }
     
-    cell.backgroundColor = .red
+    cell.configure(bookDetailInfo: bookDetailInfoArray[indexPath.item])
+    // cell 내에서 버튼 눌렸을 경우 리턴 받아옴
+    cell.passButtonName = { buttonName, isbnCode, isMarked in
+      self.tabBookDetailButton(buttonName: buttonName, isbnCode: isbnCode, isMarked: isMarked)
+    }
     
     return cell
   }
-  
 }
 
 
@@ -358,9 +486,9 @@ extension MyBookVC: UICollectionViewDelegateFlowLayout {
   
   func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
     
-    let width = (UIScreen.main.bounds.width - Standard.myEdgeInset.left - Standard.myEdgeInset.right - Standard.itemSpacing * CGFloat(Standard.rowCount - 1))/CGFloat(Standard.rowCount)
-    let height = Standard.myheight
+    let width = (UIScreen.main.bounds.width - Standard.myEdgeInset.left - Standard.myEdgeInset.right - 2 * Standard.itemSpacing * CGFloat(Standard.rowCount - 1))/CGFloat(Standard.rowCount)
+    
+    let height = width * 1.45
     return CGSize(width: width, height: height)
   }
-  
 }

@@ -22,11 +22,81 @@ class BookInfoCell: UITableViewCell {
     return view
   }()
   
+  let statusBackgroundView: UIView = {
+    let view = UIView()
+    view.backgroundColor = CommonUI.titleTextColor
+    view.layer.cornerRadius = 25
+    view.clipsToBounds = true
+    return view
+  }()
+  
+  let commentLabel: UILabel = {
+    let label = UILabel()
+    
+    let fullString = NSAttributedString.configureAttributedString(systemName: "bubble.left.fill", setText: "10")
+    
+    label.font = .systemFont(ofSize: 15)//.preferredFont(forTextStyle: .footnote)
+    label.textColor = .white //.label
+    label.attributedText = fullString
+    label.textAlignment = .center
+    return label
+  }()
+  
+  let seperateView: UIView = {
+    let view = UIView()
+    view.backgroundColor = .white
+    return view
+  }()
+  
+  let readingLabel: UILabel = {
+    let label = UILabel()
+    
+    let fullString = NSAttributedString.configureAttributedString(systemName: "book", setText: "10")
+    
+    label.font = .systemFont(ofSize: 15)//.preferredFont(forTextStyle: .footnote)
+    label.textColor = .white //.label
+    label.attributedText = fullString
+    label.textAlignment = .center
+    return label
+  }()
+  
+  let commentAddButton: UIButton = {
+    let button = UIButton()
+    
+    let fullString = NSAttributedString.configureAttributedString(systemName: "plus.bubble.fill", setText: "추가")
+    
+    button.setAttributedTitle(fullString, for: .normal)
+    button.backgroundColor = .white
+    button.layer.cornerRadius = 10
+    button.clipsToBounds = true
+    return button
+  }()
+  
+  let commentEditButton: UIButton = {
+    let button = UIButton()
+    
+    let fullString = NSAttributedString.configureAttributedString(systemName: "pencil", setText: "수정")
+    
+    button.setAttributedTitle(fullString, for: .normal)
+    button.backgroundColor = .white
+    button.layer.cornerRadius = 10
+    button.clipsToBounds = true
+    return button
+  }()
+  
+  
+  
   // MARK: - Init
   override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
     super.init(style: style, reuseIdentifier: reuseIdentifier)
     
     backgroundColor = .white
+    
+    configureLayout()
+    
+  }
+  
+  private func configureLayout() {
     
     addSubview(myBackgroundView)
     
@@ -35,60 +105,75 @@ class BookInfoCell: UITableViewCell {
       $0.bottom.trailing.equalTo(self).offset(-10)
     }
     
-    let statusStackView = configureStackView(commentCount: 10, readBookPercent: 10)
-    
-    [statusStackView].forEach{
+    [statusBackgroundView, commentAddButton, commentEditButton].forEach{
       myBackgroundView.addSubview($0)
     }
     
-    statusStackView.snp.makeConstraints{
-      $0.top.equalTo(myBackgroundView.snp.top).offset(10)
+    commentAddButton.snp.makeConstraints{
+      $0.bottom.equalTo(myBackgroundView.snp.bottom).offset(-20)
+      $0.leading.equalTo(statusBackgroundView.snp.leading)
+      $0.height.equalTo(50)
+    }
+    
+    commentEditButton.snp.makeConstraints{
+      $0.leading.equalTo(commentAddButton.snp.trailing).offset(20)
+      $0.trailing.equalTo(statusBackgroundView.snp.trailing)
+      $0.centerY.equalTo(commentAddButton.snp.centerY)
+      $0.height.equalTo(50)
+      $0.width.equalTo(commentAddButton.snp.width)
+    }
+    
+    statusBackgroundView.snp.makeConstraints{
+      $0.top.equalTo(myBackgroundView.snp.top).offset(20)
       $0.leading.equalTo(myBackgroundView.snp.leading).offset(20)
       $0.trailing.equalTo(myBackgroundView.snp.trailing).offset(-20)
       $0.centerX.equalTo(myBackgroundView.snp.centerX)
-      $0.height.equalTo(100)
+      $0.height.equalTo(commentAddButton).multipliedBy(1.5)
     }
     
-  }
-  
-  func configureStackView(commentCount: Int, readBookPercent: Int) -> UIStackView {
-    // 1번 - 사용자 코멘트 겟수 - 그림 􀈎 square.and.pencil
-    // 2번 - 책 읽은 진행 - 그림  􀉚  book
+    let seperateview1 = seperateView
     
-    var uiViewList = [UIView]()
-    
-    for index in 0..<2 {
-      let symbol = UIImage(systemName: (index == 1) ? "square.and.pencil" : "book")!
-      let imageAttachment = NSTextAttachment(image: symbol)
-      
-      let fullString = NSMutableAttributedString()
-      fullString.append(NSAttributedString(attachment: imageAttachment))
-      fullString.append(NSAttributedString(string: " "))
-      
-      fullString.append(NSAttributedString(string: (index == 1) ? "위치 정보" : "추가 정보"))
-      
-      let headerLabel = UILabel()
-      headerLabel.font = .preferredFont(forTextStyle: .footnote)
-      headerLabel.textColor = .white //.label
-      headerLabel.attributedText = fullString
-//      headerLabel.sizeToFit()
-      headerLabel.backgroundColor = CommonUI.titleTextColor
-      headerLabel.textAlignment = .center
-//      headerLabel.frame.origin = .init(x: 16, y: 16)
-      uiViewList.append(headerLabel)
+    [commentLabel, seperateview1, readingLabel].forEach{
+      statusBackgroundView.addSubview($0)
     }
     
-    let stackView = UIStackView(arrangedSubviews: uiViewList)
-    stackView.axis = .horizontal
-    stackView.alignment = .center
-    stackView.distribution = .fillEqually
-    stackView.spacing = 20
-
-    return stackView
+    //10*2 20*2 //
+    commentLabel.snp.makeConstraints{
+      $0.leading.equalTo(statusBackgroundView.snp.leading)
+      $0.centerY.equalTo(statusBackgroundView.snp.centerY)
+    }
+    
+    seperateview1.snp.makeConstraints{
+      $0.leading.equalTo(commentLabel.snp.trailing)
+      $0.centerY.centerX.equalTo(statusBackgroundView)
+      $0.height.equalTo(10)
+      $0.width.equalTo(1)
+    }
+    
+    readingLabel.snp.makeConstraints{
+      $0.leading.equalTo(seperateview1.snp.trailing)
+      $0.trailing.equalTo(statusBackgroundView.snp.trailing)
+      $0.centerY.equalTo(statusBackgroundView.snp.centerY)
+      $0.width.equalTo(commentLabel.snp.width)
+    }
   }
   
   required init?(coder: NSCoder) {
     fatalError("init(coder:) has not been implemented")
+  }
+  
+  // MARK: - Handler
+  func configureAttributedString(systemName: String, setText: String) -> NSAttributedString {
+    
+    guard let symbol = UIImage(systemName: systemName) else { fatalError() }
+    let imageAttachment = NSTextAttachment(image: symbol)
+    
+    let fullString = NSMutableAttributedString()
+    fullString.append(NSAttributedString(attachment: imageAttachment))
+    fullString.append(NSAttributedString(string: "    "))
+    fullString.append(NSAttributedString(string: setText))
+    
+    return fullString
   }
   
 }
