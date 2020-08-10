@@ -15,7 +15,8 @@ class ScannerVC: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
   var captureSession: AVCaptureSession!
   var previewLayer: AVCaptureVideoPreviewLayer!
   
-  var passBookInfoClosure:((String, Book) -> ())? // handle Result return closure
+  let networkServices = NetworkServices()
+  var passBookInfoClosure:((String, [String: AnyObject]) -> ())? // handle Result return closure
   
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -96,11 +97,11 @@ class ScannerVC: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
   }
   
   func found(code: String) {
-    getBookInfoByISBN(forSearch: code) { (bookInfo) in
+    networkServices.fetchBookInfomationFromKakao(type: .isbn, forSearch: code) { (isbnCode, bookDetailInfo) in
       guard let passBookInfoClosure = self.passBookInfoClosure else {
         return print("fail to get Closure")
       }
-      passBookInfoClosure(code, bookInfo)
+      passBookInfoClosure(isbnCode, bookDetailInfo)
     }
     self.dismiss(animated: true)
   }
@@ -113,53 +114,7 @@ class ScannerVC: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
     return .portrait
   }
   
-  private func getBookInfoByISBN(forSearch isbn: String, complitionHandler: @escaping (Book) -> ()) {
-    
-    let query = isbn
-    let sort = "accuracy"
-    let page = "1"
-    let size = "5"
-    let target = "isbn"
-    
-    let authorization = "KakaoAK d4539e8d7741ccecad7ed805bfe1febb"
-    
-    let queryParams: [String: String] = [
-      "query" : query,
-      "sort" : sort,
-      "page" : page,
-      "size" : size,
-      "target" : target
-    ]
-    
-    var urlComponents = URLComponents()
-    urlComponents.scheme = "https"
-    urlComponents.host = "dapi.kakao.com"
-    urlComponents.path = "/v3/search/book"
-    urlComponents.setQueryItems(with: queryParams)
-    
-    if let url = urlComponents.url {
-      var urlRequest = URLRequest(url: url)
-      urlRequest.httpMethod = "GET"
-      urlRequest.setValue(authorization, forHTTPHeaderField: "Authorization")
-      
-      URLSession.shared.dataTask(with: urlRequest) { (data, response, error) in
-        if let error = error {
-          print("error", error.localizedDescription)
-          return
-        }
-        
-        guard let data = data else { return print("Data is nil") }
-        
-        do {
-          let bookInfo = try JSONDecoder().decode(Book.self, from: data)
-          complitionHandler(bookInfo)
-        } catch {
-          print("get fail to get BookInfo in ",self)
-        }
-        
-      }.resume()
-    }
-  }
+  
 }
 
 

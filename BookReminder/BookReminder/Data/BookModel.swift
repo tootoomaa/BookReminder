@@ -76,7 +76,7 @@ class BookDetailInfo {
       self.price = price
     }
     
-    if let publisher = dictionary["publicher"] as? String {
+    if let publisher = dictionary["publisher"] as? String {
       self.publisher = publisher
     }
     

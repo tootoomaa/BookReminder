@@ -15,13 +15,17 @@ class MyBookVC: UIViewController {
   // MARK: - Properties
   
   var multibuttomActive: Bool = false
-  
   let multiButtonSize: CGFloat = 70
+  
   let featureButtonSize: CGFloat = 50
   let bounceDistance: CGFloat = 25
   
   var bookScanedCode: String = ""
   var bookDetailInfoArray: [BookDetailInfo] = []
+  
+  var filterOn: Bool = false
+  var filterdBookArray: [BookDetailInfo] = []
+  
   
   lazy var searchBar: UISearchBar = {
     let sBar = UISearchBar(frame: .zero)
@@ -33,6 +37,7 @@ class MyBookVC: UIViewController {
     sBar.barTintColor = .none
     sBar.searchBarStyle = .minimal
     sBar.delegate = self
+    sBar.showsCancelButton = false
     return sBar
   }()
   
@@ -80,7 +85,7 @@ class MyBookVC: UIViewController {
     button.setImage(buttonImage, for: .normal)
     button.layer.cornerRadius = featureButtonSize/2
     button.clipsToBounds = true
-    button.addTarget(self, action: #selector(tabFeatureButton(_:)), for: .touchUpInside)
+    button.addTarget(self, action: #selector(tabSearchButton(_:)), for: .touchUpInside)
     return button
   }()
   
@@ -103,7 +108,6 @@ class MyBookVC: UIViewController {
     static let myEdgeInset = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 10)
     static let lineSpacing: CGFloat = 20
     static let itemSpacing: CGFloat = 10
-    static let myheight: CGFloat = 174
     static let rowCount: Int = 3
   }
   
@@ -118,57 +122,7 @@ class MyBookVC: UIViewController {
     configureLayout()
   }
   
-  private func configureJSON() {
-    
-    let query = "9791135485121"
-    let sort = "accuracy"
-    let page = "1"
-    let size = "5"
-    let target = "isbn"
-    
-    let authorization = "KakaoAK d4539e8d7741ccecad7ed805bfe1febb"
-    
-    let queryParams: [String: String] = [
-      "query" : query,
-      "sort" : sort,
-      "page" : page,
-      "size" : size,
-      "target" : target
-    ]
-    
-    var urlComponents = URLComponents()
-    urlComponents.scheme = "https"
-    urlComponents.host = "dapi.kakao.com"
-    urlComponents.path = "/v3/search/book"
-    urlComponents.setQueryItems(with: queryParams)
-    
-    if let url = urlComponents.url {
-      var urlRequest = URLRequest(url: url)
-      urlRequest.httpMethod = "GET"
-      urlRequest.setValue(authorization, forHTTPHeaderField: "Authorization")
-      
-      URLSession.shared.dataTask(with: urlRequest) { (data, response, error) in
-        if let error = error {
-          print("error", error.localizedDescription)
-          return
-        }
-        
-        guard let data = data else { return print("Data is nil") }
-        
-        do {
-          let bookInfo = try JSONDecoder().decode(Book.self, from: data)
-          print(bookInfo.documents)
-          print(bookInfo.meta)
-        } catch {
-          print("eRror")
-        }
-        
-      }.resume()
-    }
-  }
-  
   override func viewWillDisappear(_ animated: Bool) {
-    // multiButton 에니메이션 초기화
     initializationMultiButton()
   }
   
@@ -220,7 +174,11 @@ class MyBookVC: UIViewController {
   }
   
   override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-    view.endEditing(true)
+    hideKeyBoard()
+  }
+  
+  private func hideKeyBoard() {
+    self.view.endEditing(true)
   }
   
   // MARK: - Handler
@@ -290,12 +248,19 @@ class MyBookVC: UIViewController {
   }
   
   // multiButton 에니메이션 초기화
-  private func initializationMultiButton() {
+  func initializationMultiButton() {
     multibuttomActive = false
-    UIView.animate(withDuration: 0.1) {
-      [self.multiButton, self.bookSearchButton, self.barcodeButton, self.deleteBookButton].forEach{
-        $0.transform = .identity
-      }
+    UIView.animate(withDuration: 0.5) {
+      
+      self.deleteBookButton.center.x += self.featureButtonSize*2 - self.bounceDistance
+      self.bookSearchButton.center.y += self.featureButtonSize*1.5 - self.bounceDistance
+      self.bookSearchButton.center.x += self.featureButtonSize*1.5 - self.bounceDistance
+      self.barcodeButton.center.y += self.featureButtonSize*2 - self.bounceDistance
+      
+      self.multiButton.transform = .identity
+//      [self.multiButton, self.bookSearchButton, self.barcodeButton, self.deleteBookButton].forEach{
+//        $0.transform = .identity
+//      }
     }
   }
   
@@ -307,6 +272,27 @@ class MyBookVC: UIViewController {
   }
   
   
+  //search handler
+  @objc private func tabSearchButton(_ sender: UIButton) {
+    
+    guard let uid = Auth.auth().currentUser?.uid else { return }
+    let searchBookVC = SearchBookVC()
+    searchBookVC.passBookInfoClosure = { isbnCode, bookDicValue in
+      DispatchQueue.main.async {
+        // DB 업데이트
+        DB_REF_USERBOOKS.child(uid).updateChildValues([isbnCode: bookDicValue])
+        // book model 생성
+        let bookDetailInfo = BookDetailInfo(isbnCode: isbnCode, dictionary: bookDicValue)
+        self.bookDetailInfoArray.append(bookDetailInfo)
+        self.collectionView.reloadData()
+        self.initializationMultiButton()
+      }
+    }
+    navigationController?.pushViewController(searchBookVC, animated: true)
+    // 멀티 버튼 초기화
+    initializationMultiButton()
+  }
+  
   // Barcode handler
   @objc private func tabBarcodeButton(_ sender: UIButton) {
     
@@ -314,33 +300,15 @@ class MyBookVC: UIViewController {
     let scannerVC = ScannerVC()
     
     // 스켄을 통한 데이터 받기
-    scannerVC.passBookInfoClosure = { isbnCode, bookData in
+    scannerVC.passBookInfoClosure = { isbnCode, bookDicValue in
       DispatchQueue.main.async {
-        
-        let creationDate = Int(NSDate().timeIntervalSince1970)
-        let documents = bookData.documents[0]
-        let bookDetailValue = [
-          "authors": documents.authors,
-          "contents": documents.contents,
-          "datetime": documents.datetime,
-          "isbn": documents.isbn,
-          "price": documents.price,
-          "publisher": documents.publisher,
-          "sale_price": documents.sale_price,
-          "status": documents.status,
-          "thumbnail": documents.thumbnail,
-          "title": documents.title,
-          "translators": documents.translators,
-          "url": documents.url,
-          "creationDate": creationDate
-          ] as Dictionary<String, AnyObject>
-        
-        let bookDetailInfo = BookDetailInfo(isbnCode: isbnCode, dictionary: bookDetailValue)
-        
+        // DB 업데이트
+        DB_REF_USERBOOKS.child(uid).updateChildValues([isbnCode: bookDicValue])
+        // book model 생성
+        let bookDetailInfo = BookDetailInfo(isbnCode: isbnCode, dictionary: bookDicValue)
         self.bookDetailInfoArray.append(bookDetailInfo)
         self.collectionView.reloadData()
-        
-        DB_REF_USERBOOKS.child(uid).updateChildValues([isbnCode:bookDetailValue])
+        self.initializationMultiButton()
       }
     }
     
@@ -362,7 +330,6 @@ class MyBookVC: UIViewController {
         
         guard let value = bookInfo.value as? Dictionary<String, AnyObject> else {
           return print("Fail to change detail Book info ")
-          
         }
         
         let bookDetailInfo = BookDetailInfo(isbnCode: bookInfo.key, dictionary: value)
@@ -412,9 +379,42 @@ class MyBookVC: UIViewController {
   
 }
 
+// MARK: - UISearchBarDelegate
 extension MyBookVC: UISearchBarDelegate {
   
+  func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+
+    filterdBookArray = []
+    collectionView.reloadData()
+    
+    searchBar.showsCancelButton = true
+    filterOn = true
+    guard let searchText = searchBar.searchTextField.text else { return }
+    let filteredSearchText = searchText.trimmingCharacters(in: .whitespaces)
+    for book in bookDetailInfoArray {
+      if book.title.contains(filteredSearchText) {
+        filterdBookArray.append(book)
+        collectionView.reloadData()
+      }
+    }
+    
+  }
   
+  func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+    hideKeyBoard()
+  }
+  
+  func searchBarTextDidBeginEditing(_ searchBar: UISearchBar) {
+    
+  }
+  
+  func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
+    searchBar.text = ""
+    filterOn = false
+    searchBar.showsCancelButton = false
+    collectionView.reloadData()
+    hideKeyBoard()
+  }
 }
 
 // MARK: - UICollectionViewDelegate
@@ -433,17 +433,24 @@ extension MyBookVC: UICollectionViewDelegate {
   }
   
   func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+    
     guard let uid = Auth.auth().currentUser?.uid else { return }
     guard let cell = cell as? MyBookCustomCell else { return }
     guard let isbnCode = cell.isbnCode else { return }
     
+    cell.blurView.alpha = 0
+    
     DB_REF_MARKBOOKS.child(uid).child(isbnCode).observeSingleEvent(of: .value) { (snapshot) in
-      guard let value = snapshot.value as? Int else { return }
+      let value = snapshot.value as? Int
       if value == 1 {
         cell.markImage.isHidden = false
         cell.markButton.isSelected = true
+      } else {
+        cell.markImage.isHidden = true
+        cell.markButton.isSelected = false
       }
     }
+    
   }
 }
 
@@ -452,13 +459,16 @@ extension MyBookVC: UICollectionViewDelegate {
 extension MyBookVC: UICollectionViewDataSource {
   
   func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-    return bookDetailInfoArray.count
+    
+    return filterOn ? filterdBookArray.count : bookDetailInfoArray.count
   }
   
   func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
     guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: MyBookCustomCell.identifier, for: indexPath) as? MyBookCustomCell else { fatalError() }
     
-    cell.configure(bookDetailInfo: bookDetailInfoArray[indexPath.item])
+    let array = filterOn ? filterdBookArray : bookDetailInfoArray
+    
+    cell.configure(bookDetailInfo: array[indexPath.item])
     // cell 내에서 버튼 눌렸을 경우 리턴 받아옴
     cell.passButtonName = { buttonName, isbnCode, isMarked in
       self.tabBookDetailButton(buttonName: buttonName, isbnCode: isbnCode, isMarked: isMarked)
