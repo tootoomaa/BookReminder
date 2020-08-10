@@ -35,6 +35,25 @@ class CollecionViewCustomCell: UICollectionViewCell {
     }
   }
   
+  func configureCell(imageURL: String) {
+    //    guard let urlString = bookDetailInfo.thumbnail else { return }
+    guard let url = URL(string: imageURL) else { return }
+    
+    URLSession.shared.dataTask(with: url) { (data, response, error) in
+      if let error = error {
+        print("error",error.localizedDescription)
+        return
+      }
+      
+      guard let data = data else { return }
+      
+      DispatchQueue.main.async {
+        self.bookThumbnailImageView.image = UIImage(data: data)
+      }
+      
+    }.resume()
+  }
+  
   required init?(coder: NSCoder) {
     fatalError("init(coder:) has not been implemented")
   }

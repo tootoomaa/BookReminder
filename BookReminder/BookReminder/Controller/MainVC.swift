@@ -13,6 +13,8 @@ import Firebase
 class MainVC: UIViewController {
   
   // MARK: - Properties
+  var markedBookList: [BookDetailInfo] = []
+  
   lazy var tableView: UITableView = {
     let tableView = UITableView(frame: .zero, style: .grouped)
     tableView.dataSource = self
@@ -44,6 +46,8 @@ class MainVC: UIViewController {
   
   override func viewWillAppear(_ animated: Bool) {
     navigationController?.navigationBar.isHidden = true
+    markedBookList = []
+    fetchMarkedBookList()
   }
   
   private func configureView() {
@@ -88,8 +92,28 @@ class MainVC: UIViewController {
     } else { //
       
     }
-    
   }
+  
+  private func fetchMarkedBookList() {
+    guard let uid = Auth.auth().currentUser?.uid else { return }
+    DB_REF_MARKBOOKS.child(uid).observeSingleEvent(of: .value) { (snapshot) in
+      
+      guard let value = snapshot.value as? [String: Int] else { return }
+      
+      value.keys.forEach{
+        Database.fetchBookDetailData(uid: uid, isbnCode: $0) { (bookDetailInfo) in
+          self.markedBookList.append(bookDetailInfo)
+          
+          self.markedBookList.sort { (book1, book2) -> Bool in
+            book1.creationDate > book2.creationDate
+          }
+          
+          self.tableView.reloadData()
+        }
+      }
+    }
+  }
+  
 }
 
 // MARK: - UITableViewDataSource
@@ -114,7 +138,9 @@ extension MainVC: UITableViewDataSource {
         for: indexPath
         ) as? MainVCBookListCell else { fatalError() }
       
+      myCell.markedBookList = markedBookList
       cell = myCell
+      
       
     } else if indexPath.row == 1 {
       
@@ -135,7 +161,7 @@ extension MainVC: UITableViewDataSource {
 extension MainVC: UITableViewDelegate {
   
   func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-    let rowHeight = CGFloat(indexPath.row == 0 ? 230 : 300)
+    let rowHeight = CGFloat(indexPath.row == 0 ? 230 : 200)
     return rowHeight
   }
   

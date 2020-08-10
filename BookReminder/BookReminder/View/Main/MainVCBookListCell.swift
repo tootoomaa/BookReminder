@@ -14,6 +14,12 @@ class MainVCBookListCell: UITableViewCell {
   // MARK: - Properties
   static let identifier = "BookListCell"
   
+  var markedBookList: [BookDetailInfo]? {
+    didSet {
+      collectionView.reloadData()
+    }
+  }
+  
   let collectionView: UICollectionView = {
     let layout = UICollectionViewFlowLayout()
     layout.scrollDirection = .horizontal
@@ -28,7 +34,8 @@ class MainVCBookListCell: UITableViewCell {
     collectionView.backgroundColor = .white
     collectionView.dataSource = self
     collectionView.delegate = self
-    collectionView.register(UICollectionViewCell.self, forCellWithReuseIdentifier: "Cell")
+    collectionView.register(CollecionViewCustomCell.self,
+                            forCellWithReuseIdentifier: CollecionViewCustomCell.identifier)
     
     addSubview(collectionView)
     
@@ -46,14 +53,22 @@ class MainVCBookListCell: UITableViewCell {
 extension MainVCBookListCell: UICollectionViewDataSource {
   
   func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-    return 10
+    
+    guard let markedBookList = markedBookList else { return 0 }
+    
+    return markedBookList.count
   }
   
   func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-    let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "Cell", for: indexPath)
+    guard let cell = collectionView.dequeueReusableCell(
+      withReuseIdentifier: CollecionViewCustomCell.identifier,
+      for: indexPath) as? CollecionViewCustomCell else { fatalError() }
     
-    cell.backgroundColor = .blue
-    
+    if let markedBookList = markedBookList {
+      if let imageURL = markedBookList[indexPath.item].thumbnail {
+        cell.configureCell(imageURL: imageURL)
+      }
+    }
     return cell
   }
 }
