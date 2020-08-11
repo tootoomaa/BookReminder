@@ -119,7 +119,7 @@ class MainVC: UIViewController {
     print("tab tabAddCommentButton")
     
     let addCommentVC = AddCommentVC()
-    addCommentVC.markedBookInfo = markedBookList[userSelectedBookIndex.item ?? 0]
+    addCommentVC.markedBookInfo = markedBookList[userSelectedBookIndex.item]
     navigationController?.pushViewController(addCommentVC, animated: true)
   }
 }

@@ -122,8 +122,21 @@ class MyBookVC: UIViewController {
     configureLayout()
   }
   
-  override func viewWillDisappear(_ animated: Bool) {
+  override func viewWillAppear(_ animated: Bool) {
+    UIView.animate(withDuration: 0.5) {
+      [self.barcodeButton, self.bookSearchButton, self.deleteBookButton, self.multiButton].forEach{
+        $0.center.x = $0.center.x - 100
+      }
+    }
+  }
+  
+  override func viewDidDisappear(_ animated: Bool) {
     initializationMultiButton()
+    UIView.animate(withDuration: 0.5) {
+      [self.barcodeButton, self.bookSearchButton, self.deleteBookButton, self.multiButton].forEach{
+        $0.center.x = $0.center.x + 100
+      }
+    }
   }
   
   private func configureUI() {
@@ -303,7 +316,7 @@ class MyBookVC: UIViewController {
     
     guard let uid = Auth.auth().currentUser?.uid else { return }
     let scannerVC = ScannerVC()
-    
+    scannerVC.modalPresentationStyle = .popover
     // 스켄을 통한 데이터 받기
     scannerVC.passBookInfoClosure = { isbnCode, bookDicValue in
       DispatchQueue.main.async {

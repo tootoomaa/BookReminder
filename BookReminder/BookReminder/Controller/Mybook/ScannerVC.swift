@@ -18,11 +18,15 @@ class ScannerVC: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
   let networkServices = NetworkServices()
   var passBookInfoClosure:((String, [String: AnyObject]) -> ())? // handle Result return closure
   
+  let activiyIndicator = UIActivityIndicatorView(style: .large)
+  
+  // MARK: - Init
   override func viewDidLoad() {
     super.viewDidLoad()
     
-    view.backgroundColor = UIColor.black
     captureSession = AVCaptureSession()
+    
+    configureSetUI()
     
     guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else { return }
     let videoInput: AVCaptureDeviceInput
@@ -52,13 +56,27 @@ class ScannerVC: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
       return
     }
     
+    captureSession.startRunning()
+  }
+  
+  private func configureSetUI() {
+    
+    view.backgroundColor = UIColor.black
+    
     previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
-    previewLayer.frame = view.layer.bounds
+    previewLayer.frame = view.frame
     previewLayer.videoGravity = .resizeAspectFill
     view.layer.addSublayer(previewLayer)
     
-    captureSession.startRunning()
+    view.addSubview(activiyIndicator)
+    activiyIndicator.translatesAutoresizingMaskIntoConstraints = false
+    
+    NSLayoutConstraint.activate([
+      activiyIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+      activiyIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+    ])
   }
+  
   
   func failed() {
     let ac = UIAlertController(title: "Scanning not supported", message: "Your device does not support scanning a code from an item. Please use a device with a camera.", preferredStyle: .alert)
@@ -97,13 +115,16 @@ class ScannerVC: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
   }
   
   func found(code: String) {
+    activiyIndicator.startAnimating()
     networkServices.fetchBookInfomationFromKakao(type: .isbn, forSearch: code) { (isbnCode, bookDetailInfo) in
       guard let passBookInfoClosure = self.passBookInfoClosure else {
         return print("fail to get Closure")
       }
       passBookInfoClosure(isbnCode, bookDetailInfo)
     }
-    self.dismiss(animated: true)
+    self.dismiss(animated: true, completion: {
+      self.activiyIndicator.stopAnimating()
+    })
   }
   
   override var prefersStatusBarHidden: Bool {
@@ -114,6 +135,23 @@ class ScannerVC: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
     return .portrait
   }
   
+  // 화면 중앙의 바코드 스캔 영역 생성
+  func mask(viewToMask: UIView, maskRect: CGRect, invert: Bool = false) {
+    let maskLayer = CAShapeLayer()
+    let path = CGMutablePath()
+    if (invert) { // invert True 시 Mask 반전
+      path.addRect(CGRect(x:0,y:0,width:view.frame.size.width, height:view.frame.size.height))
+    }
+    path.addRect(maskRect)
+
+    maskLayer.path = path
+    if (invert) {
+      maskLayer.fillRule = .evenOdd
+    }
+
+    // Set the mask of the view.
+    viewToMask.layer.mask = maskLayer;
+  }
   
 }
 
