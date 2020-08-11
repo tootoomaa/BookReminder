@@ -14,8 +14,10 @@ class MainVC: UIViewController {
   
   // MARK: - Properties
   var markedBookList: [BookDetailInfo] = []
+  var userSelectedBookIndex: IndexPath = IndexPath(row: 0, section: 0)
   
   lazy var tableView: UITableView = {
+    
     let tableView = UITableView(frame: .zero, style: .grouped)
     tableView.dataSource = self
     tableView.delegate = self
@@ -41,13 +43,13 @@ class MainVC: UIViewController {
     
     configureView()
     
+    fetchMarkedBookList()
+    
     configureLayout()
   }
   
   override func viewWillAppear(_ animated: Bool) {
     navigationController?.navigationBar.isHidden = true
-    markedBookList = []
-    fetchMarkedBookList()
   }
   
   private func configureView() {
@@ -67,7 +69,6 @@ class MainVC: UIViewController {
       $0.top.equalTo(view.safeAreaLayoutGuide).offset(10)
       $0.leading.trailing.bottom.equalTo(view.safeAreaLayoutGuide)
     }
-    
   }
   
   // MARK: - Handler
@@ -89,7 +90,7 @@ class MainVC: UIViewController {
       } catch let signOutError as NSError {
         print ("Error signing out: %@", signOutError)
       }
-    } else { //
+    } else { // // Firebase 외 계정 로그아웃
       
     }
   }
@@ -114,6 +115,13 @@ class MainVC: UIViewController {
     }
   }
   
+  @objc private func tabAddCommentButton() {
+    print("tab tabAddCommentButton")
+    
+    let addCommentVC = AddCommentVC()
+    addCommentVC.markedBookInfo = markedBookList[userSelectedBookIndex.item ?? 0]
+    navigationController?.pushViewController(addCommentVC, animated: true)
+  }
 }
 
 // MARK: - UITableViewDataSource
@@ -130,27 +138,30 @@ extension MainVC: UITableViewDataSource {
   func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
     var cell = UITableViewCell(style: .default, reuseIdentifier: "Cell")
     
-    
     if indexPath.row == 0 {
-      
+      // collectionView 있는 Cell 책 정보들
       guard let myCell = tableView.dequeueReusableCell(
         withIdentifier: MainVCBookListCell.identifier,
         for: indexPath
         ) as? MainVCBookListCell else { fatalError() }
       
       myCell.markedBookList = markedBookList
+      myCell.passSelectedCellInfo = { indexPath in
+        self.userSelectedBookIndex = indexPath
+      }
+      
       cell = myCell
       
-      
     } else if indexPath.row == 1 {
-      
+      // 특정 책에 대한 상세한 정보
       guard let myCell = tableView.dequeueReusableCell(
         withIdentifier: BookInfoCell.identifier,
         for: indexPath
         ) as? BookInfoCell else { fatalError() }
       
-      cell = myCell
+      myCell.commentAddButton.addTarget(self, action: #selector(tabAddCommentButton), for: .touchUpInside)
       
+      cell = myCell
     }
     
     return cell

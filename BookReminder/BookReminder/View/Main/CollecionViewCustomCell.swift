@@ -10,6 +10,7 @@ import UIKit
 
 class CollecionViewCustomCell: UICollectionViewCell {
   
+  // MARK: - Properties
   static let identifier = "CollecionViewCustomCell"
   
   let bookThumbnailImageView: UIImageView = {
@@ -23,15 +24,30 @@ class CollecionViewCustomCell: UICollectionViewCell {
     return imageView
   }()
   
+  let selectedimageView: UIImageView = {
+    let imageView = UIImageView()
+    imageView.image = UIImage(systemName: "checkmark.circle.fill")
+//    imageView.tintColor = .systemPink
+    imageView.tintColor = CommonUI.mainBackgroudColor
+    imageView.isHidden = true
+    return imageView
+  }()
+  
+  // MARK: - Init
   override init(frame: CGRect) {
     super.init(frame: frame)
     
-    [bookThumbnailImageView].forEach{
+    [bookThumbnailImageView, selectedimageView].forEach{
       addSubview($0)
     }
     
     bookThumbnailImageView.snp.makeConstraints{
       $0.top.leading.trailing.bottom.equalTo(self)
+    }
+    
+    selectedimageView.snp.makeConstraints{
+      $0.trailing.bottom.equalTo(bookThumbnailImageView).offset(-5)
+      $0.width.height.equalTo(30)
     }
   }
   

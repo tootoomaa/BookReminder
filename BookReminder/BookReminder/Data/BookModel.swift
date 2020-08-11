@@ -40,8 +40,7 @@ struct Book: Decodable {
   }
 }
 
-class BookDetailInfo {
-  
+class BookDetailInfo: Equatable {
   var authors: [String]!
   var contents: String!
   var datetime: String!
@@ -107,8 +106,12 @@ class BookDetailInfo {
     if let creationDate = dictionary["creationDate"] as? Int {
       self.creationDate = creationDate
     }
-    
   }
+  
+  static func == (lhs: BookDetailInfo, rhs: BookDetailInfo) -> Bool {
+    lhs.isbn == rhs.isbn
+  }
+  
 }
 
 

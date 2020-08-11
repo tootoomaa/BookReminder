@@ -284,6 +284,11 @@ class MyBookVC: UIViewController {
         // book model 생성
         let bookDetailInfo = BookDetailInfo(isbnCode: isbnCode, dictionary: bookDicValue)
         self.bookDetailInfoArray.append(bookDetailInfo)
+        
+        self.bookDetailInfoArray.sort { (book1, book2) -> Bool in
+          book1.creationDate > book2.creationDate
+        }
+        
         self.collectionView.reloadData()
         self.initializationMultiButton()
       }
@@ -348,35 +353,38 @@ class MyBookVC: UIViewController {
   }
   
   // cell 에서 리턴 받은 버튼에 종류에 따라서 처리
-  private func tabBookDetailButton(buttonName: String, isbnCode: String, isMarked: Bool) {
+  private func tabBookDetailButton(buttonName: String, bookDetailInfo: BookDetailInfo, isMarked: Bool) {
     // mark: 즐겨찾기, comment: 코멘트, info: 자세한 설명 화면
-    print("Print Button Name in mybookList",buttonName)
     
     if buttonName == "mark" {
-      print("mark Handler Section")
       
-      guard let uid = Auth.auth().currentUser?.uid else { return }
+      guard let window = UIApplication.shared.delegate?.window,
+        let tabBarController = window?.rootViewController as? UITabBarController else { return }
+      
+      guard let naviController = tabBarController.viewControllers?.first as? UINavigationController,
+            let mainVC = naviController.visibleViewController as? MainVC else { return }
+      
+      guard let isbnCode = bookDetailInfo.isbn,
+            let uid = Auth.auth().currentUser?.uid else { return }
+      
       if !isMarked  {
-        // 체크가 되어 있다면
-        print("unMark -> mark")
         DB_REF_MARKBOOKS.child(uid).updateChildValues([isbnCode:1])
-        
+        mainVC.markedBookList.append(bookDetailInfo)
       } else {
-        // 체크 해제
-        print("mark -> unMark")
         DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue()
-        
+        if let index = mainVC.markedBookList.firstIndex(of: bookDetailInfo) {
+          mainVC.markedBookList.remove(at: index)
+        }
       }
+      mainVC.tableView.reloadData()
+      
     } else if buttonName == "comment" {
       print("Tab Comment Button in myBookVC")
       
     } else if buttonName == "info" {
       print("Tab info Button in myBookVC")
-      
     }
-    
   }
-  
 }
 
 // MARK: - UISearchBarDelegate
@@ -470,8 +478,8 @@ extension MyBookVC: UICollectionViewDataSource {
     
     cell.configure(bookDetailInfo: array[indexPath.item])
     // cell 내에서 버튼 눌렸을 경우 리턴 받아옴
-    cell.passButtonName = { buttonName, isbnCode, isMarked in
-      self.tabBookDetailButton(buttonName: buttonName, isbnCode: isbnCode, isMarked: isMarked)
+    cell.passButtonName = { buttonName, bookDetailInfo, isMarked in
+      self.tabBookDetailButton(buttonName: buttonName, bookDetailInfo: bookDetailInfo, isMarked: isMarked)
     }
     
     return cell

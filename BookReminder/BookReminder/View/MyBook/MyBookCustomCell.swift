@@ -13,7 +13,8 @@ class MyBookCustomCell: UICollectionViewCell {
   
   // MARK: - Properites
   static let identifier = "MyBoolCell"
-  var passButtonName: ((String, String, Bool)->())?
+  var bookDetailInfo: BookDetailInfo?
+  var passButtonName: ((String, BookDetailInfo, Bool)->())?
   var isbnCode: String?
   
   let bookThumbnailImageView: UIImageView = {
@@ -122,6 +123,7 @@ class MyBookCustomCell: UICollectionViewCell {
   func configure(bookDetailInfo: BookDetailInfo) {
     
     isbnCode = bookDetailInfo.isbn
+    self.bookDetailInfo = bookDetailInfo
     guard let urlString = bookDetailInfo.thumbnail else { return }
     guard let url = URL(string: urlString) else { return }
     
@@ -154,8 +156,8 @@ class MyBookCustomCell: UICollectionViewCell {
     }
     
     guard let passButtonName = passButtonName,
-          let isbnCode = isbnCode else { return }
-    passButtonName(buttonName, isbnCode, markImage.isHidden)
+          let bookDetailInfo = bookDetailInfo else { return }
+    passButtonName(buttonName, bookDetailInfo, markImage.isHidden)
     
   }
 }

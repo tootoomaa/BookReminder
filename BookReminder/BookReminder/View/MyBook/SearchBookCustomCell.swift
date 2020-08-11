@@ -15,8 +15,6 @@ class SearchBookCustomCell: UICollectionViewCell {
   
   let textDistance: CGFloat = 20
   
-  var searchedBookList: BookDetailInfo?
-  
   let bookThumbnailImageView: UIImageView = {
     let imageView = UIImageView()
     imageView.backgroundColor = .gray

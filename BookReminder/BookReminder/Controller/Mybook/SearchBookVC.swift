@@ -18,7 +18,10 @@ class SearchBookVC: UIViewController {
   var userSelectSearchCategory: String = "책이름"
   let networkServices = NetworkServices()
   var searchedBookList: [BookDetailInfo] = []
+  
   var passBookInfoClosure:((String, [String: AnyObject]) -> ())? // handle Result return closure
+  
+  var bookInfoLargeOn: Bool = false
   
   lazy var mainCategoryButton: UIButton = {
     let button = UIButton()
@@ -230,12 +233,62 @@ extension SearchBookVC: UISearchBarDelegate {
 extension SearchBookVC: UICollectionViewDelegate {
   
   func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+    
     hideKeyBoard()
+    guard let cell = collectionView.cellForItem(at: indexPath) as? SearchBookCustomCell else { return }
+    guard let bookName = searchedBookList[indexPath.item].title else { return }
+    
+    let alert = UIAlertController(title: "\(bookName)", message: "이 책을 등록하시겠습니까?", preferredStyle: .alert)
+    let addAction = UIAlertAction(title: "등록", style: .default) { (_) in
+      
+      guard let isbnCode = self.searchedBookList[indexPath.item].isbn else { return }
+      guard let passBookInfoClosure = self.passBookInfoClosure else { return }
+      
+      let documents = self.searchedBookList[indexPath.item]
+      let creationDate = Int(NSDate().timeIntervalSince1970)
+      
+      let value = [
+      "authors": documents.authors!,
+      "contents": documents.contents!,
+      "datetime": documents.datetime!,
+      "isbn": documents.isbn!,
+      "price": documents.price!,
+      "publisher": documents.publisher!,
+      "sale_price": documents.sale_price!,
+      "status": documents.status!,
+      "thumbnail": documents.thumbnail!,
+      "title": documents.title!,
+      "translators": documents.translators!,
+      "url": documents.url!,
+      "creationDate": creationDate
+      ] as Dictionary<String, AnyObject>
+      
+      passBookInfoClosure(isbnCode, value)
+      self.navigationController?.popViewController(animated: true)
+    }
+    let cancelAction = UIAlertAction(title: "취소", style: .destructive) { (_) in }
+    
+    let imageView = UIImageView(frame: CGRect(x: 80, y: 100, width: 140, height: 200))
+    // alert 버튼 및 이미지 설정
+    imageView.image = cell.bookThumbnailImageView.image
+    alert.view.addSubview(imageView)
+    
+    alert.addAction(addAction)
+    alert.addAction(cancelAction)
+
+    if let view = alert.view {
+      let height = NSLayoutConstraint(item: view, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 400)
+      let width = NSLayoutConstraint(item: view, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 300)
+      alert.view.addConstraints([ height, width])
+    }
+    
+    present(alert, animated: true)
   }
   
   func scrollViewDidScroll(_ scrollView: UIScrollView) {
     hideKeyBoard()
   }
+  
   
 }
 
