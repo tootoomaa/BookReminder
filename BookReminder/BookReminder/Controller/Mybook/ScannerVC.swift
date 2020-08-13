@@ -59,6 +59,22 @@ class ScannerVC: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
     captureSession.startRunning()
   }
   
+  override func viewWillAppear(_ animated: Bool) {
+    super.viewWillAppear(animated)
+    
+    if (captureSession?.isRunning == false) {
+      captureSession.startRunning()
+    }
+  }
+  
+  override func viewWillDisappear(_ animated: Bool) {
+    super.viewWillDisappear(animated)
+    
+    if (captureSession?.isRunning == true) {
+      captureSession.stopRunning()
+    }
+  }
+  
   private func configureSetUI() {
     
     view.backgroundColor = UIColor.black
@@ -77,28 +93,12 @@ class ScannerVC: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
     ])
   }
   
-  
+  // MARK: - Handler
   func failed() {
     let ac = UIAlertController(title: "Scanning not supported", message: "Your device does not support scanning a code from an item. Please use a device with a camera.", preferredStyle: .alert)
     ac.addAction(UIAlertAction(title: "OK", style: .default))
     present(ac, animated: true)
     captureSession = nil
-  }
-  
-  override func viewWillAppear(_ animated: Bool) {
-    super.viewWillAppear(animated)
-    
-    if (captureSession?.isRunning == false) {
-      captureSession.startRunning()
-    }
-  }
-  
-  override func viewWillDisappear(_ animated: Bool) {
-    super.viewWillDisappear(animated)
-    
-    if (captureSession?.isRunning == true) {
-      captureSession.stopRunning()
-    }
   }
   
   func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {

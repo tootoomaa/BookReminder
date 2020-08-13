@@ -118,6 +118,7 @@ class MainVC: UIViewController {
   @objc private func tabAddCommentButton() {
     print("tab tabAddCommentButton")
     
+    guard (markedBookList.first?.title) != nil else { return }
     let addCommentVC = AddCommentVC()
     addCommentVC.markedBookInfo = markedBookList[userSelectedBookIndex.item]
     navigationController?.pushViewController(addCommentVC, animated: true)

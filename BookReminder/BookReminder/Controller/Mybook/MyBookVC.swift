@@ -194,7 +194,7 @@ class MyBookVC: UIViewController {
     self.view.endEditing(true)
   }
   
-  // MARK: - Handler
+  // MARK: - Button Handler
   @objc func tabMultiButton() {
     
     if !multibuttomActive {
@@ -260,30 +260,12 @@ class MyBookVC: UIViewController {
     multibuttomActive.toggle()
   }
   
-  // multiButton 에니메이션 초기화
-  func initializationMultiButton() {
-    multibuttomActive = false
-    UIView.animate(withDuration: 0.5) {
-      
-      self.deleteBookButton.center.x += self.featureButtonSize*2 - self.bounceDistance
-      self.bookSearchButton.center.y += self.featureButtonSize*1.5 - self.bounceDistance
-      self.bookSearchButton.center.x += self.featureButtonSize*1.5 - self.bounceDistance
-      self.barcodeButton.center.y += self.featureButtonSize*2 - self.bounceDistance
-      
-      self.multiButton.transform = .identity
-//      [self.multiButton, self.bookSearchButton, self.barcodeButton, self.deleteBookButton].forEach{
-//        $0.transform = .identity
-//      }
-    }
-  }
-  
   @objc private func tabFeatureButton(_ sender: UIButton) {
     
     guard let buttonName = sender.currentTitle else { return }
     print(buttonName)
     
   }
-  
   
   //search handler
   @objc private func tabSearchButton(_ sender: UIButton) {
@@ -337,7 +319,19 @@ class MyBookVC: UIViewController {
     }
   }
   
+  // multiButton 에니메이션 초기화
+  func initializationMultiButton() {
+    multibuttomActive = false
+    UIView.animate(withDuration: 0.5) {
+      self.deleteBookButton.center.x += self.featureButtonSize*2 - self.bounceDistance
+      self.bookSearchButton.center.y += self.featureButtonSize*1.5 - self.bounceDistance
+      self.bookSearchButton.center.x += self.featureButtonSize*1.5 - self.bounceDistance
+      self.barcodeButton.center.y += self.featureButtonSize*2 - self.bounceDistance
+      self.multiButton.transform = .identity
+    }
+  }
   
+  // MARK: - Handler
   // fetch User Book Data
   private func fetchUserBookIndex() {
     guard let uid = Auth.auth().currentUser?.uid else { return }
@@ -494,7 +488,6 @@ extension MyBookVC: UICollectionViewDataSource {
     cell.passButtonName = { buttonName, bookDetailInfo, isMarked in
       self.tabBookDetailButton(buttonName: buttonName, bookDetailInfo: bookDetailInfo, isMarked: isMarked)
     }
-    
     return cell
   }
 }

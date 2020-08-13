@@ -64,7 +64,7 @@ class LoginVC: UIViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
     
-    view.backgroundColor = CommonUI.mainBackgroudColor
+    view.backgroundColor = CommonUI.titleTextColor
     
     configureLayout()
     
@@ -264,7 +264,6 @@ extension LoginVC: ASAuthorizationControllerDelegate {
       }
     }
   }
-  
   
   func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
     // 에러 발생 시 처리 사항

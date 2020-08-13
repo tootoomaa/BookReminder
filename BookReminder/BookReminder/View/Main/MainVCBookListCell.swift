@@ -78,7 +78,6 @@ extension MainVCBookListCell: UICollectionViewDelegate {
   func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
     guard let cell = collectionView.cellForItem(at: indexPath) as? CollecionViewCustomCell else { return }
     // 책 선택 해제시 체크 표시 없애기
-    print("deSelect",indexPath)
     cell.selectedimageView.isHidden = true
   }
   
@@ -86,11 +85,9 @@ extension MainVCBookListCell: UICollectionViewDelegate {
     // Cell 재사용에 따른 체크 표시 수정
     guard let castedCell = cell as? CollecionViewCustomCell else { return }
     if indexPath == selectedBookIndexPath || castedCell.isSelected {
-      print("will Display Selected")
       castedCell.selectedimageView.isHidden = false
       castedCell.isSelected = true
     } else {
-      print("will Display deSelected")
       castedCell.selectedimageView.isHidden = true
       castedCell.isSelected = false
     }
@@ -109,8 +106,6 @@ extension MainVCBookListCell: UICollectionViewDataSource {
     var cell = UICollectionViewCell()
     
     if markedBookList.count != 0 {
-      
-      print("data",markedBookList.count)
       guard let myCell = collectionView.dequeueReusableCell(
         withReuseIdentifier: CollecionViewCustomCell.identifier,
         for: indexPath) as? CollecionViewCustomCell else { fatalError() }
@@ -118,16 +113,12 @@ extension MainVCBookListCell: UICollectionViewDataSource {
       if let imageURL = markedBookList[indexPath.item].thumbnail {
         myCell.configureCell(imageURL: imageURL)
       }
-      
       cell = myCell
     } else {
-      print("do data",markedBookList.count)
       guard let myCell = collectionView.dequeueReusableCell(
         withReuseIdentifier: CollectionViewNoDataCell.identifier,
         for: indexPath) as? CollectionViewNoDataCell else { fatalError() }
-      
       cell = myCell
-      
     }
     return cell
   }
