@@ -15,8 +15,19 @@ class AddCommentVC: UIViewController {
   // MARK: - Properties
   var markedBookInfo: BookDetailInfo?
   var keyboardUpChecker: Bool = false
-  var userInputTexting: Bool = false
+  var tempKeyboardHeight: CGFloat = 0
+  var isMultibuttomActive: Bool = false
   var isDrawing = false
+  var isUserInputText: Bool = false {
+    didSet {
+      
+      if !isUserInputText {
+        addCommentView.configureMultiButton(systemImageName: "plus")
+      } else {
+        addCommentView.configureMultiButton(systemImageName: "square.and.arrow.up.fill")
+      }
+    }
+  }
   
   // drwaing
   var startPoint: CGPoint = CGPoint(x: 0, y: 0)
@@ -35,13 +46,14 @@ class AddCommentVC: UIViewController {
     view.multiButton.addTarget(self, action: #selector(tabMultiButton), for: .touchUpInside)
     view.cameraButton.addTarget(self, action: #selector(tabTakePhoto), for: .touchUpInside)
     view.photoAlbumButton.addTarget(self, action: #selector(tabPhotoAlnum), for: .touchUpInside)
+    view.multiButton.addTarget(self, action: #selector(tabMultiButton), for: .touchUpInside)
     //    view..addTarget(self, action: #selector(tabFeatureButton(_:)), for: .touchUpInside)
     view.pagetextField.delegate = self
     
     return view
   }()
   
-  private lazy var imagePicker: UIImagePickerController = {
+  lazy var imagePicker: UIImagePickerController = {
     let imagePicker = UIImagePickerController()
     imagePicker.delegate = self
     imagePicker.allowsEditing = true
@@ -53,7 +65,9 @@ class AddCommentVC: UIViewController {
     super.viewDidLoad()
     
     configureSetUI()
-
+    
+    multiButtonAppear()
+    
   }
   
   override func loadView() {
@@ -64,13 +78,6 @@ class AddCommentVC: UIViewController {
     super.viewWillAppear(animated)
     navigationController?.navigationBar.isHidden = false
     
-    //multi Button 에니메이션 처리
-    UIView.animate(withDuration: 0.5) {
-      [self.addCommentView.cameraButton, self.addCommentView.photoAlbumButton, self.addCommentView.deleteBookButton, self.addCommentView.multiButton].forEach{
-        $0.center.x = $0.center.x - 100
-      }
-    }
-    
     //keyboard 입력에 따른 화면 올리는 Notification 설정
     NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear(noti:)), name: UIResponder.keyboardWillShowNotification, object: nil)
     NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear(noti:)), name: UIResponder.keyboardWillHideNotification, object: nil)
@@ -78,12 +85,6 @@ class AddCommentVC: UIViewController {
   
   override func viewDidDisappear(_ animated: Bool) {
     super.viewDidDisappear(animated)
-    //multi Button 에니메이션 처리
-    UIView.animate(withDuration: 0.5) {
-      [self.addCommentView.cameraButton, self.addCommentView.photoAlbumButton, self.addCommentView.deleteBookButton, self.addCommentView.multiButton].forEach{
-        $0.center.x = $0.center.x + 100
-      }
-    }
     
     //keyboard 입력에 따른 화면 올리는 Notification 설정 해제
     NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
@@ -216,20 +217,123 @@ class AddCommentVC: UIViewController {
   }
   
   
+  // MARK: - Button Handler
+  @objc func tabMultiButton() {
+    let view = self.addCommentView
+    
+    guard !isUserInputText else {
+      
+      let alertController = UIAlertController(title: "업로드", message: "이 글을 업로드 하시겠습니까?", preferredStyle: .alert)
+      let uploadAction = UIAlertAction(title: "업로드", style: .default) { _ in
+        print("upload")
+        
+        
+        self.dismiss(animated: true, completion: nil)
+      }
+      
+      let cancelAction = UIAlertAction(title: "취소", style: .destructive, handler: { _ in
+        
+      })
+    
+      alertController.addAction(uploadAction)
+      alertController.addAction(cancelAction)
+      
+      present(alertController, animated: true, completion: nil)
+      
+      return
+    }
+    if !isMultibuttomActive {
+      UIView.animate(withDuration: 0.5) {
+        view.multiButton.transform = view.multiButton.transform.rotated(by: -(.pi/4*3))
+      }
+      //barcode -> bookSearch -> delete
+      UIView.animateKeyframes(withDuration: 0.7, delay: 0, options: [], animations: {
+        UIView.addKeyframe(withRelativeStartTime: 0, relativeDuration: 0.3) {
+          view.cameraButton.center.y -= view.featureButtonSize*2
+        }
+        UIView.addKeyframe(withRelativeStartTime: 0.1, relativeDuration: 0.3) {
+          view.photoAlbumButton.center.y -= view.featureButtonSize*1.5
+          view.photoAlbumButton.center.x -= view.featureButtonSize*1.5
+          //          self.bookSearchButton.transform = .init(scaleX: 2, y: 2)
+        }
+        UIView.addKeyframe(withRelativeStartTime: 0.2, relativeDuration: 0.3) {
+          view.deleteBookButton.center.x -= view.featureButtonSize*2
+        }
+        UIView.addKeyframe(withRelativeStartTime: 0.3, relativeDuration: 0.1) {
+          view.cameraButton.center.y += view.bounceDistance
+        }
+        UIView.addKeyframe(withRelativeStartTime: 0.4, relativeDuration: 0.1) {
+          view.photoAlbumButton.center.y += view.bounceDistance
+          view.photoAlbumButton.center.x += view.bounceDistance
+        }
+        UIView.addKeyframe(withRelativeStartTime: 0.5, relativeDuration: 0.1) {
+          view.deleteBookButton.center.x += view.bounceDistance
+        }
+      })
+      
+    } else {
+      UIView.animate(withDuration: 0.5) {
+        view.multiButton.transform = view.multiButton.transform.rotated(by: .pi/4*3)
+      }
+      // delete -> bookSearch -> barcode
+      UIView.animateKeyframes(withDuration: 0.7, delay: 0, options: [], animations: {
+        // 바운드
+        UIView.addKeyframe(withRelativeStartTime: 0, relativeDuration: 0.1) {
+          view.deleteBookButton.center.x -= view.bounceDistance
+        }
+        UIView.addKeyframe(withRelativeStartTime: 0.1, relativeDuration: 0.1) {
+          view.photoAlbumButton.center.y -= view.bounceDistance
+          view.photoAlbumButton.center.x -= view.bounceDistance
+        }
+        UIView.addKeyframe(withRelativeStartTime: 0.2, relativeDuration: 0.1) {
+          view.cameraButton.center.y -= view.bounceDistance
+        }
+        // 사라짐
+        UIView.addKeyframe(withRelativeStartTime: 0.3, relativeDuration: 0.3) {
+          view.deleteBookButton.center.x += view.featureButtonSize*2
+        }
+        UIView.addKeyframe(withRelativeStartTime: 0.4, relativeDuration: 0.3) {
+          view.photoAlbumButton.center.y += view.featureButtonSize*1.5
+          view.photoAlbumButton.center.x += view.featureButtonSize*1.5
+        }
+        UIView.addKeyframe(withRelativeStartTime: 0.5, relativeDuration: 0.3) {
+          view.cameraButton.center.y += view.featureButtonSize*2
+        }
+        
+      })
+    }
+    isMultibuttomActive.toggle()
+  }
+  
+  private func multiButtonAppear() {
+    //multi Button 에니메이션 처리
+    UIView.animate(withDuration: 0.5) {
+      [self.addCommentView.cameraButton, self.addCommentView.photoAlbumButton, self.addCommentView.deleteBookButton, self.addCommentView.multiButton].forEach{
+        $0.center.x = $0.center.x - 100
+      }
+    }
+  }
+  
+  // multiButton 에니메이션 초기화
+  func initializationMultiButton() {
+    let view = self.addCommentView
+    
+    isMultibuttomActive = false
+    UIView.animate(withDuration: 0.5) {
+      
+      view.deleteBookButton.center.x += view.featureButtonSize*2 - view.bounceDistance
+      view.photoAlbumButton.center.y += view.featureButtonSize*1.5 - view.bounceDistance
+      view.photoAlbumButton.center.x += view.featureButtonSize*1.5 - view.bounceDistance
+      view.cameraButton.center.y += view.featureButtonSize*2 - view.bounceDistance
+      
+      view.multiButton.transform = .identity
+    }
+  }
   
   @objc func tabPhotoAlnum() {
     imagePicker.sourceType = .savedPhotosAlbum // 차이점 확인하기
     imagePicker.mediaTypes = [kUTTypeImage] as [String] // 이미지, 사진 둘다 불러오기
-    //        imagePicker.mediaTypes = [kUTTypeImage as String] // 사진만 보여질 경우
-    //        imagePicker.mediaTypes = [kUTTypeMovie as String] // 동영상만 보여질 경우
-    /*
-     photoLibray - 앨범을 선택하는 화면을 표시 후, 선택한 앨범에서 사진 선택
-     camera - 새로운 사진 촬영
-     savedPhotosAlbum - 최근에 찍은 사진들을 나열
-     */
-    
     present(imagePicker, animated: true,completion: {
-      self.addCommentView.initializationMultiButton()
       self.touchesBeganHandler()
       self.touchesEndedHandler()
       self.touchesMovedHandler()
@@ -250,17 +354,18 @@ class AddCommentVC: UIViewController {
       imagePicker.cameraFlashMode = .off
     }
     
-    present(imagePicker, animated: true,completion: {
-      self.addCommentView.initializationMultiButton()
-    })
+    present(imagePicker, animated: true,completion: nil )
   }
   
+  // MARK: - Keyboard Handler
   @objc func keyboardWillAppear( noti: NSNotification ) {
     if let keyboardFrame: NSValue = noti.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue  {
       if keyboardUpChecker == false {
         let keyboardRectangle = keyboardFrame.cgRectValue
         let keyboardHeight = keyboardRectangle.height
         self.addCommentView.frame.origin.y -= keyboardHeight
+        tempKeyboardHeight = keyboardHeight
+        isUserInputText = true
         keyboardUpChecker = true
       }
     }
@@ -268,18 +373,27 @@ class AddCommentVC: UIViewController {
   
   @objc func keyboardWillDisappear( noti: NSNotification ) {
     if let keyboardFrame: NSValue = noti.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue {
-      let keyboardRectangle = keyboardFrame.cgRectValue
-      let keyboardHeight = keyboardRectangle.height
-      self.addCommentView.frame.origin.y += keyboardHeight
-      keyboardUpChecker = false
+      if keyboardUpChecker == true {
+        let keyboardRectangle = keyboardFrame.cgRectValue
+        let keyboardHeight = keyboardRectangle.height
+        self.addCommentView.frame.origin.y += keyboardHeight
+        tempKeyboardHeight = keyboardHeight
+        isUserInputText = false
+        keyboardUpChecker = false
+      }
     }
   }
 }
 
+// MARK: - UIImagePickerControllerDelegate & UINavigationControllerDelegate
 extension AddCommentVC: UIImagePickerControllerDelegate & UINavigationControllerDelegate {
   
+  
+  func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+    picker.dismiss(animated: true, completion: nil)
+  }
+  
   func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-    
     let mediaType = info[.mediaType] as! NSString
     if UTTypeEqual(mediaType, kUTTypeImage) {
       // handle Image Type
@@ -289,6 +403,7 @@ extension AddCommentVC: UIImagePickerControllerDelegate & UINavigationController
       addCommentView.captureImageView.image = selectedImage
     }
     dismiss(animated: true, completion: {
+      self.initializationMultiButton()
       self.touchesBeganHandler()
       self.touchesEndedHandler()
       self.touchesMovedHandler()
@@ -296,10 +411,12 @@ extension AddCommentVC: UIImagePickerControllerDelegate & UINavigationController
   }
 }
 
+// MARK: - UITextFieldDelegate
 extension AddCommentVC: UITextFieldDelegate {
   
   func textFieldShouldReturn(_ textField: UITextField) -> Bool {
     addCommentView.myTextView.becomeFirstResponder()
+    isUserInputText = true
     return true
   }
 }

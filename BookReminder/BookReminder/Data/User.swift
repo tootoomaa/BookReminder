@@ -12,6 +12,7 @@ class User {
   var uid: String!
   var nickName: String!
   var email: String!
+  var profileImageUrl: String!
 
   init(uid:String, dictionary: Dictionary<String, AnyObject> ) {
     self.uid = uid
@@ -22,6 +23,10 @@ class User {
 
     if let email = dictionary["email"] as? String {
       self.email = email
+    }
+    
+    if let profileImageUrl = dictionary["profileImageUrl"] as? String {
+      self.profileImageUrl = profileImageUrl
     }
   }
 }

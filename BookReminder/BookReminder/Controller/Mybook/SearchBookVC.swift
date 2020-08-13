@@ -288,10 +288,7 @@ extension SearchBookVC: UICollectionViewDelegate {
   func scrollViewDidScroll(_ scrollView: UIScrollView) {
     hideKeyBoard()
   }
-  
-  
 }
-
 
 // MARK: - UIcollecionViewDataSource
 extension SearchBookVC: UICollectionViewDataSource {
@@ -308,7 +305,6 @@ extension SearchBookVC: UICollectionViewDataSource {
     return cell
   }
 }
-
 
 // MARK: - UICollecionViewDelegateFlowLayout
 extension SearchBookVC: UICollectionViewDelegateFlowLayout {

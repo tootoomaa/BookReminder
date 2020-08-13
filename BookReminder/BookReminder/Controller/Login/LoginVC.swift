@@ -251,7 +251,8 @@ extension LoginVC: ASAuthorizationControllerDelegate {
               
               let value = [
                 "nickName": "사용자",
-                "email": email
+                "email": email,
+                "profileImageUrl": nil
               ] as Dictionary<String, AnyObject>
               
               DB_REF_USER.updateChildValues([uid: value])

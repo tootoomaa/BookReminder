@@ -13,27 +13,30 @@ import Firebase
 class MainVC: UIViewController {
   
   // MARK: - Properties
+  var userProfileData: User?
+  var userProfileImageData: Data?
   var markedBookList: [BookDetailInfo] = []
   var userSelectedBookIndex: IndexPath = IndexPath(row: 0, section: 0)
   
-  lazy var tableView: UITableView = {
+  
+  lazy var mainTableHeaderView: MainTableHeaderView = {
+    let view = MainTableHeaderView()
     
+    view.detailProfileButton.addTarget(self, action: #selector(tabDetailProfileButton), for: .touchUpInside)
+    return view
+  }()
+  
+  lazy var tableView: UITableView = {
     let tableView = UITableView(frame: .zero, style: .grouped)
     tableView.dataSource = self
     tableView.delegate = self
     tableView.separatorStyle = .none
     tableView.allowsSelection = false
-    
-    let mainTableHeaderView = MainTableHeaderView()
-    mainTableHeaderView.logoutButton.addTarget(self, action: #selector(tabLogoutButton), for: .touchUpInside)
-    
     tableView.tableHeaderView = mainTableHeaderView
-    tableView.tableHeaderView?.frame.size = CGSize(width: view.frame.width, height: 90)
-    
+    tableView.tableHeaderView?.frame.size = CGSize(width: view.frame.width, height: 100)
     tableView.register(UITableViewCell.self, forCellReuseIdentifier: "Cell")
     tableView.register(MainVCBookListCell.self, forCellReuseIdentifier: MainVCBookListCell.identifier)
     tableView.register(BookInfoCell.self, forCellReuseIdentifier: BookInfoCell.identifier)
-    
     return tableView
   }()
   
@@ -42,6 +45,8 @@ class MainVC: UIViewController {
     super.viewDidLoad()
     
     configureView()
+    
+    fetUserProfileData()
     
     fetchMarkedBookList()
     
@@ -71,48 +76,68 @@ class MainVC: UIViewController {
     }
   }
   
-  // MARK: - Handler
+  // MARK: - Network handler
   
-  @objc private func tabLogoutButton() {
-    print("tab Logout Button")
+  private func fetUserProfileData() {
+    guard let uid = Auth.auth().currentUser?.uid else { return }
     
-    // Firebase 기반 계정 로그아웃
-    if (Auth.auth().currentUser?.uid) != nil {
-      let firebaseAuth = Auth.auth()
-      do { // Firebase 계정 로그아웃
-        try firebaseAuth.signOut()
-        print("Success logout")
-        
-        let loginVC = LoginVC()
-        loginVC.modalPresentationStyle = .fullScreen
-        present(loginVC, animated: true)
-        
-      } catch let signOutError as NSError {
-        print ("Error signing out: %@", signOutError)
-      }
-    } else { // // Firebase 외 계정 로그아웃
+    DB_REF_USER.child(uid).observeSingleEvent(of: .value) { (snapshot) in
       
+      if let value = snapshot.value as? Dictionary<String, AnyObject> {
+        print(value)
+        let userData = User(uid: uid, dictionary: value)
+        
+        if let imageURL = URL(string: userData.profileImageUrl) {
+          URLSession.shared.dataTask(with: imageURL) { (data, response, error) in
+            if let error = error {
+              print("error", error.localizedDescription)
+            }
+            if let data = data,
+              let nickName = userData.nickName {
+              // 사용자 데이터가 있는 경우
+              DispatchQueue.main.async {
+                self.mainTableHeaderView.configureHeaderView(image: data,
+                                                             userName: nickName,
+                                                             isHiddenLogoutButton: true)
+              }
+              
+              self.userProfileData = userData
+            }
+          }.resume()
+        } else {
+          // 사용자 데이터 없는 경우
+          print("no use data")
+          self.mainTableHeaderView.configureHeaderView(image: nil,
+                                                       userName: "사용자",
+                                                       isHiddenLogoutButton: true)
+          self.userProfileData = userData
+        }
+      }
     }
   }
   
   private func fetchMarkedBookList() {
     guard let uid = Auth.auth().currentUser?.uid else { return }
     DB_REF_MARKBOOKS.child(uid).observeSingleEvent(of: .value) { (snapshot) in
-      
       guard let value = snapshot.value as? [String: Int] else { return }
-      
       value.keys.forEach{
         Database.fetchBookDetailData(uid: uid, isbnCode: $0) { (bookDetailInfo) in
           self.markedBookList.append(bookDetailInfo)
-          
           self.markedBookList.sort { (book1, book2) -> Bool in
             book1.creationDate > book2.creationDate
           }
-          
           self.tableView.reloadData()
         }
       }
     }
+  }
+  
+  // MARK: - Button Handler
+  @objc private func tabDetailProfileButton() {
+    let userProfileVC = UserProfileVC(style: .grouped)
+    userProfileVC.userProfileData = self.userProfileData
+    userProfileVC.userProfileImageData = self.userProfileImageData
+    navigationController?.pushViewController(userProfileVC, animated: true)
   }
   
   @objc private func tabAddCommentButton() {

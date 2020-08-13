@@ -11,8 +11,6 @@ import UIKit
 class AddCommentView: UIScrollView {
   
   // MARK: - Properties
-  var multibuttomActive: Bool = false
-  
   let multiButtonSize: CGFloat = 70
   let featureButtonSize: CGFloat = 50
   let bounceDistance: CGFloat = 25
@@ -36,14 +34,13 @@ class AddCommentView: UIScrollView {
   
   lazy var multiButton: UIButton = {
     let button = UIButton()
-    let imageConfigure = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium, scale: .large)
-    let buttonImage = UIImage(systemName: "plus", withConfiguration: imageConfigure)
+//    let imageConfigure = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium, scale: .large)
+//    let buttonImage = UIImage(systemName: "plus", withConfiguration: imageConfigure)
     button.imageView?.tintColor = .white
     button.backgroundColor = CommonUI.mainBackgroudColor
-    button.setImage(buttonImage, for: .normal)
+//    button.setImage(buttonImage, for: .normal)
     button.layer.cornerRadius = multiButtonSize/2
     button.clipsToBounds = true
-    button.addTarget(self, action: #selector(tabMultiButton), for: .touchUpInside)
     return button
   }()
   
@@ -124,6 +121,8 @@ class AddCommentView: UIScrollView {
     super.init(frame: frame)
     
     configureLayout()
+    
+    configureMultiButton(systemImageName: "plus")
     
   }
   
@@ -254,6 +253,17 @@ class AddCommentView: UIScrollView {
     stackView.alignment = .center
     self.addSubview(stackView)
     return stackView
+  }
+  
+  // MARK: - configure MultiButton
+  func configureMultiButton(systemImageName: String) {
+    
+    let imageConfigure = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium, scale: .large)
+    let buttonImage = UIImage(systemName: systemImageName, withConfiguration: imageConfigure)
+    multiButton.setImage(buttonImage, for: .normal)
+    multiButton.layer.cornerRadius = multiButtonSize/2
+    multiButton.clipsToBounds = true
+    
   }
 }
 
