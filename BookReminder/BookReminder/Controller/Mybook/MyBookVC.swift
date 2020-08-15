@@ -275,6 +275,7 @@ class MyBookVC: UIViewController {
     searchBookVC.passBookInfoClosure = { isbnCode, bookDicValue in
       DispatchQueue.main.async {
         // DB 업데이트
+        DB_REF_COMMENT_STATICS.child(uid).updateChildValues([isbnCode:0])
         DB_REF_USERBOOKS.child(uid).updateChildValues([isbnCode: bookDicValue])
         // book model 생성
         let bookDetailInfo = BookDetailInfo(isbnCode: isbnCode, dictionary: bookDicValue)
@@ -303,6 +304,7 @@ class MyBookVC: UIViewController {
     scannerVC.passBookInfoClosure = { isbnCode, bookDicValue in
       DispatchQueue.main.async {
         // DB 업데이트
+        DB_REF_COMMENT_STATICS.child(uid).updateChildValues([isbnCode:0])
         DB_REF_USERBOOKS.child(uid).updateChildValues([isbnCode: bookDicValue])
         // book model 생성
         let bookDetailInfo = BookDetailInfo(isbnCode: isbnCode, dictionary: bookDicValue)
@@ -465,7 +467,6 @@ extension MyBookVC: UICollectionViewDelegate {
         cell.markButton.isSelected = false
       }
     }
-    
   }
 }
 

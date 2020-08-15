@@ -15,8 +15,13 @@ class MainVC: UIViewController {
   // MARK: - Properties
   var userProfileData: User?
   var userProfileImageData: Data?
-  var markedBookList: [BookDetailInfo] = []
-  var userSelectedBookIndex: IndexPath = IndexPath(row: 0, section: 0)
+  var markedBookList: [BookDetailInfo] = [] // 사용자의 북마크된 책 리스트
+  var markedBookCommentCountList: [Int] = [] 
+  var userSelectedBookIndex: IndexPath = IndexPath(row: 0, section: 0) {
+    didSet {
+      fetchMarkedBookCommentCount()
+    }
+  }
   
   
   lazy var mainTableHeaderView: MainTableHeaderView = {
@@ -62,6 +67,10 @@ class MainVC: UIViewController {
     view.backgroundColor = .white
     
     view.layoutMargins = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
+    
+    mainTableHeaderView.profileImageButton.addTarget(self,
+                                                     action: #selector(tabProfileImageButton),
+                                                     for: .touchUpInside)
   }
   
   private func configureLayout() {
@@ -82,12 +91,11 @@ class MainVC: UIViewController {
     guard let uid = Auth.auth().currentUser?.uid else { return }
     
     DB_REF_USER.child(uid).observeSingleEvent(of: .value) { (snapshot) in
-      
       if let value = snapshot.value as? Dictionary<String, AnyObject> {
-        print(value)
-        let userData = User(uid: uid, dictionary: value)
         
-        if let imageURL = URL(string: userData.profileImageUrl) {
+        let userData = User(uid: uid, dictionary: value)
+        if let urlString = userData.profileImageUrl {
+          guard let imageURL = URL(string: urlString) else { return print("Fail to make URL by String") }
           URLSession.shared.dataTask(with: imageURL) { (data, response, error) in
             if let error = error {
               print("error", error.localizedDescription)
@@ -100,13 +108,11 @@ class MainVC: UIViewController {
                                                              userName: nickName,
                                                              isHiddenLogoutButton: true)
               }
-              
               self.userProfileData = userData
             }
           }.resume()
         } else {
           // 사용자 데이터 없는 경우
-          print("no use data")
           self.mainTableHeaderView.configureHeaderView(image: nil,
                                                        userName: "사용자",
                                                        isHiddenLogoutButton: true)
@@ -132,7 +138,26 @@ class MainVC: UIViewController {
     }
   }
   
+  private func fetchMarkedBookCommentCount() {
+    
+    guard let uid = Auth.auth().currentUser?.uid else { return }
+    guard let isbnCode = markedBookList[userSelectedBookIndex.item].isbn else { return }
+    guard let cell = tableView.cellForRow(at: IndexPath(row: 1, section: 0)) as? BookInfoCell else { return }
+    
+    DB_REF_COMMENT_STATICS.child(uid).child(isbnCode).observeSingleEvent(of: .value) { (snapshot) in
+      
+      guard let value = snapshot.value else { return }
+      cell.commentLabel.attributedText = NSAttributedString.configureAttributedString(systemName: "bubble.left.fill", setText: "\(value)")
+    }
+  }
+  
   // MARK: - Button Handler
+  @objc private func tabProfileImageButton() {
+    
+    print("tab profile image button")
+    
+  }
+  
   @objc private func tabDetailProfileButton() {
     let userProfileVC = UserProfileVC(style: .grouped)
     userProfileVC.userProfileData = self.userProfileData
@@ -141,12 +166,17 @@ class MainVC: UIViewController {
   }
   
   @objc private func tabAddCommentButton() {
-    print("tab tabAddCommentButton")
-    
-    guard (markedBookList.first?.title) != nil else { return }
+    guard (markedBookList.first?.title) != nil else { return } // 책 정보가 로딩되기전에 버튼 누를 시 무시
     let addCommentVC = AddCommentVC()
     addCommentVC.markedBookInfo = markedBookList[userSelectedBookIndex.item]
     navigationController?.pushViewController(addCommentVC, animated: true)
+  }
+  
+  @objc private func tabCommentListEditButton() {
+    guard (markedBookList.first?.title) != nil else { return } // 책 정보가 로딩되기전에 버튼 누를 시 무시
+    let commetListVC = CommentListVC(style: .plain)
+    commetListVC.markedBookInfo = markedBookList[userSelectedBookIndex.item]
+    navigationController?.pushViewController(commetListVC, animated: true)
   }
 }
 
@@ -186,7 +216,7 @@ extension MainVC: UITableViewDataSource {
         ) as? BookInfoCell else { fatalError() }
       
       myCell.commentAddButton.addTarget(self, action: #selector(tabAddCommentButton), for: .touchUpInside)
-      
+      myCell.commentEditButton.addTarget(self, action: #selector(tabCommentListEditButton), for: .touchUpInside)
       cell = myCell
     }
     

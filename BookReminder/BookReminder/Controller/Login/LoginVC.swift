@@ -257,6 +257,9 @@ extension LoginVC: ASAuthorizationControllerDelegate {
               
               DB_REF_USER.updateChildValues([uid: value])
               
+              guard let tabBarVC = UIApplication.shared.keyWindow?.rootViewController as? TabBarVC else { return }
+              tabBarVC.configureViewController()
+              
               self.dismiss(animated: true)
               
             }

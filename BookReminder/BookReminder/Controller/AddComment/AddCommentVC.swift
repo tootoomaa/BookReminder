@@ -8,6 +8,7 @@
 
 import UIKit
 import SnapKit
+import Firebase
 import MobileCoreServices
 
 class AddCommentVC: UIViewController {
@@ -20,7 +21,6 @@ class AddCommentVC: UIViewController {
   var isDrawing = false
   var isUserInputText: Bool = false {
     didSet {
-      
       if !isUserInputText {
         addCommentView.configureMultiButton(systemImageName: "plus")
       } else {
@@ -223,17 +223,28 @@ class AddCommentVC: UIViewController {
     
     guard !isUserInputText else {
       
-      let alertController = UIAlertController(title: "업로드", message: "이 글을 업로드 하시겠습니까?", preferredStyle: .alert)
-      let uploadAction = UIAlertAction(title: "업로드", style: .default) { _ in
-        print("upload")
+      if let errorMessage = userInputDataCheker() {
         
+        let errorAlert = UIAlertController(title: "Comment 내용 오류", message: errorMessage, preferredStyle: .alert)
+        let okButton = UIAlertAction(title: "확인", style: .default, handler: nil)
+        errorAlert.addAction(okButton)
+        present(errorAlert, animated: true, completion: nil)
         
-        self.dismiss(animated: true, completion: nil)
+        return
       }
       
-      let cancelAction = UIAlertAction(title: "취소", style: .destructive, handler: { _ in
+      let alertController = UIAlertController(title: "Comment", message: "이 Comment을 저장 하시겠습니까?", preferredStyle: .alert)
+      let uploadAction = UIAlertAction(title: "저장", style: .default) { _ in
         
-      })
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        guard let markedBookInfo = self.markedBookInfo else { return }
+        guard let isbnCode = markedBookInfo.isbn else { return }
+        
+        self.uploadCommentData(uid: uid, isbnCode: isbnCode)
+        self.updateCommentStatics(uid: uid, isbnCode: isbnCode)
+        self.navigationController?.popViewController(animated: true)
+      }
+      let cancelAction = UIAlertAction(title: "취소", style: .destructive, handler: { _ in })
     
       alertController.addAction(uploadAction)
       alertController.addAction(cancelAction)
@@ -242,6 +253,7 @@ class AddCommentVC: UIViewController {
       
       return
     }
+    
     if !isMultibuttomActive {
       UIView.animate(withDuration: 0.5) {
         view.multiButton.transform = view.multiButton.transform.rotated(by: -(.pi/4*3))
@@ -270,7 +282,6 @@ class AddCommentVC: UIViewController {
           view.deleteBookButton.center.x += view.bounceDistance
         }
       })
-      
     } else {
       UIView.animate(withDuration: 0.5) {
         view.multiButton.transform = view.multiButton.transform.rotated(by: .pi/4*3)
@@ -299,7 +310,6 @@ class AddCommentVC: UIViewController {
         UIView.addKeyframe(withRelativeStartTime: 0.5, relativeDuration: 0.3) {
           view.cameraButton.center.y += view.featureButtonSize*2
         }
-        
       })
     }
     isMultibuttomActive.toggle()
@@ -334,9 +344,7 @@ class AddCommentVC: UIViewController {
     imagePicker.sourceType = .savedPhotosAlbum // 차이점 확인하기
     imagePicker.mediaTypes = [kUTTypeImage] as [String] // 이미지, 사진 둘다 불러오기
     present(imagePicker, animated: true,completion: {
-      self.touchesBeganHandler()
-      self.touchesEndedHandler()
-      self.touchesMovedHandler()
+      self.initializationMultiButton()
     })
   }
   
@@ -354,8 +362,40 @@ class AddCommentVC: UIViewController {
       imagePicker.cameraFlashMode = .off
     }
     
-    present(imagePicker, animated: true,completion: nil )
+    present(imagePicker, animated: true,completion: {
+      self.initializationMultiButton()
+    })
   }
+  // MARK: - Handler
+  
+  private func userInputDataCheker() -> String? {
+    var checker = false
+    var errorMessage = "\n"
+    
+    if addCommentView.captureImageView.image == nil {
+      errorMessage.append("캡쳐한 이미지가 없습니다. \n")
+      checker = true
+    }
+    if addCommentView.pagetextField.text == nil {
+      errorMessage.append("Page가 입력되지 않았습니다.\n")
+      checker = true
+    } else {
+      
+      if (Int(addCommentView.pagetextField.text!) == nil) {
+        errorMessage.append("Page에 숫자를 입력해주세요.\n")
+        checker = true
+      }
+    }
+    
+    print(addCommentView.myTextView.text.count)
+    
+    if addCommentView.myTextView.text.count == 0 {
+      errorMessage.append("Comment가 입력되지 않았습니다.\n")
+      checker = true
+    }
+    return checker == true ? errorMessage : nil
+  }
+  
   
   // MARK: - Keyboard Handler
   @objc func keyboardWillAppear( noti: NSNotification ) {
@@ -403,7 +443,6 @@ extension AddCommentVC: UIImagePickerControllerDelegate & UINavigationController
       addCommentView.captureImageView.image = selectedImage
     }
     dismiss(animated: true, completion: {
-      self.initializationMultiButton()
       self.touchesBeganHandler()
       self.touchesEndedHandler()
       self.touchesMovedHandler()
@@ -418,6 +457,57 @@ extension AddCommentVC: UITextFieldDelegate {
     addCommentView.myTextView.becomeFirstResponder()
     isUserInputText = true
     return true
+  }
+}
+
+// MARK: - Network Handler
+extension AddCommentVC {
+  
+  private func uploadCommentData(uid: String, isbnCode: String) {
+    
+    guard let uid = Auth.auth().currentUser?.uid else { return }
+    guard let markedBookInfo = markedBookInfo else { return }
+    guard let isbnCode = markedBookInfo.isbn else { return }
+    guard let uploadImage = addCommentView.captureImageView.image,
+          let pageString = addCommentView.pagetextField.text,
+          let myComment = addCommentView.myTextView.text else { return }
+    
+    guard let uploadImageDate = uploadImage.jpegData(compressionQuality: 0.5) else { return }
+    
+    let creationDate = Int(NSDate().timeIntervalSince1970)
+    let filename = NSUUID().uuidString
+    
+    STORAGE_REF_COMMENT_CAPTUREIMAGE.child(filename).putData(uploadImageDate, metadata: nil) { (metadata, error) in
+      if let error = error {
+        print("error",error.localizedDescription)
+        return
+      }
+      
+      let uploadImageRef = STORAGE_REF_COMMENT_CAPTUREIMAGE.child(filename)
+      uploadImageRef.downloadURL { (url, error) in
+        if let error = error { print("Error", error.localizedDescription); return }
+        guard let url = url else { return }
+        
+        let value = [
+          "captureImageUrl": url.absoluteString,
+          "page": pageString,
+          "creationDate": creationDate,
+          "myComment": myComment
+        ] as Dictionary<String, AnyObject>
+        
+        DB_REF_COMMENT.child(uid).child(isbnCode).childByAutoId().updateChildValues(value)
+      }
+    }
+  }
+  
+  private func updateCommentStatics(uid: String, isbnCode: String) {
+    
+    DB_REF_COMMENT_STATICS.child(uid).child(isbnCode).observeSingleEvent(of: .value) { (snapshot) in
+      
+      guard let commentCount = snapshot.value as? Int else { return }
+      DB_REF_COMMENT_STATICS.child(uid).updateChildValues([isbnCode: commentCount + 1])
+      
+    }
   }
 }
 

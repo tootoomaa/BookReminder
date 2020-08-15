@@ -113,6 +113,8 @@ class AddCommentView: UIScrollView {
     textView.autoresizingMask = .flexibleHeight
     textView.contentInset = UIEdgeInsets(top: 5, left: 5, bottom: 5, right: 5)
     textView.font = .systemFont(ofSize: 15)
+    textView.layer.cornerRadius = 20
+    textView.clipsToBounds = true
     return textView
   }()
   

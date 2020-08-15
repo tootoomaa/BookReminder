@@ -20,7 +20,7 @@ class TabBarVC: UITabBarController {
     
   }
   
-  private func configureViewController() {
+  func configureViewController() {
     let mainVC = MainVC()
     let myBookVC = MyBookVC()
     

@@ -18,8 +18,10 @@ class UserProfileVC: UITableViewController {
   let secionData = ["독서 관련", "기타 정보"]
   let aboutBookInfo = [
     ["등록 권수", "완독률", "comment 수", "권당 comment 수"],
-    ["오픈소스 라이브러리","현재 버전"]
+    ["현재 버전", "오픈소스 라이센스"]
   ]
+  
+  lazy var checkDetailMenuString = aboutBookInfo[secionData.count-1].last
   
   let tableSectionLabel: UILabel = {
     let label = UILabel()
@@ -29,14 +31,6 @@ class UserProfileVC: UITableViewController {
     label.backgroundColor = .gray
     return label
   }()
-  
-//  override init(style: UITableView.Style) {
-//    super.init(style: .grouped)
-//  }
-//
-//  required init?(coder: NSCoder) {
-//    fatalError("init(coder:) has not been implemented")
-//  }
   
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -63,7 +57,9 @@ class UserProfileVC: UITableViewController {
       mainTableHeaderView.configureHeaderView(image: userProfileImageData,
                                               userName: userProfileData.nickName,
                                               isHiddenLogoutButton: false)
-      mainTableHeaderView.logoutButton.addTarget(self, action: #selector(tabLogoutButton), for: .touchUpInside)
+      mainTableHeaderView.logoutButton.addTarget(self,
+                                                 action: #selector(tabLogoutButton),
+                                                 for: .touchUpInside)
     }
   }
   
@@ -71,12 +67,12 @@ class UserProfileVC: UITableViewController {
     
     tableView.delegate = self
     tableView.dataSource = self
+    tableView.allowsSelection = false
     tableView.tableHeaderView = mainTableHeaderView
     tableView.tableHeaderView?.frame.size = CGSize(width: view.frame.width, height: 100)
     
-    tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
-    
-    view.layoutMargins = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 10)
+    tableView.register(UserProfileTableViewCell.self, forCellReuseIdentifier: UserProfileTableViewCell.identifier)
+//    view.layoutMargins = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 10)
     tableView.frame = view.frame
     
   }
@@ -114,8 +110,17 @@ class UserProfileVC: UITableViewController {
   }
   
   override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-    let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
-    cell.textLabel?.text = aboutBookInfo[indexPath.section][indexPath.row]
+    guard let cell = tableView.dequeueReusableCell(
+      withIdentifier: UserProfileTableViewCell.identifier,
+      for: indexPath
+      ) as? UserProfileTableViewCell else { fatalError() }
+    
+    let titleText = aboutBookInfo[indexPath.section][indexPath.row]
+    let isNeedDetailMenu = titleText == checkDetailMenuString ? true : false
+    cell.configure(titleText: titleText,
+                   contextText: "10",
+                   isNeedDetailMenu: isNeedDetailMenu)
+    
     return cell
   }
   
@@ -129,7 +134,7 @@ class UserProfileVC: UITableViewController {
 
   override func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
     let label = UILabel()
-    label.font = .systemFont(ofSize: 20)
+    label.font = .boldSystemFont(ofSize: 20)
     label.textColor = .black
     label.numberOfLines = 2
     label.backgroundColor = .systemGray6

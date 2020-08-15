@@ -50,9 +50,7 @@ class BookInfoCell: UITableViewCell {
   
   let readingLabel: UILabel = {
     let label = UILabel()
-    
     let fullString = NSAttributedString.configureAttributedString(systemName: "book", setText: "10")
-    
     label.font = .systemFont(ofSize: 15)//.preferredFont(forTextStyle: .footnote)
     label.textColor = .white //.label
     label.attributedText = fullString
@@ -62,9 +60,7 @@ class BookInfoCell: UITableViewCell {
   
   let commentAddButton: UIButton = {
     let button = UIButton()
-    
     let fullString = NSAttributedString.configureAttributedString(systemName: "plus.bubble.fill", setText: "추가")
-    
     button.setAttributedTitle(fullString, for: .normal)
     button.backgroundColor = .white
     button.layer.cornerRadius = 10
@@ -161,19 +157,4 @@ class BookInfoCell: UITableViewCell {
   required init?(coder: NSCoder) {
     fatalError("init(coder:) has not been implemented")
   }
-  
-  // MARK: - Handler
-  func configureAttributedString(systemName: String, setText: String) -> NSAttributedString {
-    
-    guard let symbol = UIImage(systemName: systemName) else { fatalError() }
-    let imageAttachment = NSTextAttachment(image: symbol)
-    
-    let fullString = NSMutableAttributedString()
-    fullString.append(NSAttributedString(attachment: imageAttachment))
-    fullString.append(NSAttributedString(string: "    "))
-    fullString.append(NSAttributedString(string: setText))
-    
-    return fullString
-  }
-  
 }

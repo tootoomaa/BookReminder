@@ -13,6 +13,8 @@ import UIKit
 // MARK: - Database Extension
 extension Database {
   
+  
+  
   // uid와 isbn 코드를 통한 책 정보 추출
   static func fetchBookDetailData(uid: String, isbnCode: String, complition: @escaping(BookDetailInfo) -> ()) {
     
@@ -24,6 +26,20 @@ extension Database {
       let bookDetailInfo = BookDetailInfo(isbnCode: key, dictionary: dictionary)
       
       complition(bookDetailInfo)
+    }
+  }
+  
+  static func fetchCommentDataList(uid: String, isbnCode: String, complition: @escaping(Comment) -> ()) {
+    
+    DB_REF_COMMENT.child(uid).child(isbnCode).observeSingleEvent(of: .value) { (snapshot) in
+      
+      guard let value = snapshot.value as? Dictionary<String, AnyObject> else { return }
+      
+      value.forEach{
+        guard let dictionary = $0.value as? Dictionary<String, AnyObject> else { return }
+        let comment = Comment(commentUid: $0.key, dictionary: dictionary)
+        complition(comment)
+      }
     }
   }
 }

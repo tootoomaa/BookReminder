@@ -13,8 +13,8 @@ class CollecionViewCustomCell: UICollectionViewCell {
   // MARK: - Properties
   static let identifier = "CollecionViewCustomCell"
   
-  let bookThumbnailImageView: UIImageView = {
-    let imageView = UIImageView()
+  let bookThumbnailImageView: CustomImageView = {
+    let imageView = CustomImageView()
     imageView.backgroundColor = .gray
     imageView.contentMode = .scaleAspectFit
     
@@ -29,6 +29,8 @@ class CollecionViewCustomCell: UICollectionViewCell {
     imageView.image = UIImage(systemName: "checkmark.circle.fill")
 //    imageView.tintColor = .systemPink
     imageView.tintColor = CommonUI.mainBackgroudColor
+    imageView.layer.cornerRadius = 25
+    imageView.backgroundColor = .white
     imageView.isHidden = true
     return imageView
   }()
@@ -47,27 +49,12 @@ class CollecionViewCustomCell: UICollectionViewCell {
     
     selectedimageView.snp.makeConstraints{
       $0.trailing.bottom.equalTo(bookThumbnailImageView).offset(-5)
-      $0.width.height.equalTo(30)
+      $0.width.height.equalTo(50)
     }
   }
   
   func configureCell(imageURL: String) {
-    //    guard let urlString = bookDetailInfo.thumbnail else { return }
-    guard let url = URL(string: imageURL) else { return }
-    
-    URLSession.shared.dataTask(with: url) { (data, response, error) in
-      if let error = error {
-        print("error",error.localizedDescription)
-        return
-      }
-      
-      guard let data = data else { return }
-      
-      DispatchQueue.main.async {
-        self.bookThumbnailImageView.image = UIImage(data: data)
-      }
-      
-    }.resume()
+    bookThumbnailImageView.loadImage(urlString: imageURL)
   }
   
   required init?(coder: NSCoder) {
