@@ -331,7 +331,6 @@ class AddCommentVC: UIViewController {
         // 기존 Comment 수정
         guard let commentInfo = self.commentInfo else { return }
         self.updateBeforeComment(uid: uid, isbnCode: isbnCode, updateCommentInfo: commentInfo)
-        
       } else {
         // 신규 Comment 업데이트
         self.uploadCommentData(uid: uid, isbnCode: isbnCode)
@@ -451,7 +450,9 @@ class AddCommentVC: UIViewController {
         let keyboardHeight = keyboardRectangle.height
         self.addCommentView.frame.origin.y += keyboardHeight
         tempKeyboardHeight = keyboardHeight
-        isUserInputText = false
+        if !isEditingMode { // 사진 수정 방지 기능
+          isUserInputText = false
+        }
         keyboardUpChecker = false
       }
     }
@@ -497,9 +498,6 @@ extension AddCommentVC {
   
   private func uploadCommentData(uid: String, isbnCode: String) {
     
-    guard let uid = Auth.auth().currentUser?.uid else { return }
-    guard let markedBookInfo = markedBookInfo else { return }
-    guard let isbnCode = markedBookInfo.isbn else { return }
     guard let uploadImage = addCommentView.captureImageView.image,
           let pageString = addCommentView.pagetextField.text,
           let myComment = addCommentView.myTextView.text else { return }
@@ -525,7 +523,7 @@ extension AddCommentVC {
           "page": pageString,
           "creationDate": creationDate,
           "myComment": myComment,
-          "imageRef": uploadImageRef
+          "captureImageFilename": filename
         ] as Dictionary<String, AnyObject>
         
         DB_REF_COMMENT.child(uid).child(isbnCode).childByAutoId().updateChildValues(value)
@@ -545,7 +543,25 @@ extension AddCommentVC {
   
   private func updateBeforeComment(uid: String, isbnCode: String, updateCommentInfo: Comment) {
     
+    // 기존 데이터 사용
+    guard let commentUid = updateCommentInfo.commentUid,
+          let url = updateCommentInfo.captureImageUrl,
+          let creationDate = updateCommentInfo.creationDate,
+          let captureImageFilename = updateCommentInfo.captureImageFilename else { return }
+          
+    // 업데이트 된 데이터 사용
+    guard let pageString = addCommentView.pagetextField.text,
+          let myComment = addCommentView.myTextView.text else { return }
     
+    let value = [
+      "captureImageUrl": url,
+      "page": pageString,
+      "creationDate": creationDate,
+      "myComment": myComment,
+      "captureImageFilename": captureImageFilename
+    ] as Dictionary<String, AnyObject>
+    
+    DB_REF_COMMENT.child(uid).child(isbnCode).child(commentUid).updateChildValues(value)
   }
 }
 

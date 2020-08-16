@@ -12,8 +12,6 @@ import Firebase
 class CommentListVC: UITableViewController {
   
   // MARK: - Properties
-  var isCommentListFetched: Bool = false
-  
   let naviTitlelabel: UILabel = {
     let label = UILabel()
     label.textAlignment = .center
@@ -24,16 +22,15 @@ class CommentListVC: UITableViewController {
   var markedBookInfo: BookDetailInfo? {
     didSet {
       guard let bookTitle = markedBookInfo?.title else { return }
+      var naviTitleString = ""
       naviTitleString.append("\(bookTitle)'s")
       naviTitleString.append("\nComment List")
-      
       naviTitlelabel.text = naviTitleString
-      
       navigationItem.titleView = naviTitlelabel
     }
   }
+  
   var commentList: [Comment] = []
-  var naviTitleString: String = ""
   
   // MARK: - Life Cycle
   override init(style: UITableView.Style) {
@@ -48,17 +45,13 @@ class CommentListVC: UITableViewController {
    
   override func viewWillAppear(_ animated: Bool) {
     navigationController?.navigationBar.isHidden = false
-    
-    if !isCommentListFetched {
-      fetchUserCommentDate()
-      isCommentListFetched = true
-    }
+    commentList = []
+    fetchUserCommentDate()
   }
   
   private func configureTableView() {
     
     tableView.frame = view.frame
-//    tableView.allowsSelection = false
     
     tableView.register(CommentListCell.self, forCellReuseIdentifier: CommentListCell.identifier)
     
@@ -97,8 +90,11 @@ class CommentListVC: UITableViewController {
     
     view.myTextView.text = cell.myTextView.text
     view.captureImageView.image = cell.captureImageView.image
+    
     addCommentVC.commentInfo = commentList[indexPath.row]
-    addCommentVC.isEditingMode = true
+    addCommentVC.isEditingMode = true   // 신규 Comment 추가가 아닌 기존 Comment 수정
+    addCommentVC.isUserInputText = true // 내용만 멀티 버튼 고정
+    addCommentVC.markedBookInfo = markedBookInfo
     
     if let sepString = cell.pageLabel.text?.split(separator: "P") {
       view.pagetextField.text = String(sepString[0])
@@ -109,8 +105,8 @@ class CommentListVC: UITableViewController {
   // MARK: - handle Network
   func fetchUserCommentDate() {
     
-    guard let uid = Auth.auth().currentUser?.uid else { return print("no uid" ) }
-    guard let isbnCode = markedBookInfo?.isbn else { return print("no isbn code")}
+    guard let uid = Auth.auth().currentUser?.uid else { return }
+    guard let isbnCode = markedBookInfo?.isbn else { return }
     
     Database.fetchCommentDataList(uid: uid, isbnCode: isbnCode, complition: { (comment) in
       self.commentList.append(comment)

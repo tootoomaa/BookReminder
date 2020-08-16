@@ -15,7 +15,7 @@ class Comment {
   var page: String!
   var myComment: String!
   var creationDate: Int!
-  var imageRef: String!
+  var captureImageFilename: String!
 
   init(commentUid: String, dictionary: Dictionary<String, AnyObject>) {
     
@@ -37,8 +37,8 @@ class Comment {
       self.myComment = myComment
     }
     
-    if let imageRef = dictionary["imageRef"] as? String {
-      self.imageRef = imageRef
+    if let captureImageFilename = dictionary["captureImageFilename"] as? String {
+      self.captureImageFilename = captureImageFilename
     }
   }
 }

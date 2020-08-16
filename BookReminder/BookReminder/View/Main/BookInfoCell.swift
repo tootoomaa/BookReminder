@@ -32,9 +32,7 @@ class BookInfoCell: UITableViewCell {
   
   let commentLabel: UILabel = {
     let label = UILabel()
-    
-    let fullString = NSAttributedString.configureAttributedString(systemName: "bubble.left.fill", setText: "10")
-    
+    let fullString = NSAttributedString.configureAttributedString(systemName: "bubble.left.fill", setText: "0")
     label.font = .systemFont(ofSize: 15)//.preferredFont(forTextStyle: .footnote)
     label.textColor = .white //.label
     label.attributedText = fullString

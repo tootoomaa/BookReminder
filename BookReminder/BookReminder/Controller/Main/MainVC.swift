@@ -17,7 +17,10 @@ class MainVC: UIViewController {
   var userProfileImageData: Data?
   var markedBookList: [BookDetailInfo] = [] { // 사용자의 북마크된 책 리스트
     didSet {
-      fetchMarkedBookCommentCount()           // 첫 로딩시 IndexPath (0,0) 기본값을 통해서 comment 수 가져옴
+      if markedBookList.count != 0 {          // 사용자가 북마크된 책을 모두 제거한 경우 오류 방지
+        userSelectedBookIndex = IndexPath(row: 0, section: 0) // 북마크 제거시 첫 북마크 책으로 변경
+        fetchMarkedBookCommentCount()         // comment Count 재설정
+      }
     }
   }
   var markedBookCommentCountList: [Int] = [] 
