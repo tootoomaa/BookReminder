@@ -19,6 +19,12 @@ class AddCommentView: UIScrollView {
   var passTouchMoveData: ((Set<UITouch>) -> ())?
   var passTouchEndData: ((Set<UITouch>) -> ())?
   
+  var isEditingMode = false {
+    didSet {
+      configureLayout()
+    }
+  } // Comment 수정 모드를 통해 들어온 경우 stackview 제거
+    
   let captureImageView: UIImageView = {
     let imageView = UIImageView()
     imageView.backgroundColor = .systemGray4
@@ -182,6 +188,8 @@ class AddCommentView: UIScrollView {
     stackView.snp.makeConstraints{
       $0.top.equalTo(captureImageView.snp.bottom).offset(10)
       $0.leading.trailing.equalTo(captureImageView)
+      let height = isEditingMode == false ? 40 : 0
+      $0.height.equalTo(CGFloat(height))
     }
     
     myThinkLabel.snp.makeConstraints{

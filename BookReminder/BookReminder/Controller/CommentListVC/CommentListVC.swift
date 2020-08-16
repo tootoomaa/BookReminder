@@ -12,18 +12,32 @@ import Firebase
 class CommentListVC: UITableViewController {
   
   // MARK: - Properties
-  var markedBookInfo: BookDetailInfo?
+  var isCommentListFetched: Bool = false
+  
+  let naviTitlelabel: UILabel = {
+    let label = UILabel()
+    label.textAlignment = .center
+    label.numberOfLines = 2
+    return label
+  }()
+  
+  var markedBookInfo: BookDetailInfo? {
+    didSet {
+      guard let bookTitle = markedBookInfo?.title else { return }
+      naviTitleString.append("\(bookTitle)'s")
+      naviTitleString.append("\nComment List")
+      
+      naviTitlelabel.text = naviTitleString
+      
+      navigationItem.titleView = naviTitlelabel
+    }
+  }
   var commentList: [Comment] = []
   var naviTitleString: String = ""
   
   // MARK: - Life Cycle
   override init(style: UITableView.Style) {
     super.init(style: .plain)
-    
-    naviTitleString.append("\(markedBookInfo?.title)'s ")
-    naviTitleString.append("Comment List")
-    
-    title = naviTitleString
     
     configureTableView()
   }
@@ -35,13 +49,16 @@ class CommentListVC: UITableViewController {
   override func viewWillAppear(_ animated: Bool) {
     navigationController?.navigationBar.isHidden = false
     
-    fetchUserCommentDate()
+    if !isCommentListFetched {
+      fetchUserCommentDate()
+      isCommentListFetched = true
+    }
   }
   
   private func configureTableView() {
     
     tableView.frame = view.frame
-    tableView.allowsSelection = false
+//    tableView.allowsSelection = false
     
     tableView.register(CommentListCell.self, forCellReuseIdentifier: CommentListCell.identifier)
     
@@ -68,6 +85,25 @@ class CommentListVC: UITableViewController {
   
   override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
     return 150
+  }
+  
+  // MARK: - UITableViewDelegate
+  
+  override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+    
+    let addCommentVC = AddCommentVC()
+    guard let view = addCommentVC.view as? AddCommentView else { return }
+    guard let cell = tableView.cellForRow(at: indexPath) as? CommentListCell else { return }
+    
+    view.myTextView.text = cell.myTextView.text
+    view.captureImageView.image = cell.captureImageView.image
+    addCommentVC.commentInfo = commentList[indexPath.row]
+    addCommentVC.isEditingMode = true
+    
+    if let sepString = cell.pageLabel.text?.split(separator: "P") {
+      view.pagetextField.text = String(sepString[0])
+    }
+    navigationController?.pushViewController(addCommentVC, animated: true)
   }
   
   // MARK: - handle Network

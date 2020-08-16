@@ -30,6 +30,7 @@ class CommentListCell: UITableViewCell {
     let label = UILabel()
     label.text = "5p"
     label.font = .boldSystemFont(ofSize: 15)
+    label.backgroundColor = .white
     return label
   }()
   
@@ -78,7 +79,7 @@ class CommentListCell: UITableViewCell {
     
     pageLabel.snp.makeConstraints{
       $0.top.equalTo(self).offset(20)
-      $0.trailing.equalTo(self.snp.trailing).offset(-20)
+      $0.leading.equalTo(self).offset(20)
     }
   }
   

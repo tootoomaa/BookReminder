@@ -324,13 +324,20 @@ class MyBookVC: UIViewController {
   // multiButton 에니메이션 초기화
   func initializationMultiButton() {
     multibuttomActive = false
-    UIView.animate(withDuration: 0.5) {
+
       self.deleteBookButton.center.x += self.featureButtonSize*2 - self.bounceDistance
       self.bookSearchButton.center.y += self.featureButtonSize*1.5 - self.bounceDistance
       self.bookSearchButton.center.x += self.featureButtonSize*1.5 - self.bounceDistance
       self.barcodeButton.center.y += self.featureButtonSize*2 - self.bounceDistance
       self.multiButton.transform = .identity
-    }
+    
+//    UIView.animate(withDuration: 0.5) {
+//      self.deleteBookButton.center.x += self.featureButtonSize*2 - self.bounceDistance
+//      self.bookSearchButton.center.y += self.featureButtonSize*1.5 - self.bounceDistance
+//      self.bookSearchButton.center.x += self.featureButtonSize*1.5 - self.bounceDistance
+//      self.barcodeButton.center.y += self.featureButtonSize*2 - self.bounceDistance
+//      self.multiButton.transform = .identity
+//    }
   }
   
   // MARK: - Handler

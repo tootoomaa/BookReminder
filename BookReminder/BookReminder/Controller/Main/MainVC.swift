@@ -13,13 +13,17 @@ import Firebase
 class MainVC: UIViewController {
   
   // MARK: - Properties
-  var userProfileData: User?
+  var userProfileData: User?                  // 사용자 프로필 데이터
   var userProfileImageData: Data?
-  var markedBookList: [BookDetailInfo] = [] // 사용자의 북마크된 책 리스트
+  var markedBookList: [BookDetailInfo] = [] { // 사용자의 북마크된 책 리스트
+    didSet {
+      fetchMarkedBookCommentCount()           // 첫 로딩시 IndexPath (0,0) 기본값을 통해서 comment 수 가져옴
+    }
+  }
   var markedBookCommentCountList: [Int] = [] 
   var userSelectedBookIndex: IndexPath = IndexPath(row: 0, section: 0) {
     didSet {
-      fetchMarkedBookCommentCount()
+      fetchMarkedBookCommentCount()           // 사용자가 선택한 markedBookList의 값을 통한 comment 수 가져옴
     }
   }
   
@@ -147,7 +151,8 @@ class MainVC: UIViewController {
     DB_REF_COMMENT_STATICS.child(uid).child(isbnCode).observeSingleEvent(of: .value) { (snapshot) in
       
       guard let value = snapshot.value else { return }
-      cell.commentLabel.attributedText = NSAttributedString.configureAttributedString(systemName: "bubble.left.fill", setText: "\(value)")
+      cell.commentLabel.attributedText = .configureAttributedString(systemName: "bubble.left.fill",
+                                                                    setText: "\(value)")
     }
   }
   
@@ -174,9 +179,9 @@ class MainVC: UIViewController {
   
   @objc private func tabCommentListEditButton() {
     guard (markedBookList.first?.title) != nil else { return } // 책 정보가 로딩되기전에 버튼 누를 시 무시
-    let commetListVC = CommentListVC(style: .plain)
-    commetListVC.markedBookInfo = markedBookList[userSelectedBookIndex.item]
-    navigationController?.pushViewController(commetListVC, animated: true)
+    let commentListVC = CommentListVC(style: .plain)
+    commentListVC.markedBookInfo = markedBookList[userSelectedBookIndex.item]
+    navigationController?.pushViewController(commentListVC, animated: true)
   }
 }
 
