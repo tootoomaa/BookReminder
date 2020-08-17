@@ -12,9 +12,6 @@ import UIKit
 
 // MARK: - Database Extension
 extension Database {
-  
-  
-  
   // uid와 isbn 코드를 통한 책 정보 추출
   static func fetchBookDetailData(uid: String, isbnCode: String, complition: @escaping(BookDetailInfo) -> ()) {
     
@@ -73,3 +70,31 @@ extension NSAttributedString {
   }
 }
 
+// MARK: - UIAlertExtension
+
+extension UIAlertController {
+  
+  static func defaultSetting(title: String, message: String) -> UIAlertController {
+    
+    let alertController = UIAlertController(title: title, message: message, preferredStyle: .alert)
+    let confirmAction = UIAlertAction(title: "확인", style: .default) { (_) in }
+    
+    alertController.addAction(confirmAction)
+    
+    return alertController
+  }
+  
+}
+
+// MARK: - UIView
+extension UIView{
+    func setGradient(color1:UIColor,color2:UIColor){
+        let gradient: CAGradientLayer = CAGradientLayer()
+        gradient.colors = [color1.cgColor,color2.cgColor]
+        gradient.locations = [0.0 , 1.0]
+        gradient.startPoint = CGPoint(x: 1.0, y: 0.0)
+        gradient.endPoint = CGPoint(x: 1.0, y: 1.0)
+        gradient.frame = bounds
+        layer.addSublayer(gradient)
+    }
+}

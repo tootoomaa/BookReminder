@@ -14,6 +14,7 @@ import Firebase
 let STORAGE_REF = Storage.storage().reference()
 let STORAGE_REF_PROFILEIMAGE = Storage.storage().reference().child("profileImage")
 let STORAGE_REF_COMMENT_CAPTUREIMAGE = Storage.storage().reference().child("comment")
+let STORAGE_REF_USER_PROFILEIMAGE = Storage.storage().reference().child("userProfileImage")
 
 // Database
 let DB_REF = Database.database().reference()

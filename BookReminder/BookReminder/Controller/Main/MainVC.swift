@@ -14,7 +14,6 @@ class MainVC: UIViewController {
   
   // MARK: - Properties
   var userProfileData: User?                  // 사용자 프로필 데이터
-  var userProfileImageData: Data?
   var markedBookList: [BookDetailInfo] = [] { // 사용자의 북마크된 책 리스트
     didSet {
       if markedBookList.count != 0 {          // 사용자가 북마크된 책을 모두 제거한 경우 오류 방지
@@ -75,9 +74,8 @@ class MainVC: UIViewController {
     
     view.layoutMargins = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
     
-    mainTableHeaderView.profileImageButton.addTarget(self,
-                                                     action: #selector(tabProfileImageButton),
-                                                     for: .touchUpInside)
+    let gesture = UITapGestureRecognizer(target: self, action: #selector(tabProfileImageButton))
+    mainTableHeaderView.profileImageView.addGestureRecognizer(gesture)
   }
   
   private func configureLayout() {
@@ -101,30 +99,20 @@ class MainVC: UIViewController {
       if let value = snapshot.value as? Dictionary<String, AnyObject> {
         
         let userData = User(uid: uid, dictionary: value)
-        if let urlString = userData.profileImageUrl {
-          guard let imageURL = URL(string: urlString) else { return print("Fail to make URL by String") }
-          URLSession.shared.dataTask(with: imageURL) { (data, response, error) in
-            if let error = error {
-              print("error", error.localizedDescription)
-            }
-            if let data = data,
-              let nickName = userData.nickName {
-              // 사용자 데이터가 있는 경우
-              DispatchQueue.main.async {
-                self.mainTableHeaderView.configureHeaderView(image: data,
-                                                             userName: nickName,
-                                                             isHiddenLogoutButton: true)
-              }
-              self.userProfileData = userData
-            }
-          }.resume()
+        
+        if let profileImageUrl = userData.profileImageUrl,
+          let nickName = userData.nickName {
+          // 사용자 데이터가 있는 경우
+          self.mainTableHeaderView.configureHeaderView(profileImageUrlString: profileImageUrl,
+                                                  userName: nickName,
+                                                  isHiddenLogoutButton: true)
         } else {
           // 사용자 데이터 없는 경우
-          self.mainTableHeaderView.configureHeaderView(image: nil,
+          self.mainTableHeaderView.configureHeaderView(profileImageUrlString: nil,
                                                        userName: "사용자",
                                                        isHiddenLogoutButton: true)
-          self.userProfileData = userData
         }
+        self.userProfileData = userData
       }
     }
   }
@@ -161,27 +149,36 @@ class MainVC: UIViewController {
   
   // MARK: - Button Handler
   @objc private func tabProfileImageButton() {
-    
-    print("tab profile image button")
-    
+    presentUserProfileVC()
   }
   
   @objc private func tabDetailProfileButton() {
+    presentUserProfileVC()
+  }
+  
+  private func presentUserProfileVC() {
     let userProfileVC = UserProfileVC(style: .grouped)
     userProfileVC.userProfileData = self.userProfileData
-    userProfileVC.userProfileImageData = self.userProfileImageData
     navigationController?.pushViewController(userProfileVC, animated: true)
   }
   
   @objc private func tabAddCommentButton() {
-    guard (markedBookList.first?.title) != nil else { return } // 책 정보가 로딩되기전에 버튼 누를 시 무시
+    guard (markedBookList.first?.title) != nil else {
+      present(UIAlertController.defaultSetting(title: "오류", message: "북마크된 책이 선택되지 않았습니다."),
+              animated: true, completion: nil)
+      return
+    } // 책 정보가 로딩되기전에 버튼 누를 시 무시
     let addCommentVC = AddCommentVC()
     addCommentVC.markedBookInfo = markedBookList[userSelectedBookIndex.item]
     navigationController?.pushViewController(addCommentVC, animated: true)
   }
   
   @objc private func tabCommentListEditButton() {
-    guard (markedBookList.first?.title) != nil else { return } // 책 정보가 로딩되기전에 버튼 누를 시 무시
+    guard (markedBookList.first?.title) != nil else {
+      present(UIAlertController.defaultSetting(title: "오류", message: "북마크된 책이 선택되지 않았습니다."),
+      animated: true, completion: nil)
+      return
+    } // 책 정보가 로딩되기전에 버튼 누를 시 무시
     let commentListVC = CommentListVC(style: .plain)
     commentListVC.markedBookInfo = markedBookList[userSelectedBookIndex.item]
     navigationController?.pushViewController(commentListVC, animated: true)

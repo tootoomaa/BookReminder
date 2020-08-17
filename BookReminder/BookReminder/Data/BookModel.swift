@@ -51,7 +51,7 @@ class BookDetailInfo: Equatable {
   var status: String!
   var thumbnail: String!
   var title: String!
-  var translators: [String]!
+  var translators: [String]?
   var url: String!
   var creationDate: Int!
   
@@ -112,6 +112,25 @@ class BookDetailInfo: Equatable {
     lhs.isbn == rhs.isbn
   }
   
+  static func returnDictionaryValue(documents: BookDetailInfo) -> Dictionary<String, AnyObject> {
+//    guard let documents = documents else { fatalError() }
+      let bookDicValue = [
+      "authors": documents.authors!,
+      "contents": documents.contents!,
+      "datetime": documents.datetime!,
+      "isbn": documents.isbn!,
+      "price": documents.price!,
+      "publisher": documents.publisher!,
+      "sale_price": documents.sale_price!,
+      "status": documents.status!,
+      "thumbnail": documents.thumbnail!,
+      "title": documents.title!,
+      "translators": documents.translators ?? "",
+      "url": documents.url!,
+      "creationDate": documents.creationDate!
+      ] as Dictionary<String, AnyObject>
+    return bookDicValue
+  }
 }
 
 

@@ -11,25 +11,17 @@ import SnapKit
 
 class MainTableHeaderView: UIView {
 
-  let profileImageButton: UIButton = {
-    let button = UIButton()
+  // MARK: - Properties
+  let profileImageView: CustomImageView = {
+    let imageView = CustomImageView()
     let imageconf = UIImage.SymbolConfiguration(pointSize: 50, weight: .medium)
-    button.setImage(UIImage(systemName: "person.crop.circle.fill.badge.plus",
-                            withConfiguration: imageconf), for: .normal)
-    button.imageView?.tintColor = CommonUI.titleTextColor
-//    imageView.layer.cornerRadius = 35
-//    imageView.clipsToBounds = true
-    return button
+    imageView.image = UIImage(systemName: "person.crop.circle.fill.badge.plus",
+                              withConfiguration: imageconf)
+    imageView.tintColor = CommonUI.titleTextColor
+    imageView.contentMode = .scaleAspectFill
+    imageView.isUserInteractionEnabled = true
+    return imageView
   }()
-  
-//    let profileImageView: UIImageView = {
-//      let imageView = UIImageView()
-//      imageView.image = UIImage(systemName: "person.crop.circle.fill.badge.plus")
-//      imageView.tintColor = CommonUI.titleTextColor
-//  //    imageView.layer.cornerRadius = 3]5
-//  //    imageView.clipsToBounds = true
-//      return imageView
-//    }()
   
   let nameLabel: UILabel = {
     let label = UILabel()
@@ -72,44 +64,46 @@ class MainTableHeaderView: UIView {
   
   private func configureLayout() {
     
-    [profileImageButton, nameLabel, logoutButton, detailProfileButton].forEach{
+    [profileImageView, nameLabel, logoutButton, detailProfileButton].forEach{
       addSubview($0)
     }
     
-    profileImageButton.snp.makeConstraints{
+    profileImageView.snp.makeConstraints{
       $0.top.leading.equalTo(20)
       $0.width.height.equalTo(70)
     }
     
     nameLabel.snp.makeConstraints{
-      $0.leading.equalTo(profileImageButton.snp.trailing).offset(20)
-      $0.centerY.equalTo(profileImageButton)
+      $0.leading.equalTo(profileImageView.snp.trailing).offset(20)
+      $0.centerY.equalTo(profileImageView)
     }
     
     logoutButton.snp.makeConstraints{
-      $0.centerY.equalTo(profileImageButton)
+      $0.centerY.equalTo(profileImageView)
       $0.trailing.equalTo(self).offset(-20)
       $0.width.equalTo(80)
       $0.height.equalTo(40)
     }
     
     detailProfileButton.snp.makeConstraints{
-      $0.centerY.equalTo(profileImageButton)
+      $0.centerY.equalTo(profileImageView)
       $0.trailing.equalTo(self).offset(-20)
     }
   }
   
-  func configureHeaderView(image: Data?, userName: String?, isHiddenLogoutButton: Bool) {
-    if let image = image { // 사용자 데이터에 이미지가 있는 경우 이미지 추가 // 없으면 기본 설정 값
-      profileImageButton.setImage(UIImage(data: image), for: .normal)
-      profileImageButton.imageView?.layer.cornerRadius = 35
-      profileImageButton.imageView?.clipsToBounds = true
+  func configureHeaderView(profileImageUrlString: String?, userName: String?, isHiddenLogoutButton: Bool) {
+    if let profileImageUrlString = profileImageUrlString { // 사용자 데이터에 이미지가 있는 경우 이미지 추가 // 없으면 기본 설정 값
+      profileImageView.loadImage(urlString: profileImageUrlString)
+      profileImageView.layer.cornerRadius = (profileImageView.frame.height)/2
+      profileImageView.clipsToBounds = true
     }
+    
     if let userName = userName {
       nameLabel.text = userName
     }
     
     logoutButton.isHidden = isHiddenLogoutButton
+    logoutButton.isUserInteractionEnabled = !isHiddenLogoutButton
     detailProfileButton.isHidden = !isHiddenLogoutButton
   }
 }

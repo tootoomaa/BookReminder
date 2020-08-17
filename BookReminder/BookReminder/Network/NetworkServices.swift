@@ -19,7 +19,6 @@ class NetworkServices {
   func fetchBookInfomationFromKakao(type: SearchType,
                                     forSearch query: String,
                                     complitionHandler: @escaping (String, [String : AnyObject]) -> ()) {
-    
     let query = query
     let sort = "accuracy"
     let page = "1"

@@ -372,7 +372,7 @@ class AddCommentVC: UIViewController {
   
   @objc func tabPhotoAlnum() {
     imagePicker.sourceType = .savedPhotosAlbum // 차이점 확인하기
-    imagePicker.mediaTypes = [kUTTypeImage] as [String] // 이미지, 사진 둘다 불러오기
+    imagePicker.mediaTypes = [kUTTypeImage] as [String] // 이미지 불러오기
     present(imagePicker, animated: true,completion: {
       self.initializationMultiButton()
     })
@@ -386,7 +386,6 @@ class AddCommentVC: UIViewController {
     
     imagePicker.mediaTypes = mediaTypes ?? []
     imagePicker.mediaTypes = ["public.image"]
-    //    imagePicker.mediaTypes = [kUTTypeImage] as [String]
     
     if UIImagePickerController.isFlashAvailable(for: .rear) {
       imagePicker.cameraFlashMode = .off
@@ -471,7 +470,7 @@ extension AddCommentVC: UIImagePickerControllerDelegate & UINavigationController
     if UTTypeEqual(mediaType, kUTTypeImage) {
       // handle Image Type
       let originalImage = info[.originalImage] as! UIImage    // 이미지를 가져옴
-      let editedImage = info[.editedImage] as? UIImage        // editedImage
+      let editedImage = info[.cropRect] as? UIImage        // editedImage
       let selectedImage = editedImage ?? originalImage
       addCommentView.captureImageView.image = selectedImage
     }

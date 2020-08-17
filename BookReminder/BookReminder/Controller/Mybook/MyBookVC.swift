@@ -26,6 +26,11 @@ class MyBookVC: UIViewController {
   var filterOn: Bool = false
   var filterdBookArray: [BookDetailInfo] = []
   
+  enum MyBookCellButtonTitle: String {
+    case bookMark = "mark"
+    case comment = "comment"
+    case info = "info"
+  }
   
   lazy var searchBar: UISearchBar = {
     let sBar = UISearchBar(frame: .zero)
@@ -324,20 +329,51 @@ class MyBookVC: UIViewController {
   // multiButton 에니메이션 초기화
   func initializationMultiButton() {
     multibuttomActive = false
-
-      self.deleteBookButton.center.x += self.featureButtonSize*2 - self.bounceDistance
-      self.bookSearchButton.center.y += self.featureButtonSize*1.5 - self.bounceDistance
-      self.bookSearchButton.center.x += self.featureButtonSize*1.5 - self.bounceDistance
-      self.barcodeButton.center.y += self.featureButtonSize*2 - self.bounceDistance
-      self.multiButton.transform = .identity
     
-//    UIView.animate(withDuration: 0.5) {
-//      self.deleteBookButton.center.x += self.featureButtonSize*2 - self.bounceDistance
-//      self.bookSearchButton.center.y += self.featureButtonSize*1.5 - self.bounceDistance
-//      self.bookSearchButton.center.x += self.featureButtonSize*1.5 - self.bounceDistance
-//      self.barcodeButton.center.y += self.featureButtonSize*2 - self.bounceDistance
-//      self.multiButton.transform = .identity
-//    }
+    self.deleteBookButton.center.x += self.featureButtonSize*2 - self.bounceDistance
+    self.bookSearchButton.center.y += self.featureButtonSize*1.5 - self.bounceDistance
+    self.bookSearchButton.center.x += self.featureButtonSize*1.5 - self.bounceDistance
+    self.barcodeButton.center.y += self.featureButtonSize*2 - self.bounceDistance
+    self.multiButton.transform = .identity
+  }
+  
+  // cell 에서 리턴 받은 버튼에 종류에 따라서 처리
+  private func tabBookDetailButton(buttonName: String, bookDetailInfo: BookDetailInfo, isMarked: Bool) {
+    // mark: 즐겨찾기, comment: 코멘트, info: 자세한 설명 화면
+    
+    if buttonName == MyBookCellButtonTitle.bookMark.rawValue {
+      
+      guard let window = UIApplication.shared.delegate?.window,
+        let tabBarController = window?.rootViewController as? UITabBarController else { return }
+      
+      guard let naviController = tabBarController.viewControllers?.first as? UINavigationController,
+            let mainVC = naviController.visibleViewController as? MainVC else { return }
+      
+      guard let isbnCode = bookDetailInfo.isbn,
+            let uid = Auth.auth().currentUser?.uid else { return }
+      
+      if !isMarked  {
+        DB_REF_MARKBOOKS.child(uid).updateChildValues([isbnCode:1])
+        mainVC.markedBookList.append(bookDetailInfo)
+      } else {
+        DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue()
+        if let index = mainVC.markedBookList.firstIndex(of: bookDetailInfo) {
+          mainVC.markedBookList.remove(at: index)
+        }
+      }
+      mainVC.tableView.reloadData()
+      
+    } else if buttonName == MyBookCellButtonTitle.comment.rawValue {
+      
+      let commentList = CommentListVC(style: .plain)
+      commentList.markedBookInfo = bookDetailInfo
+      navigationController?.pushViewController(commentList, animated: true)
+      
+    } else if buttonName == MyBookCellButtonTitle.info.rawValue {
+      let detailBookInfoVC = DetailBookInfoVC()
+      detailBookInfoVC.detailBookInfo = bookDetailInfo
+      navigationController?.pushViewController(detailBookInfoVC, animated: true)
+    }
   }
   
   // MARK: - Handler
@@ -365,40 +401,6 @@ class MyBookVC: UIViewController {
           self.collectionView.reloadData()
         }
       }
-    }
-  }
-  
-  // cell 에서 리턴 받은 버튼에 종류에 따라서 처리
-  private func tabBookDetailButton(buttonName: String, bookDetailInfo: BookDetailInfo, isMarked: Bool) {
-    // mark: 즐겨찾기, comment: 코멘트, info: 자세한 설명 화면
-    
-    if buttonName == "mark" {
-      
-      guard let window = UIApplication.shared.delegate?.window,
-        let tabBarController = window?.rootViewController as? UITabBarController else { return }
-      
-      guard let naviController = tabBarController.viewControllers?.first as? UINavigationController,
-            let mainVC = naviController.visibleViewController as? MainVC else { return }
-      
-      guard let isbnCode = bookDetailInfo.isbn,
-            let uid = Auth.auth().currentUser?.uid else { return }
-      
-      if !isMarked  {
-        DB_REF_MARKBOOKS.child(uid).updateChildValues([isbnCode:1])
-        mainVC.markedBookList.append(bookDetailInfo)
-      } else {
-        DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue()
-        if let index = mainVC.markedBookList.firstIndex(of: bookDetailInfo) {
-          mainVC.markedBookList.remove(at: index)
-        }
-      }
-      mainVC.tableView.reloadData()
-      
-    } else if buttonName == "comment" {
-      print("Tab Comment Button in myBookVC")
-      
-    } else if buttonName == "info" {
-      print("Tab info Button in myBookVC")
     }
   }
 }

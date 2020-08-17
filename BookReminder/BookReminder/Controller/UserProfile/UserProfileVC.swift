@@ -8,12 +8,36 @@
 
 import UIKit
 import Firebase
+import MobileCoreServices
 
 class UserProfileVC: UITableViewController {
   
-  var userProfileData: User?
-  var userProfileImageData: Data?
+  // MARK: - Properties
+  lazy var imagePicker: UIImagePickerController = {
+    let imagePicker = UIImagePickerController()
+    imagePicker.delegate = self
+    imagePicker.allowsEditing = true
+    return imagePicker
+  }()
+  
   let mainTableHeaderView = MainTableHeaderView()
+  
+  var userProfileData: User? {
+    didSet {
+      guard let userProfileData = userProfileData else { return }
+      guard let profileImageUrl = userProfileData.profileImageUrl,
+            let nickName = userProfileData.nickName else { return }
+      
+      mainTableHeaderView.configureHeaderView(profileImageUrlString: profileImageUrl, userName: nickName, isHiddenLogoutButton: false)
+      
+      mainTableHeaderView.logoutButton.addTarget(self,
+                                                 action: #selector(tabLogoutButton),
+                                                 for: .touchUpInside)
+      let guesture = UITapGestureRecognizer(target: self, action: #selector(tabProfileImageImage))
+      mainTableHeaderView.profileImageView.addGestureRecognizer(guesture)
+    }
+  }
+  
   
   let secionData = ["독서 관련", "기타 정보"]
   let aboutBookInfo = [
@@ -21,16 +45,7 @@ class UserProfileVC: UITableViewController {
     ["현재 버전", "오픈소스 라이센스"]
   ]
   
-  lazy var checkDetailMenuString = aboutBookInfo[secionData.count-1].last
-  
-  let tableSectionLabel: UILabel = {
-    let label = UILabel()
-    label.text = "test"
-    label.font = .systemFont(ofSize: 20)
-    label.textColor = .white
-    label.backgroundColor = .gray
-    return label
-  }()
+  lazy var checkDetailMenuString = aboutBookInfo[secionData.count-1].last // 오픈소스 라이센스
   
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -40,7 +55,6 @@ class UserProfileVC: UITableViewController {
     configureSetUI()
     
     configureLayout()
-    
   }
  
   override func viewWillAppear(_ animated: Bool) {
@@ -52,15 +66,6 @@ class UserProfileVC: UITableViewController {
     view.backgroundColor = .gray
     
     tableView.backgroundColor = .white
-    
-    if let userProfileData = userProfileData {
-      mainTableHeaderView.configureHeaderView(image: userProfileImageData,
-                                              userName: userProfileData.nickName,
-                                              isHiddenLogoutButton: false)
-      mainTableHeaderView.logoutButton.addTarget(self,
-                                                 action: #selector(tabLogoutButton),
-                                                 for: .touchUpInside)
-    }
   }
   
   private func configureLayout() {
@@ -70,9 +75,7 @@ class UserProfileVC: UITableViewController {
     tableView.allowsSelection = false
     tableView.tableHeaderView = mainTableHeaderView
     tableView.tableHeaderView?.frame.size = CGSize(width: view.frame.width, height: 100)
-    
     tableView.register(UserProfileTableViewCell.self, forCellReuseIdentifier: UserProfileTableViewCell.identifier)
-//    view.layoutMargins = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 10)
     tableView.frame = view.frame
     
   }
@@ -98,6 +101,43 @@ class UserProfileVC: UITableViewController {
     } else { // // Firebase 외 계정 로그아웃
       
     }
+  }
+  
+  @objc private func tabProfileImageImage() {
+    
+    let alertController = UIAlertController(title: "사용자 사진 선택", message: nil, preferredStyle: .actionSheet)
+    
+    let cameraAction = UIAlertAction(title: "사진찍기", style: .default) { (_) in
+      // Camera
+      guard UIImagePickerController.isSourceTypeAvailable(.camera) else { return }
+      self.imagePicker.sourceType = .camera // sourceType 카메라 선택
+      
+      let mediaTypes = UIImagePickerController.availableMediaTypes(for: .camera)
+      
+      self.imagePicker.mediaTypes = mediaTypes ?? []
+      self.imagePicker.mediaTypes = ["public.image"]
+      //    imagePicker.mediaTypes = [kUTTypeImage] as [String]
+      
+      if UIImagePickerController.isFlashAvailable(for: .rear) {
+        self.imagePicker.cameraFlashMode = .off
+      }
+      self.present(self.imagePicker, animated: true)
+    }
+    
+    let albumAction = UIAlertAction(title: "앨범에서 선택", style: .default) { (_) in
+      // Album
+      self.imagePicker.sourceType = .savedPhotosAlbum // 차이점 확인하기
+      self.imagePicker.mediaTypes = [kUTTypeImage] as [String] // 이미지, 사진 둘다 불러오기
+      self.present(self.imagePicker, animated: true)
+    }
+    
+    let cancelAction = UIAlertAction(title: "취소", style: .cancel) { (_) in }
+
+    alertController.addAction(cameraAction)
+    alertController.addAction(albumAction)
+    alertController.addAction(cancelAction)
+    
+    present(alertController, animated: true, completion: nil)
   }
   
   // MARK: - TableViewDataSource
@@ -143,6 +183,61 @@ class UserProfileVC: UITableViewController {
   }
 }
 
-
+// MARK: - UIImagePickerControllerDelegate & UINavigationControllerDelegate
+extension UserProfileVC: UIImagePickerControllerDelegate & UINavigationControllerDelegate {
+  
+  func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+    picker.dismiss(animated: true, completion: nil)
+  }
+  
+  func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+    let mediaType = info[.mediaType] as! NSString
+    if UTTypeEqual(mediaType, kUTTypeImage) {
+      // handle Image Type
+      let originalImage = info[.originalImage] as! UIImage    // 이미지를 가져옴
+      let editedImage = info[.cropRect] as? UIImage        // editedImage
+      let selectedImage = editedImage ?? originalImage
+      
+      let profileImageView = mainTableHeaderView.profileImageView
+      profileImageView.image = selectedImage
+      profileImageView.layer.cornerRadius = (profileImageView.frame.height)/2
+      profileImageView.clipsToBounds = true
+      
+    }
+    dismiss(animated: true, completion: {
+      
+      guard let uid = Auth.auth().currentUser?.uid,
+            let userdata = self.userProfileData,
+            let nickName = userdata.nickName,
+            let email = userdata.email else { return }
+      
+      guard let userProfileImage = self.mainTableHeaderView.profileImageView.image else { return }
+      guard let uploadImageDate = userProfileImage.jpegData(compressionQuality: 0.5) else { return }
+      
+      let filename = NSUUID().uuidString
+      
+      STORAGE_REF_USER_PROFILEIMAGE.child(filename).putData(uploadImageDate, metadata: nil) { (metadata, error) in
+        if let error = error {
+          print("error",error.localizedDescription)
+          return
+        }
+        
+        let uploadImageRef = STORAGE_REF_USER_PROFILEIMAGE.child(filename)
+        uploadImageRef.downloadURL { (url, error) in
+          if let error = error { print("Error", error.localizedDescription); return }
+          guard let url = url else { return }
+          
+          let value = [
+            "nickName": nickName,
+            "email": email,
+            "profileImageUrl": url.absoluteString
+          ] as Dictionary<String, AnyObject>
+          
+          DB_REF_USER.child(uid).updateChildValues(value)
+        }
+      }
+    })
+  }
+}
 
 
