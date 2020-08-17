@@ -102,6 +102,34 @@ class CommentListVC: UITableViewController {
     navigationController?.pushViewController(addCommentVC, animated: true)
   }
   
+  override func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+    
+    let deleteAction = UIContextualAction(style: .normal, title: "DELETE") {
+      (action, sourceView, actionPerformed) in
+
+      guard let uid = Auth.auth().currentUser?.uid else { return }
+      let deleteCommentData = self.commentList[indexPath.row]
+      if let deleteCommentUid = deleteCommentData.commentUid,
+        let isbnCode = self.markedBookInfo?.isbn {
+        // 사용자 comment 삭제 및 comment 통계 삭제
+        DB_REF_COMMENT.child(uid).child(isbnCode).child(deleteCommentUid).removeValue()
+        Database.commentCountHandler(uid: uid, isbnCode: isbnCode, plusMinus: .down)
+      }
+      
+      self.commentList.remove(at: indexPath.row)
+      self.tableView.reloadData()
+      
+      
+      
+      actionPerformed(true)
+    }
+    deleteAction.backgroundColor = .red
+    
+    let configure = UISwipeActionsConfiguration(actions: [deleteAction])
+    configure.performsFirstActionWithFullSwipe = false
+    return configure
+  }
+  
   // MARK: - handle Network
   func fetchUserCommentDate() {
     

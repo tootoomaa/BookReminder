@@ -68,9 +68,7 @@ class BookInfoCell: UITableViewCell {
   
   let commentEditButton: UIButton = {
     let button = UIButton()
-    
     let fullString = NSAttributedString.configureAttributedString(systemName: "pencil", setText: "수정")
-    
     button.setAttributedTitle(fullString, for: .normal)
     button.backgroundColor = .white
     button.layer.cornerRadius = 10

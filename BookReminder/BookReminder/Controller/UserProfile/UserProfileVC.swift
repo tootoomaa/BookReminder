@@ -59,6 +59,9 @@ class UserProfileVC: UITableViewController {
  
   override func viewWillAppear(_ animated: Bool) {
     navigationController?.navigationBar.isHidden = false
+    let imageView =  mainTableHeaderView.profileImageView
+    imageView.layer.cornerRadius = (imageView.frame.height)/2
+    imageView.clipsToBounds = true
   }
   
   private func configureSetUI() {

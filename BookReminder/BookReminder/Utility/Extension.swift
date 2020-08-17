@@ -39,6 +39,25 @@ extension Database {
       }
     }
   }
+  
+  enum upDownController: String {
+    case plus
+    case down
+  }
+  
+  static func commentCountHandler(uid: String, isbnCode: String, plusMinus: upDownController) {
+    DB_REF_COMMENT_STATICS.child(uid).child(isbnCode).observeSingleEvent(of: .value) { (snapshot) in
+      
+      guard let commentCount = snapshot.value as? Int else { return }
+      if plusMinus == .plus {
+        DB_REF_COMMENT_STATICS.child(uid).updateChildValues([isbnCode: commentCount + 1])
+      } else if plusMinus == .down {
+        DB_REF_COMMENT_STATICS.child(uid).updateChildValues([isbnCode: commentCount - 1])
+      }
+      
+    }
+  }
+
 }
 
 // MARK: - URLComponents Extension

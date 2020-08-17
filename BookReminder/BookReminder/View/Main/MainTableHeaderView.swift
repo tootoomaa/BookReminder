@@ -18,6 +18,8 @@ class MainTableHeaderView: UIView {
     imageView.image = UIImage(systemName: "person.crop.circle.fill.badge.plus",
                               withConfiguration: imageconf)
     imageView.tintColor = CommonUI.titleTextColor
+    imageView.layer.cornerRadius = (imageView.frame.height)/2
+    imageView.clipsToBounds = true
     imageView.contentMode = .scaleAspectFill
     imageView.isUserInteractionEnabled = true
     return imageView
