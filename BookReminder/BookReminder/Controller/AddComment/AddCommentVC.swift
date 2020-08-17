@@ -334,7 +334,7 @@ class AddCommentVC: UIViewController {
       } else {
         // 신규 Comment 업데이트
         self.uploadCommentData(uid: uid, isbnCode: isbnCode)
-        self.updateCommentStatics(uid: uid, isbnCode: isbnCode)
+        Database.commentCountHandler(uid: uid, isbnCode: isbnCode, plusMinus: .plus)
       }
       self.navigationController?.popViewController(animated: true)
     }
@@ -527,16 +527,6 @@ extension AddCommentVC {
         
         DB_REF_COMMENT.child(uid).child(isbnCode).childByAutoId().updateChildValues(value)
       }
-    }
-  }
-  
-  private func updateCommentStatics(uid: String, isbnCode: String) {
-    
-    DB_REF_COMMENT_STATICS.child(uid).child(isbnCode).observeSingleEvent(of: .value) { (snapshot) in
-      
-      guard let commentCount = snapshot.value as? Int else { return }
-      DB_REF_COMMENT_STATICS.child(uid).updateChildValues([isbnCode: commentCount + 1])
-      
     }
   }
   

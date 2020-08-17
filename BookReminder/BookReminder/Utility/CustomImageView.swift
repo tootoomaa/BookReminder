@@ -26,7 +26,15 @@ class CustomImageView: UIImageView {
       return
     }
     
-    guard let url = URL(string: urlString) else { return print("Fail to get imageURLSTring to URL") }
+    guard let url = URL(string: urlString) else {
+      let imageconf = UIImage.SymbolConfiguration(pointSize: 50, weight: .medium)
+      self.image = UIImage(systemName: "person.crop.circle.fill.badge.plus",
+                                withConfiguration: imageconf)
+      self.tintColor = CommonUI.titleTextColor
+      self.contentMode = .scaleAspectFill
+      self.isUserInteractionEnabled = true
+      return print("Fail to get imageURLSTring to URL")
+    }
     
     URLSession.shared.dataTask(with: url) { (data, response, error) in
       if let error = error {

@@ -17,10 +17,8 @@ class CollecionViewCustomCell: UICollectionViewCell {
     let imageView = CustomImageView()
     imageView.backgroundColor = .gray
     imageView.contentMode = .scaleAspectFit
-    
     imageView.layer.borderWidth = 1
     imageView.layer.borderColor = UIColor.systemGray3.cgColor
-    
     return imageView
   }()
   

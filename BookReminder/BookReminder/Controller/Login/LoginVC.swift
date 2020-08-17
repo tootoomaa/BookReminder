@@ -243,6 +243,21 @@ extension LoginVC: ASAuthorizationControllerDelegate {
           guard let authResult = authResult else { return }
           let uid = authResult.user.uid
           
+          // user static Profile data update
+          DB_REF_USERPROFILE.child(uid).observeSingleEvent(of: .value) { (snapshot) in
+            if (snapshot.value as? Dictionary<String, AnyObject>) != nil {
+              
+            } else {
+              let value = [
+                "commentCount": 0,
+                "compliteBookCount": 0,
+                "enrollBookCount": 0
+                ] as Dictionary<String, AnyObject>
+              
+              DB_REF_USERPROFILE.updateChildValues([uid: value])
+            }
+          }
+          
           // user Data check
           DB_REF.child("user").child(uid).observeSingleEvent(of: .value, with: { (snapshot) in
             
@@ -252,7 +267,7 @@ extension LoginVC: ASAuthorizationControllerDelegate {
               let value = [
                 "nickName": "사용자",
                 "email": email,
-                "profileImageUrl": nil
+                "profileImageUrl": ""
               ] as Dictionary<String, AnyObject>
               
               DB_REF_USER.updateChildValues([uid: value])

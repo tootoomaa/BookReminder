@@ -32,7 +32,6 @@ class MainVC: UIViewController {
   
   lazy var mainTableHeaderView: MainTableHeaderView = {
     let view = MainTableHeaderView()
-    
     view.detailProfileButton.addTarget(self, action: #selector(tabDetailProfileButton), for: .touchUpInside)
     return view
   }()
@@ -54,6 +53,22 @@ class MainVC: UIViewController {
   // MARK: - Init
   override func viewDidLoad() {
     super.viewDidLoad()
+    
+//    // 로그아웃 루틴 (테스트용
+//    if (Auth.auth().currentUser?.uid) != nil {
+//      let firebaseAuth = Auth.auth()
+//      do { // Firebase 계정 로그아웃
+//        try firebaseAuth.signOut()
+//        print("Success logout")
+//
+//        let loginVC = LoginVC()
+//        loginVC.modalPresentationStyle = .fullScreen
+//        present(loginVC, animated: true)
+//
+//      } catch let signOutError as NSError {
+//        print ("Error signing out: %@", signOutError)
+//      }
+//    }
     
     configureView()
     
@@ -163,25 +178,58 @@ class MainVC: UIViewController {
   }
   
   @objc private func tabAddCommentButton() {
-    guard (markedBookList.first?.title) != nil else {
-      present(UIAlertController.defaultSetting(title: "오류", message: "북마크된 책이 선택되지 않았습니다."),
-              animated: true, completion: nil)
-      return
-    } // 책 정보가 로딩되기전에 버튼 누를 시 무시
+    guard (markedBookList.first?.title) != nil else {popErrorAlertController(); return} // 책 정보 체크
     let addCommentVC = AddCommentVC()
     addCommentVC.markedBookInfo = markedBookList[userSelectedBookIndex.item]
     navigationController?.pushViewController(addCommentVC, animated: true)
   }
   
   @objc private func tabCommentListEditButton() {
-    guard (markedBookList.first?.title) != nil else {
-      present(UIAlertController.defaultSetting(title: "오류", message: "북마크된 책이 선택되지 않았습니다."),
-      animated: true, completion: nil)
-      return
-    } // 책 정보가 로딩되기전에 버튼 누를 시 무시
+    guard (markedBookList.first?.title) != nil else {popErrorAlertController(); return} // 책 정보 체크
     let commentListVC = CommentListVC(style: .plain)
     commentListVC.markedBookInfo = markedBookList[userSelectedBookIndex.item]
     navigationController?.pushViewController(commentListVC, animated: true)
+  }
+  
+  @objc private func tabCompliteButton() {
+    guard (markedBookList.first?.title) != nil else {popErrorAlertController(); return} // 책 정보 체크
+    
+    let okAction = UIAlertAction(title: "확인", style: .default) { (_) in
+      let deleteBookIndex = self.userSelectedBookIndex.item
+      guard let uid = Auth.auth().currentUser?.uid,
+        let isbnCode = self.markedBookList[deleteBookIndex].isbn else { return }
+        print(isbnCode)
+      
+      // DB 업데이트
+      DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue() // 북마크에서 제거
+      DB_REF_COMPLITEBOOKS.child(uid).updateChildValues([isbnCode:1])
+      Database.compliteCountHandler(uid: uid, isbnCode: isbnCode, plusMinus: .plus) // 완독 통계 추가
+      
+      // 북마크 북 제거
+      self.markedBookList.remove(at: deleteBookIndex)
+      // TableView reload
+      self.tableView.reloadRows(at: [IndexPath(row: 0, section: 0)], with: .fade)
+      
+      // myBook 재설정
+      guard let window = UIApplication.shared.delegate?.window,
+        let tabBarController = window?.rootViewController as? UITabBarController else { return }
+      
+      guard let naviController = tabBarController.viewControllers?[1] as? UINavigationController,
+            let myBookVC = naviController.visibleViewController as? MyBookVC else { return }
+      
+      myBookVC.collectionView.reloadData()
+    }
+    let message = "해당 책을 완독 처리하시겠습니까?\n 완독한 책은 Main메뉴에서 삭제됩니다."
+    let alertController = UIAlertController.okCancelSetting(title: "책 완독",
+                                                            message: message,
+                                                            okAction: okAction)
+    present(alertController, animated: true, completion: nil)
+    
+  }
+  
+  private func popErrorAlertController() {
+    present(UIAlertController.defaultSetting(title: "오류", message: "북마크된 책이 선택되지 않았습니다."),
+    animated: true, completion: nil)
   }
 }
 
@@ -222,6 +270,7 @@ extension MainVC: UITableViewDataSource {
       
       myCell.commentAddButton.addTarget(self, action: #selector(tabAddCommentButton), for: .touchUpInside)
       myCell.commentEditButton.addTarget(self, action: #selector(tabCommentListEditButton), for: .touchUpInside)
+      myCell.compliteButton.addTarget(self, action: #selector(tabCompliteButton), for: .touchUpInside)
       cell = myCell
     }
     

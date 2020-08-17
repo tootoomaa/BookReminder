@@ -35,7 +35,6 @@ class MyBookCustomCell: UICollectionViewCell {
   
   let markImage: UIImageView = {
     let imageView = UIImageView()
-    
     let imageConfigure = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium, scale: .medium)
     let bookmarkImage = UIImage(systemName: "bookmark.fill", withConfiguration: imageConfigure)
     imageView.image = bookmarkImage
@@ -44,25 +43,34 @@ class MyBookCustomCell: UICollectionViewCell {
     return imageView
   }()
   
+  let compliteImage: UIImageView = {
+    let imageView = UIImageView()
+    let imageConfigure = UIImage.SymbolConfiguration(pointSize: 30, weight: .medium, scale: .medium)
+    let bookmarkImage = UIImage(systemName: "checkmark.seal.fill", withConfiguration: imageConfigure)
+    imageView.image = bookmarkImage
+    imageView.isHidden = true
+    imageView.backgroundColor = .white
+    imageView.tintColor = .systemBlue
+    imageView.layer.cornerRadius = 15
+    imageView.clipsToBounds = true
+    return imageView
+  }()
+  
   lazy var markButton: UIButton = {
     let button = UIButton()
-    
     let imageConfigure = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium, scale: .medium)
     let bookmarkImage = UIImage(systemName: "bookmark", withConfiguration: imageConfigure)
     let fillBookmarkImage = UIImage(systemName: "bookmark.fill", withConfiguration: imageConfigure)
     button.addTarget(self, action: #selector(tabButtonHander(_:)), for: .touchUpInside)
-
     button.isSelected = false
     button.setImage(bookmarkImage, for: .normal)
     button.setImage(fillBookmarkImage, for: .selected)
-    
     button.tintColor = .white
     return button
   }()
   
   lazy var commentButton: UIButton = {
     let button = UIButton()
-    
     let imageConfigure = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium, scale: .medium)
     let bookmarkImage = UIImage(systemName: "bubble.left.fill", withConfiguration: imageConfigure)
     button.addTarget(self, action: #selector(tabButtonHander(_:)), for: .touchUpInside)
@@ -73,7 +81,6 @@ class MyBookCustomCell: UICollectionViewCell {
   
   lazy var infoButton: UIButton = {
     let button = UIButton()
-    
     let imageConfigure = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium, scale: .medium)
     let bookmarkImage = UIImage(systemName: "info.circle.fill", withConfiguration: imageConfigure)
     button.addTarget(self, action: #selector(tabButtonHander(_:)), for: .touchUpInside)
@@ -88,7 +95,7 @@ class MyBookCustomCell: UICollectionViewCell {
     
     blurView.alpha = 0
   
-    [bookThumbnailImageView, markImage, blurView].forEach{
+    [bookThumbnailImageView, markImage, compliteImage, blurView].forEach{
       addSubview($0)
     }
     
@@ -103,6 +110,10 @@ class MyBookCustomCell: UICollectionViewCell {
     markImage.snp.makeConstraints{
       $0.top.equalTo(self)
       $0.trailing.equalTo(self).offset(-5)
+    }
+    
+    compliteImage.snp.makeConstraints{
+      $0.trailing.bottom.equalTo(self).offset(-5)
     }
     
     let buttonView = [markButton, commentButton, infoButton]

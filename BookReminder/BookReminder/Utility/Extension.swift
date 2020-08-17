@@ -40,12 +40,18 @@ extension Database {
     }
   }
   
-  enum upDownController: String {
+  enum UpDownController: String {
     case plus
     case down
   }
   
-  static func commentCountHandler(uid: String, isbnCode: String, plusMinus: upDownController) {
+  enum UserProfileStatics: String {
+    case commentCount
+    case compliteBookCount
+    case enrollBookCount
+  }
+  
+  static func commentCountHandler(uid: String, isbnCode: String, plusMinus: UpDownController) {
     DB_REF_COMMENT_STATICS.child(uid).child(isbnCode).observeSingleEvent(of: .value) { (snapshot) in
       
       guard let commentCount = snapshot.value as? Int else { return }
@@ -54,10 +60,38 @@ extension Database {
       } else if plusMinus == .down {
         DB_REF_COMMENT_STATICS.child(uid).updateChildValues([isbnCode: commentCount - 1])
       }
+    }
+    userProfileStaticsHanlder(uid: uid, plusMinus: plusMinus, updateCategory: .commentCount)
+  }
+  
+  static func compliteCountHandler(uid: String, isbnCode: String, plusMinus: UpDownController) {
+    DB_REF_COMPLITEBOOKS_STATICS.child(uid).child(isbnCode).observeSingleEvent(of: .value) { (snapshot) in
       
+      guard let commentCount = snapshot.value as? Int else { return print("Fail to read value")}
+      if plusMinus == .plus {
+        DB_REF_COMPLITEBOOKS_STATICS.child(uid).updateChildValues([isbnCode: commentCount + 1])
+      } else if plusMinus == .down {
+        DB_REF_COMPLITEBOOKS_STATICS.child(uid).updateChildValues([isbnCode: commentCount - 1])
+      }
+    }
+    userProfileStaticsHanlder(uid: uid, plusMinus: plusMinus, updateCategory: .compliteBookCount)
+  }
+  
+  static func userProfileStaticsHanlder(uid: String, plusMinus: UpDownController, updateCategory: UserProfileStatics) {
+    DB_REF_USERPROFILE.child(uid).observeSingleEvent(of: .value) { (snapshot) in
+      guard var value = snapshot.value as? Dictionary<String, Int> else { return print("Fail to get data")}
+      guard let count = value[updateCategory.rawValue] else { return }
+     
+      print("\(updateCategory.rawValue): \(count)")
+      if plusMinus == .plus {
+        value.updateValue(count+1, forKey: updateCategory.rawValue)
+      } else {
+        value.updateValue(count-1, forKey: updateCategory.rawValue)
+      }
+      
+      DB_REF_USERPROFILE.child(uid).updateChildValues(value)
     }
   }
-
 }
 
 // MARK: - URLComponents Extension
@@ -99,6 +133,21 @@ extension UIAlertController {
     let confirmAction = UIAlertAction(title: "확인", style: .default) { (_) in }
     
     alertController.addAction(confirmAction)
+    
+    return alertController
+  }
+  
+  static func okCancelSetting(title: String, message: String, okAction: UIAlertAction) -> UIAlertController {
+    let alertController = UIAlertController(title: title,
+                                            message: message,
+                                            preferredStyle: .alert)
+    
+    let okAction = okAction
+    let cancelAction = UIAlertAction(title: "취소", style: .destructive) { (_) in
+      
+    }
+    alertController.addAction(okAction)
+    alertController.addAction(cancelAction)
     
     return alertController
   }

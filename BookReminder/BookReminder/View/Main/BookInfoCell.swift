@@ -76,6 +76,17 @@ class BookInfoCell: UITableViewCell {
     return button
   }()
   
+  let compliteButton: UIButton = {
+    let button = UIButton()
+    let fullString = NSAttributedString.configureAttributedString(systemName: "checkmark.seal.fill",
+                                                                  setText: "완독")
+    button.setAttributedTitle(fullString, for: .normal)
+    button.backgroundColor = .white
+    button.layer.cornerRadius = 10
+    button.clipsToBounds = true
+    return button
+  }()
+  
   
   
   // MARK: - Init
@@ -97,7 +108,7 @@ class BookInfoCell: UITableViewCell {
       $0.bottom.trailing.equalTo(self).offset(-10)
     }
     
-    [statusBackgroundView, commentAddButton, commentEditButton].forEach{
+    [statusBackgroundView, commentAddButton, commentEditButton, compliteButton].forEach{
       myBackgroundView.addSubview($0)
     }
     
@@ -109,6 +120,13 @@ class BookInfoCell: UITableViewCell {
     
     commentEditButton.snp.makeConstraints{
       $0.leading.equalTo(commentAddButton.snp.trailing).offset(20)
+      $0.centerY.equalTo(commentAddButton.snp.centerY)
+      $0.height.equalTo(50)
+      $0.width.equalTo(commentAddButton.snp.width)
+    }
+    
+    compliteButton.snp.makeConstraints{
+      $0.leading.equalTo(commentEditButton.snp.trailing).offset(20)
       $0.trailing.equalTo(statusBackgroundView.snp.trailing)
       $0.centerY.equalTo(commentAddButton.snp.centerY)
       $0.height.equalTo(50)
@@ -122,6 +140,8 @@ class BookInfoCell: UITableViewCell {
       $0.centerX.equalTo(myBackgroundView.snp.centerX)
       $0.height.equalTo(commentAddButton).multipliedBy(1.5)
     }
+    
+
     
     let seperateview1 = seperateView
     

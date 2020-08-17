@@ -18,8 +18,11 @@ let STORAGE_REF_USER_PROFILEIMAGE = Storage.storage().reference().child("userPro
 
 // Database
 let DB_REF = Database.database().reference()
-let DB_REF_USER = Database.database().reference().child("user")
-let DB_REF_USERBOOKS = Database.database().reference().child("userBooks")
-let DB_REF_MARKBOOKS = Database.database().reference().child("markBooks")
-let DB_REF_COMMENT = Database.database().reference().child("comments")
-let DB_REF_COMMENT_STATICS = Database.database().reference().child("commnet-statics")
+let DB_REF_USER = DB_REF.child("user")
+let DB_REF_USERBOOKS = DB_REF.child("userBooks")
+let DB_REF_MARKBOOKS = DB_REF.child("markBooks")
+let DB_REF_COMMENT = DB_REF.child("comments")
+let DB_REF_COMMENT_STATICS = DB_REF.child("commnet-statics")
+let DB_REF_COMPLITEBOOKS = DB_REF.child("compliteBooks")
+let DB_REF_COMPLITEBOOKS_STATICS = DB_REF.child("compliteBooks-staitcs")
+let DB_REF_USERPROFILE = DB_REF.child("userProfile")

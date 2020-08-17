@@ -44,6 +44,10 @@ class UserProfileVC: UITableViewController {
     ["등록 권수", "완독률", "comment 수", "권당 comment 수"],
     ["현재 버전", "오픈소스 라이센스"]
   ]
+  var aboutBookInfoValue = [
+    ["0","0","0","0"],
+    ["v1.0","오픈소스 라이센스"]
+  ]
   
   lazy var checkDetailMenuString = aboutBookInfo[secionData.count-1].last // 오픈소스 라이센스
   
@@ -51,6 +55,8 @@ class UserProfileVC: UITableViewController {
     super.viewDidLoad()
     
     title = "사용자 프로필"
+    
+    fetchStaticData()
     
     configureSetUI()
     
@@ -159,9 +165,11 @@ class UserProfileVC: UITableViewController {
       ) as? UserProfileTableViewCell else { fatalError() }
     
     let titleText = aboutBookInfo[indexPath.section][indexPath.row]
+    let contextText = aboutBookInfoValue[indexPath.section][indexPath.row]
+    
     let isNeedDetailMenu = titleText == checkDetailMenuString ? true : false
     cell.configure(titleText: titleText,
-                   contextText: "10",
+                   contextText: contextText,
                    isNeedDetailMenu: isNeedDetailMenu)
     
     return cell
@@ -243,4 +251,15 @@ extension UserProfileVC: UIImagePickerControllerDelegate & UINavigationControlle
   }
 }
 
+// MARK: - Network Handler
+extension UserProfileVC {
+  
+  private func fetchStaticData() {
+    
+    // 등록 권수 계산
+    
+    
+  }
+  
+}
 

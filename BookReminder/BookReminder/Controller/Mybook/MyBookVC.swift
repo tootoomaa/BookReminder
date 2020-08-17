@@ -281,6 +281,7 @@ class MyBookVC: UIViewController {
       DispatchQueue.main.async {
         // DB 업데이트
         DB_REF_COMMENT_STATICS.child(uid).updateChildValues([isbnCode:0])
+        DB_REF_COMPLITEBOOKS_STATICS.child(uid).updateChildValues([isbnCode:0])
         DB_REF_USERBOOKS.child(uid).updateChildValues([isbnCode: bookDicValue])
         // book model 생성
         let bookDetailInfo = BookDetailInfo(isbnCode: isbnCode, dictionary: bookDicValue)
@@ -310,10 +311,16 @@ class MyBookVC: UIViewController {
       DispatchQueue.main.async {
         // DB 업데이트
         DB_REF_COMMENT_STATICS.child(uid).updateChildValues([isbnCode:0])
+        DB_REF_COMPLITEBOOKS_STATICS.child(uid).updateChildValues([isbnCode:0])
         DB_REF_USERBOOKS.child(uid).updateChildValues([isbnCode: bookDicValue])
         // book model 생성
         let bookDetailInfo = BookDetailInfo(isbnCode: isbnCode, dictionary: bookDicValue)
         self.bookDetailInfoArray.append(bookDetailInfo)
+        
+        self.bookDetailInfoArray.sort { (book1, book2) -> Bool in
+          book1.creationDate > book2.creationDate
+        }
+        
         self.collectionView.reloadData()
         self.initializationMultiButton()
       }
@@ -476,6 +483,16 @@ extension MyBookVC: UICollectionViewDelegate {
         cell.markButton.isSelected = false
       }
     }
+    
+    DB_REF_COMPLITEBOOKS.child(uid).child(isbnCode).observeSingleEvent(of: .value) { (snapshot) in
+      let value = snapshot.value as? Int
+      if value == 1 {
+        cell.compliteImage.isHidden = false
+      } else {
+        cell.compliteImage.isHidden = true
+      }
+    }
+    
   }
 }
 
