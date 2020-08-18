@@ -33,8 +33,10 @@ class UserProfileVC: UITableViewController {
       mainTableHeaderView.logoutButton.addTarget(self,
                                                  action: #selector(tabLogoutButton),
                                                  for: .touchUpInside)
-      let guesture = UITapGestureRecognizer(target: self, action: #selector(tabProfileImageImage))
-      mainTableHeaderView.profileImageView.addGestureRecognizer(guesture)
+      let profileImageGuesture = UITapGestureRecognizer(target: self, action: #selector(tabProfileImageImage))
+      mainTableHeaderView.profileImageView.addGestureRecognizer(profileImageGuesture)
+      let nickNameLabelGuesture = UITapGestureRecognizer(target: self, action: #selector(tabNameLabel))
+      mainTableHeaderView.nameLabel.addGestureRecognizer(nickNameLabelGuesture)
     }
   }
   
@@ -59,11 +61,19 @@ class UserProfileVC: UITableViewController {
         aboutBookInfoValue[0].append("\(enrollBookCount) 권 ")
         aboutBookInfoValue[0].append("\(compliteBookCount) 권 ")
         
-        let compliteRatio = compliteBookCount / enrollBookCount * 100
+        var compliteRatio = 0
+        if enrollBookCount != 0 {
+          compliteRatio = Int(Double(compliteBookCount) / Double(enrollBookCount) * 100.0)
+        }
         aboutBookInfoValue[0].append("\(compliteRatio) % ")
         aboutBookInfoValue[0].append("\(commentCount) 개 ")
         
-        let commentRatio = commentCount / enrollBookCount
+        var commentRatio: Double = 0.0
+        if enrollBookCount != 0 {
+          commentRatio = Double(commentCount) / Double(enrollBookCount)
+          let text = String(format: "%.2f 개", arguments: [commentRatio])
+          aboutBookInfoValue[0].append(text)
+        }
         aboutBookInfoValue[0].append("평균 \(commentRatio) 개 ")
         
         tableView.reloadData()
@@ -86,10 +96,16 @@ class UserProfileVC: UITableViewController {
   }
  
   override func viewWillAppear(_ animated: Bool) {
+    super.viewWillAppear(true)
     navigationController?.navigationBar.isHidden = false
     let imageView =  mainTableHeaderView.profileImageView
     imageView.layer.cornerRadius = (imageView.frame.height)/2
     imageView.clipsToBounds = true
+  }
+  
+  override func viewWillDisappear(_ animated: Bool) {
+    super.viewWillDisappear(true)
+    navigationController?.popViewController(animated: true)
   }
   
   private func configureSetUI() {
@@ -171,6 +187,40 @@ class UserProfileVC: UITableViewController {
     present(alertController, animated: true, completion: nil)
   }
   
+  @objc private func tabNameLabel() {
+    
+    
+    let alertController = UIAlertController(title: "사용자 이름 변경", message: "변경하실 이름을 입력하세요", preferredStyle: .alert)
+    
+    alertController.addTextField()
+    
+    let okAction = UIAlertAction(title: "확인", style: .default) { (_) in
+      guard let uid = Auth.auth().currentUser?.uid else { return }
+      guard let userProfileData = self.userProfileData else { return }
+      
+      if let email = userProfileData.email,
+        let profileImageUrl = userProfileData.profileImageUrl {
+        
+        if let text = alertController.textFields?.first?.text {
+          self.mainTableHeaderView.nameLabel.text = text
+          
+          let value = [
+            "nickName": text,
+            "email": email,
+            "profileImageUrl": profileImageUrl
+            ] as Dictionary<String, AnyObject>
+          
+          DB_REF_USER.updateChildValues([uid: value])
+        }
+      }
+    }
+    let cancelAction = UIAlertAction(title: "취소", style: .cancel) { (_) in }
+    
+    alertController.addAction(okAction)
+    alertController.addAction(cancelAction)
+    present(alertController, animated: true, completion: nil)
+  }
+  
   // MARK: - TableViewDataSource
   override func numberOfSections(in tableView: UITableView) -> Int {
     return secionData.count
@@ -245,9 +295,16 @@ extension UserProfileVC: UIImagePickerControllerDelegate & UINavigationControlle
             let email = userdata.email else { return }
       
       guard let userProfileImage = self.mainTableHeaderView.profileImageView.image else { return }
-      guard let uploadImageDate = userProfileImage.jpegData(compressionQuality: 0.5) else { return }
+      guard let uploadImageDate = userProfileImage.jpegData(compressionQuality: 0.3) else { return }
       
       let filename = NSUUID().uuidString
+      
+      if let beforeImageURL = self.userProfileData?.profileImageUrl {
+        print(beforeImageURL)
+        if beforeImageURL != "" {
+          Storage.storage().reference(forURL: beforeImageURL).delete(completion: nil)
+        }
+      }
       
       STORAGE_REF_USER_PROFILEIMAGE.child(filename).putData(uploadImageDate, metadata: nil) { (metadata, error) in
         if let error = error {

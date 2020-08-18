@@ -79,7 +79,16 @@ class MainVC: UIViewController {
   }
   
   override func viewWillAppear(_ animated: Bool) {
+    print("aa")
     navigationController?.navigationBar.isHidden = true
+    fetUserProfileData()
+    guard let profileData = userProfileData else { return }
+    if let nickName = profileData.nickName,
+      let imageUrl = profileData.profileImageUrl {
+    mainTableHeaderView.configureHeaderView(profileImageUrlString: imageUrl,
+                                            userName: nickName,
+                                            isHiddenLogoutButton: true)
+    }
   }
   
   private func configureView() {
@@ -89,6 +98,7 @@ class MainVC: UIViewController {
     view.layoutMargins = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
     
     let gesture = UITapGestureRecognizer(target: self, action: #selector(tabProfileImageButton))
+    mainTableHeaderView.profileImageView.addGestureRecognizer(gesture)
     mainTableHeaderView.profileImageView.addGestureRecognizer(gesture)
   }
   
@@ -106,7 +116,7 @@ class MainVC: UIViewController {
   
   // MARK: - Network handler
   
-  private func fetUserProfileData() {
+  func fetUserProfileData() {
     guard let uid = Auth.auth().currentUser?.uid else { return }
     
     DB_REF_USER.child(uid).observeSingleEvent(of: .value) { (snapshot) in
@@ -153,9 +163,10 @@ class MainVC: UIViewController {
     guard let isbnCode = markedBookList[userSelectedBookIndex.item].isbn else { return }
     guard let cell = tableView.cellForRow(at: IndexPath(row: 1, section: 0)) as? BookInfoCell else { return }
     
-    DB_REF_COMMENT_STATICS.child(uid).child(isbnCode).observeSingleEvent(of: .value) { (snapshot) in
+    DB_REF_COMMENT_STATICS.child(uid).child(isbnCode).observe(.value) { (snapshot) in
       
-      guard let value = snapshot.value else { return }
+      guard let value = snapshot.value as? Int else { return }
+      print(value)`
       cell.commentLabel.attributedText = .configureAttributedString(systemName: "bubble.left.fill",
                                                                     setText: "\(value)")
     }
@@ -199,33 +210,29 @@ class MainVC: UIViewController {
             let isbnCode = self.markedBookList[deleteBookIndex].isbn else { return }
       
       DB_REF_COMPLITEBOOKS.child(uid).observeSingleEvent(of: .value) { (snapshot) in
-        guard let vavlue = snapshot.value as? Dictionary<String, AnyObject> else { return }
-        
-        if vavlue[isbnCode] != nil {
-          // 이미 완독으로 완료된 책
+        guard (snapshot.value as? Dictionary<String, AnyObject>) == nil else {
           self.present(UIAlertController.defaultSetting(title: "오류", message: "이미 완독된 책 입니다"),
-                  animated: true,
-                  completion: nil)
-        } else {
-          // 신규 등록 되는 책 DB 업데이트
-          DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue() // 북마크에서 제거
-          DB_REF_COMPLITEBOOKS.child(uid).updateChildValues([isbnCode:1])
-          Database.compliteCountHandler(uid: uid, isbnCode: isbnCode, plusMinus: .plus) // 완독 통계 추가
-          
-          // 북마크 북 제거
-          self.markedBookList.remove(at: deleteBookIndex)
-          // TableView reload
-          self.tableView.reloadRows(at: [IndexPath(row: 0, section: 0)], with: .fade)
-          
-          // myBook 재설정
-          guard let window = UIApplication.shared.delegate?.window,
-            let tabBarController = window?.rootViewController as? UITabBarController else { return }
-          
-          guard let naviController = tabBarController.viewControllers?[1] as? UINavigationController,
-                let myBookVC = naviController.visibleViewController as? MyBookVC else { return }
-          
-          myBookVC.collectionView.reloadData()
+                       animated: true, completion: nil)
+          return
         }
+        // 신규 등록 되는 책 DB 업데이트
+        DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue() // 북마크에서 제거
+        DB_REF_COMPLITEBOOKS.child(uid).updateChildValues([isbnCode:1]) // 완료된 책 등록
+        Database.userProfileStaticsHanlder(uid: uid, plusMinus: .plus, updateCategory: .compliteBookCount, amount: 1) // 완료 통계 증가
+        
+        // 북마크 북 제거
+        self.markedBookList.remove(at: deleteBookIndex)
+        // TableView reload
+        self.tableView.reloadRows(at: [IndexPath(row: 0, section: 0)], with: .fade)
+        
+        // myBook 재설정
+        guard let window = UIApplication.shared.delegate?.window,
+          let tabBarController = window?.rootViewController as? UITabBarController else { return }
+        
+        guard let naviController = tabBarController.viewControllers?[1] as? UINavigationController,
+          let myBookVC = naviController.visibleViewController as? MyBookVC else { return }
+        
+        myBookVC.collectionView.reloadData()
       }
       
     }

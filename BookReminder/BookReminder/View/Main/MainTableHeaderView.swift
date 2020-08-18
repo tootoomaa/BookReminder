@@ -30,6 +30,7 @@ class MainTableHeaderView: UIView {
     label.text = "nickName"
     label.font = .systemFont(ofSize: 20, weight: .medium)
     label.textColor = CommonUI.titleTextColor
+    label.isUserInteractionEnabled = true
     return label
   }()
   

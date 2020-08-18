@@ -260,7 +260,6 @@ extension LoginVC: ASAuthorizationControllerDelegate {
           
           // user Data check
           DB_REF.child("user").child(uid).observeSingleEvent(of: .value, with: { (snapshot) in
-            
             if snapshot.value != nil {
               guard let email = authResult.user.email else { return print("fail to get imformation") }
               

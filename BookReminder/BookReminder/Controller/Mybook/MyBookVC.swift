@@ -276,7 +276,6 @@ class MyBookVC: UIViewController {
       DispatchQueue.main.async {
         // DB 업데이트
         DB_REF_COMMENT_STATICS.child(uid).updateChildValues([isbnCode:0])
-        DB_REF_COMPLITEBOOKS_STATICS.child(uid).updateChildValues([isbnCode:0])
         DB_REF_USERBOOKS.child(uid).updateChildValues([isbnCode: bookDicValue])
         Database.userProfileStaticsHanlder(uid: uid,
                                            plusMinus: .plus,
@@ -310,7 +309,6 @@ class MyBookVC: UIViewController {
       DispatchQueue.main.async {
         // DB 업데이트
         DB_REF_COMMENT_STATICS.child(uid).updateChildValues([isbnCode:0])
-        DB_REF_COMPLITEBOOKS_STATICS.child(uid).updateChildValues([isbnCode:0])
         DB_REF_USERBOOKS.child(uid).updateChildValues([isbnCode: bookDicValue])
         Database.userProfileStaticsHanlder(uid: uid,
                                            plusMinus: .plus,
@@ -358,6 +356,18 @@ class MyBookVC: UIViewController {
       // DB 삭제
       Database.bookDeleteHandler(uid: uid, deleteBookData: deleteBookInfo)
       
+      //
+      guard let window = UIApplication.shared.delegate?.window,
+        let tabBarController = window?.rootViewController as? UITabBarController else { return }
+      
+      guard let naviController = tabBarController.viewControllers?.first as? UINavigationController,
+        let mainVC = naviController.visibleViewController as? MainVC else { return }
+      
+      if let index = mainVC.markedBookList.firstIndex(of: deleteBookInfo) {
+        mainVC.markedBookList.remove(at: index)
+      }
+      
+      mainVC.tableView.reloadData()
     }
     
     let imageView = UIImageView(frame: CGRect(x: 80, y: 110, width: 140, height: 200))
