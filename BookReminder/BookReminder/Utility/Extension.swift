@@ -61,7 +61,7 @@ extension Database {
         DB_REF_COMMENT_STATICS.child(uid).updateChildValues([isbnCode: commentCount - 1])
       }
     }
-    userProfileStaticsHanlder(uid: uid, plusMinus: plusMinus, updateCategory: .commentCount)
+    userProfileStaticsHanlder(uid: uid, plusMinus: plusMinus, updateCategory: .commentCount, amount: 1)
   }
   
   static func compliteCountHandler(uid: String, isbnCode: String, plusMinus: UpDownController) {
@@ -74,21 +74,46 @@ extension Database {
         DB_REF_COMPLITEBOOKS_STATICS.child(uid).updateChildValues([isbnCode: commentCount - 1])
       }
     }
-    userProfileStaticsHanlder(uid: uid, plusMinus: plusMinus, updateCategory: .compliteBookCount)
+    userProfileStaticsHanlder(uid: uid, plusMinus: plusMinus, updateCategory: .compliteBookCount, amount: 1)
   }
   
-  static func userProfileStaticsHanlder(uid: String, plusMinus: UpDownController, updateCategory: UserProfileStatics) {
+  static func userProfileStaticsHanlder(uid: String, plusMinus: UpDownController, updateCategory: UserProfileStatics, amount: Int) {
     DB_REF_USERPROFILE.child(uid).observeSingleEvent(of: .value) { (snapshot) in
       guard var value = snapshot.value as? Dictionary<String, Int> else { return print("Fail to get data")}
       guard let count = value[updateCategory.rawValue] else { return }
      
       if plusMinus == .plus {
-        value.updateValue(count+1, forKey: updateCategory.rawValue)
+        value.updateValue(count+amount, forKey: updateCategory.rawValue)
       } else {
-        value.updateValue(count-1, forKey: updateCategory.rawValue)
+        value.updateValue(count-amount, forKey: updateCategory.rawValue)
       }
       
       DB_REF_USERPROFILE.child(uid).updateChildValues(value)
+    }
+  }
+  
+  static func bookDeleteHandler(uid: String, deleteBookData: BookDetailInfo) {
+    guard let isbnCode = deleteBookData.isbn else { return }
+    // 완료된 책 count 감소
+    userProfileStaticsHanlder(uid: uid, plusMinus: .down, updateCategory: .compliteBookCount, amount: 1)
+    // enroll 책 count 감소
+    userProfileStaticsHanlder(uid: uid, plusMinus: .down, updateCategory: .enrollBookCount, amount: 1)
+    
+    DB_REF_COMMENT_STATICS.child(uid).child(isbnCode).observeSingleEvent(of: .value) { (snapshot) in
+    
+    guard let deleteBookCommentCount = snapshot.value as? Int else { return }
+      // 총 comment 감소
+      userProfileStaticsHanlder(uid: uid,
+                                plusMinus: .down,
+                                updateCategory: .commentCount,
+                                amount: deleteBookCommentCount)
+      
+      DB_REF_USERBOOKS.child(uid).child(isbnCode).removeValue()
+      DB_REF_COMMENT.child(uid).child(isbnCode).removeValue()
+      DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue()
+      DB_REF_COMPLITEBOOKS.child(uid).child(isbnCode).removeValue()
+      DB_REF_COMMENT_STATICS.child(uid).child(isbnCode).removeValue()
+      DB_REF_COMPLITEBOOKS_STATICS.child(uid).child(isbnCode).removeValue()
     }
   }
 }

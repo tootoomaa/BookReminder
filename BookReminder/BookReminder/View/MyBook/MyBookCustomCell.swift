@@ -128,7 +128,6 @@ class MyBookCustomCell: UICollectionViewCell {
     stackview.snp.makeConstraints{
       $0.centerY.centerX.equalTo(blurView)
     }
-    
   }
   
   func configure(bookDetailInfo: BookDetailInfo) {

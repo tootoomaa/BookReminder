@@ -26,6 +26,8 @@ class MyBookVC: UIViewController {
   var filterOn: Bool = false
   var filterdBookArray: [BookDetailInfo] = []
   
+  var userSelectedCellForDelete: IndexPath?
+  
   enum MyBookCellButtonTitle: String {
     case bookMark = "mark"
     case comment = "comment"
@@ -105,7 +107,7 @@ class MyBookVC: UIViewController {
     button.setImage(buttonImage, for: .normal)
     button.layer.cornerRadius = featureButtonSize/2
     button.clipsToBounds = true
-    button.addTarget(self, action: #selector(tabFeatureButton(_:)), for: .touchUpInside)
+    button.addTarget(self, action: #selector(tabDeleteButton(_:)), for: .touchUpInside)
     return button
   }()
   
@@ -265,13 +267,6 @@ class MyBookVC: UIViewController {
     multibuttomActive.toggle()
   }
   
-  @objc private func tabFeatureButton(_ sender: UIButton) {
-    
-    guard let buttonName = sender.currentTitle else { return }
-    print(buttonName)
-    
-  }
-  
   //search handler
   @objc private func tabSearchButton(_ sender: UIButton) {
     
@@ -283,7 +278,10 @@ class MyBookVC: UIViewController {
         DB_REF_COMMENT_STATICS.child(uid).updateChildValues([isbnCode:0])
         DB_REF_COMPLITEBOOKS_STATICS.child(uid).updateChildValues([isbnCode:0])
         DB_REF_USERBOOKS.child(uid).updateChildValues([isbnCode: bookDicValue])
-        Database.userProfileStaticsHanlder(uid: uid, plusMinus: .plus, updateCategory: .enrollBookCount)
+        Database.userProfileStaticsHanlder(uid: uid,
+                                           plusMinus: .plus,
+                                           updateCategory: .enrollBookCount,
+                                           amount: 1)
         // book model 생성
         let bookDetailInfo = BookDetailInfo(isbnCode: isbnCode, dictionary: bookDicValue)
         self.bookDetailInfoArray.append(bookDetailInfo)
@@ -314,7 +312,10 @@ class MyBookVC: UIViewController {
         DB_REF_COMMENT_STATICS.child(uid).updateChildValues([isbnCode:0])
         DB_REF_COMPLITEBOOKS_STATICS.child(uid).updateChildValues([isbnCode:0])
         DB_REF_USERBOOKS.child(uid).updateChildValues([isbnCode: bookDicValue])
-        Database.userProfileStaticsHanlder(uid: uid, plusMinus: .plus, updateCategory: .enrollBookCount)
+        Database.userProfileStaticsHanlder(uid: uid,
+                                           plusMinus: .plus,
+                                           updateCategory: .enrollBookCount,
+                                           amount: 1)
         // book model 생성
         let bookDetailInfo = BookDetailInfo(isbnCode: isbnCode, dictionary: bookDicValue)
         self.bookDetailInfoArray.append(bookDetailInfo)
@@ -332,6 +333,50 @@ class MyBookVC: UIViewController {
       // 멀티 버튼 초기화
       self.initializationMultiButton()
     }
+  }
+  
+  @objc private func tabDeleteButton(_ sender: UIButton) {
+    guard let deleteBookIndex = userSelectedCellForDelete else {
+      present(UIAlertController.defaultSetting(title: "삭제 오류", message: "삭제할 책을 선택해주세요"),
+              animated: true,completion: nil); return }
+    
+    let deleteBookInfo = bookDetailInfoArray[deleteBookIndex.item]
+    guard let bookName = deleteBookInfo.title else { return }
+    
+    let message = """
+        이 책을 삭제하시겠습니까?\n이 책과 관련한 모든 내용이 삭제 됩니다\n 삭제된 데이터는 복원 불가능 합니다
+    """
+    let alert = UIAlertController(title: "\(bookName) 삭제", message: message, preferredStyle: .alert)
+    let addAction = UIAlertAction(title: "취소", style: .cancel) { (_) in }
+    let cancelAction = UIAlertAction(title: "삭제", style: .destructive) { (_) in
+      guard let uid = Auth.auth().currentUser?.uid else { return }
+      //화면에서 삭제
+      self.collectionView.deleteItems(at: [deleteBookIndex])
+      self.bookDetailInfoArray.remove(at: deleteBookIndex.item)
+      self.userSelectedCellForDelete = nil
+      
+      // DB 삭제
+      Database.bookDeleteHandler(uid: uid, deleteBookData: deleteBookInfo)
+      
+    }
+    
+    let imageView = UIImageView(frame: CGRect(x: 80, y: 110, width: 140, height: 200))
+    // alert 버튼 및 이미지 설정
+    guard let deleteCell = collectionView.cellForItem(at: deleteBookIndex) as? MyBookCustomCell else { return }
+    imageView.image = deleteCell.bookThumbnailImageView.image
+    alert.view.addSubview(imageView)
+    
+    alert.addAction(addAction)
+    alert.addAction(cancelAction)
+
+    if let view = alert.view {
+      let height = NSLayoutConstraint(item: view, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 400)
+      let width = NSLayoutConstraint(item: view, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 300)
+      alert.view.addConstraints([ height, width])
+    }
+    
+    present(alert, animated: true)
+    
   }
 
   // multiButton 에니메이션 초기화
@@ -437,11 +482,7 @@ extension MyBookVC: UISearchBarDelegate {
   func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
     hideKeyBoard()
   }
-  
-  func searchBarTextDidBeginEditing(_ searchBar: UISearchBar) {
-    
-  }
-  
+
   func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
     searchBar.text = ""
     filterOn = false
@@ -458,7 +499,7 @@ extension MyBookVC: UICollectionViewDelegate {
     // 선택한 cell의 블러효과 활성화
     guard let cell = collectionView.cellForItem(at: indexPath) as? MyBookCustomCell else { return }
     cell.blurView.alpha = cell.blurView.alpha == 1 ? 0 : 1
-    
+    userSelectedCellForDelete = indexPath
   }
   
   func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
