@@ -51,7 +51,7 @@ class MyBookCustomCell: UICollectionViewCell {
     imageView.isHidden = true
     imageView.backgroundColor = .white
     imageView.tintColor = .systemBlue
-    imageView.layer.cornerRadius = 15
+    imageView.layer.cornerRadius = 20
     imageView.clipsToBounds = true
     return imageView
   }()

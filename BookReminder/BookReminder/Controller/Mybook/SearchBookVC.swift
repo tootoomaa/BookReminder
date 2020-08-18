@@ -31,7 +31,6 @@ class SearchBookVC: UIViewController {
     )
     button.setAttributedTitle(attributedString, for: .normal)
     button.backgroundColor = .white
-    button.addTarget(self, action: #selector(tabMainCategoryButton), for: .touchUpInside)
     return button
   }()
   
@@ -126,15 +125,6 @@ class SearchBookVC: UIViewController {
       $0.width.equalTo(110)
     }
     
-//    [bookNameCategoryButton, resultResearchButton].forEach{
-//      view.addSubview($0)
-//      $0.snp.makeConstraints{
-//        $0.centerY.equalTo(mainCategoryButton.snp.centerY)
-//        $0.leading.equalTo(mainCategoryButton.snp.leading).offset(10)
-//        $0.trailing.equalTo(mainCategoryButton.snp.trailing).offset(-10)
-//      }
-//    }
-    
     searchBar.snp.makeConstraints{
       $0.centerY.equalTo(mainCategoryButton.snp.centerY)
       $0.leading.equalTo(mainCategoryButton.snp.trailing).offset(5)
@@ -153,35 +143,6 @@ class SearchBookVC: UIViewController {
   }
   
   // MARK: - Handler
-  
-  @objc private func tabMainCategoryButton() {
-    
-//    print("Tab tabMainCategoryButton")
-//    var count: CGFloat = 0
-//    if menuActive == false {
-//      count = 1
-//      UIView.animateKeyframes(withDuration: 0.5, delay: 0, options: [], animations: {
-//        UIView.addKeyframe(withRelativeStartTime: 0, relativeDuration: 0.5) {
-//          for button in [self.bookNameCategoryButton, self.resultResearchButton] {
-//            button.center.y = button.center.y + 40 * count
-//            count += CGFloat(1)
-//          }
-//        }
-//      })
-//    } else {
-//      count = 3
-//      UIView.animateKeyframes(withDuration: 0.5, delay: 0, options: [], animations: {
-//        UIView.addKeyframe(withRelativeStartTime: 0, relativeDuration: 0.5) {
-//          for button in [self.bookNameCategoryButton, self.resultResearchButton].reversed() {
-//            button.center.y = button.center.y - 40 * count
-//            count -= CGFloat(1)
-//          }
-//        }
-//      })
-//    }
-//    menuActive.toggle()
-  }
-  
   @objc private func tabEtcCategoryButton(_ sender: UIButton) {
     
     guard let buttonTitle = sender.currentTitle else { return }
@@ -233,7 +194,6 @@ extension SearchBookVC: UISearchBarDelegate {
 extension SearchBookVC: UICollectionViewDelegate {
   
   func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-    
     hideKeyBoard()
     guard let cell = collectionView.cellForItem(at: indexPath) as? SearchBookCustomCell else { return }
     guard let bookName = searchedBookList[indexPath.item].title else { return }

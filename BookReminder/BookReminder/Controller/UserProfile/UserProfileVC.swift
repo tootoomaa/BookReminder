@@ -38,17 +38,39 @@ class UserProfileVC: UITableViewController {
     }
   }
   
-  
   let secionData = ["독서 관련", "기타 정보"]
   let aboutBookInfo = [
-    ["등록 권수", "완독률", "comment 수", "권당 comment 수"],
+    ["등록 권수", "완독 수" ,"완독률", "comment 수", "권당 comment 수"],
     ["현재 버전", "오픈소스 라이센스"]
   ]
   var aboutBookInfoValue = [
-    ["0","0","0","0"],
+    ["0", "0", "0", "0", "0"],
     ["v1.0","오픈소스 라이센스"]
   ]
   
+  var userProfileValue: [String: Int] = [:] {
+    didSet {
+      if let commentCount = userProfileValue["commentCount"],
+        let compliteBookCount = userProfileValue["compliteBookCount"],
+        let enrollBookCount = userProfileValue["enrollBookCount"] {
+      
+        aboutBookInfoValue[0] = []
+        
+        aboutBookInfoValue[0].append("\(enrollBookCount) 권 ")
+        aboutBookInfoValue[0].append("\(compliteBookCount) 권 ")
+        
+        let compliteRatio = compliteBookCount / enrollBookCount * 100
+        aboutBookInfoValue[0].append("\(compliteRatio) % ")
+        aboutBookInfoValue[0].append("\(commentCount) 개 ")
+        
+        let commentRatio = commentCount / enrollBookCount
+        aboutBookInfoValue[0].append("평균 \(commentRatio) 개 ")
+        
+        tableView.reloadData()
+      }
+    }
+  }
+
   lazy var checkDetailMenuString = aboutBookInfo[secionData.count-1].last // 오픈소스 라이센스
   
   override func viewDidLoad() {
@@ -249,17 +271,13 @@ extension UserProfileVC: UIImagePickerControllerDelegate & UINavigationControlle
       }
     })
   }
-}
-
-// MARK: - Network Handler
-extension UserProfileVC {
   
   private func fetchStaticData() {
-    
-    // 등록 권수 계산
-    
-    
+    guard let uid = Auth.auth().currentUser?.uid else { return }
+    DB_REF_USERPROFILE.child(uid).observeSingleEvent(of: .value) { (snapshot) in
+      guard let dictionaryValue = snapshot.value as? [String: Int] else { return }
+      self.userProfileValue = dictionaryValue
+    }
   }
-  
 }
 

@@ -426,9 +426,6 @@ class AddCommentVC: UIViewController {
   
   // MARK: - Keyboard Handler
   @objc func keyboardWillAppear( noti: NSNotification ) {
-    
-//    addCommentView.multiButton.transform = .identity
-    
     if let keyboardFrame: NSValue = noti.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue  {
       if keyboardUpChecker == false {
         let keyboardRectangle = keyboardFrame.cgRectValue

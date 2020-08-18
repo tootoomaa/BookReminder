@@ -283,6 +283,7 @@ class MyBookVC: UIViewController {
         DB_REF_COMMENT_STATICS.child(uid).updateChildValues([isbnCode:0])
         DB_REF_COMPLITEBOOKS_STATICS.child(uid).updateChildValues([isbnCode:0])
         DB_REF_USERBOOKS.child(uid).updateChildValues([isbnCode: bookDicValue])
+        Database.userProfileStaticsHanlder(uid: uid, plusMinus: .plus, updateCategory: .enrollBookCount)
         // book model 생성
         let bookDetailInfo = BookDetailInfo(isbnCode: isbnCode, dictionary: bookDicValue)
         self.bookDetailInfoArray.append(bookDetailInfo)
@@ -313,6 +314,7 @@ class MyBookVC: UIViewController {
         DB_REF_COMMENT_STATICS.child(uid).updateChildValues([isbnCode:0])
         DB_REF_COMPLITEBOOKS_STATICS.child(uid).updateChildValues([isbnCode:0])
         DB_REF_USERBOOKS.child(uid).updateChildValues([isbnCode: bookDicValue])
+        Database.userProfileStaticsHanlder(uid: uid, plusMinus: .plus, updateCategory: .enrollBookCount)
         // book model 생성
         let bookDetailInfo = BookDetailInfo(isbnCode: isbnCode, dictionary: bookDicValue)
         self.bookDetailInfoArray.append(bookDetailInfo)
@@ -325,14 +327,13 @@ class MyBookVC: UIViewController {
         self.initializationMultiButton()
       }
     }
-    
     // 바코드 스켄창 띄우기
     present(scannerVC, animated: true) {
       // 멀티 버튼 초기화
       self.initializationMultiButton()
     }
   }
-  
+
   // multiButton 에니메이션 초기화
   func initializationMultiButton() {
     multibuttomActive = false

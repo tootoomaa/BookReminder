@@ -82,7 +82,6 @@ extension Database {
       guard var value = snapshot.value as? Dictionary<String, Int> else { return print("Fail to get data")}
       guard let count = value[updateCategory.rawValue] else { return }
      
-      print("\(updateCategory.rawValue): \(count)")
       if plusMinus == .plus {
         value.updateValue(count+1, forKey: updateCategory.rawValue)
       } else {

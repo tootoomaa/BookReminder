@@ -29,7 +29,6 @@ class MainVC: UIViewController {
     }
   }
   
-  
   lazy var mainTableHeaderView: MainTableHeaderView = {
     let view = MainTableHeaderView()
     view.detailProfileButton.addTarget(self, action: #selector(tabDetailProfileButton), for: .touchUpInside)
@@ -197,32 +196,42 @@ class MainVC: UIViewController {
     let okAction = UIAlertAction(title: "확인", style: .default) { (_) in
       let deleteBookIndex = self.userSelectedBookIndex.item
       guard let uid = Auth.auth().currentUser?.uid,
-        let isbnCode = self.markedBookList[deleteBookIndex].isbn else { return }
-        print(isbnCode)
+            let isbnCode = self.markedBookList[deleteBookIndex].isbn else { return }
       
-      // DB 업데이트
-      DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue() // 북마크에서 제거
-      DB_REF_COMPLITEBOOKS.child(uid).updateChildValues([isbnCode:1])
-      Database.compliteCountHandler(uid: uid, isbnCode: isbnCode, plusMinus: .plus) // 완독 통계 추가
+      DB_REF_COMPLITEBOOKS.child(uid).observeSingleEvent(of: .value) { (snapshot) in
+        guard let vavlue = snapshot.value as? Dictionary<String, AnyObject> else { return }
+        
+        if vavlue[isbnCode] != nil {
+          // 이미 완독으로 완료된 책
+          self.present(UIAlertController.defaultSetting(title: "오류", message: "이미 완독된 책 입니다"),
+                  animated: true,
+                  completion: nil)
+        } else {
+          // 신규 등록 되는 책 DB 업데이트
+          DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue() // 북마크에서 제거
+          DB_REF_COMPLITEBOOKS.child(uid).updateChildValues([isbnCode:1])
+          Database.compliteCountHandler(uid: uid, isbnCode: isbnCode, plusMinus: .plus) // 완독 통계 추가
+          
+          // 북마크 북 제거
+          self.markedBookList.remove(at: deleteBookIndex)
+          // TableView reload
+          self.tableView.reloadRows(at: [IndexPath(row: 0, section: 0)], with: .fade)
+          
+          // myBook 재설정
+          guard let window = UIApplication.shared.delegate?.window,
+            let tabBarController = window?.rootViewController as? UITabBarController else { return }
+          
+          guard let naviController = tabBarController.viewControllers?[1] as? UINavigationController,
+                let myBookVC = naviController.visibleViewController as? MyBookVC else { return }
+          
+          myBookVC.collectionView.reloadData()
+        }
+      }
       
-      // 북마크 북 제거
-      self.markedBookList.remove(at: deleteBookIndex)
-      // TableView reload
-      self.tableView.reloadRows(at: [IndexPath(row: 0, section: 0)], with: .fade)
-      
-      // myBook 재설정
-      guard let window = UIApplication.shared.delegate?.window,
-        let tabBarController = window?.rootViewController as? UITabBarController else { return }
-      
-      guard let naviController = tabBarController.viewControllers?[1] as? UINavigationController,
-            let myBookVC = naviController.visibleViewController as? MyBookVC else { return }
-      
-      myBookVC.collectionView.reloadData()
     }
     let message = "해당 책을 완독 처리하시겠습니까?\n 완독한 책은 Main메뉴에서 삭제됩니다."
-    let alertController = UIAlertController.okCancelSetting(title: "책 완독",
-                                                            message: message,
-                                                            okAction: okAction)
+    guard let title = markedBookList[userSelectedBookIndex.row].title else { return }
+    let alertController = UIAlertController.okCancelSetting(title: "\(title) 완독", message: message, okAction: okAction)
     present(alertController, animated: true, completion: nil)
     
   }
