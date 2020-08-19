@@ -9,6 +9,7 @@
 import UIKit
 import Firebase
 import MobileCoreServices
+import Carte
 
 class UserProfileVC: UITableViewController {
   
@@ -43,7 +44,7 @@ class UserProfileVC: UITableViewController {
   let secionData = ["독서 관련", "기타 정보"]
   let aboutBookInfo = [
     ["등록 권수", "완독 수" ,"완독률", "comment 수", "권당 comment 수"],
-    ["현재 버전", "오픈소스 라이센스"]
+    ["현재 버전"]//, "오픈소스 라이센스"]
   ]
   var aboutBookInfoValue = [
     ["0", "0", "0", "0", "0"],
@@ -224,7 +225,8 @@ class UserProfileVC: UITableViewController {
   
   @objc private func tabDetailContextButton() {
     print("tab Detail context Button")
-    
+    let carteViewController = CarteViewController()
+    navigationController?.pushViewController(carteViewController, animated: true)
   }
   
   // MARK: - TableViewDataSource

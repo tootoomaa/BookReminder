@@ -5,6 +5,7 @@ PODS:
     - AppAuth/ExternalUserAgent (= 1.4.0)
   - AppAuth/Core (1.4.0)
   - AppAuth/ExternalUserAgent (1.4.0)
+  - Carte (2.2.1)
   - DynamicCodable (1.0)
   - Firebase/Analytics (6.23.0):
     - Firebase/Core
@@ -144,6 +145,7 @@ PODS:
   - PromisesObjC (1.2.8)
 
 DEPENDENCIES:
+  - Carte
   - Firebase/Analytics
   - Firebase/Auth
   - Firebase/Database
@@ -155,6 +157,7 @@ SPEC REPOS:
   trunk:
     - Alamofire
     - AppAuth
+    - Carte
     - DynamicCodable
     - Firebase
     - FirebaseAnalytics
@@ -189,6 +192,7 @@ SPEC REPOS:
 SPEC CHECKSUMS:
   Alamofire: 814429acc853c6c54ff123fc3d2ef66803823ce0
   AppAuth: 31bcec809a638d7bd2f86ea8a52bd45f6e81e7c7
+  Carte: 6bcff4eaa894ff5b979d646de833fec96e04a38c
   DynamicCodable: 2cf558d057b3e6540552943254e1c9eeb706dde2
   Firebase: 585ae467b3edda6a5444e788fda6888f024d8d6f
   FirebaseAnalytics: 558f7a03d19de451093032c806f39d5f9dff096e
@@ -220,6 +224,6 @@ SPEC CHECKSUMS:
   nanopb: 18003b5e52dab79db540fe93fe9579f399bd1ccd
   PromisesObjC: c119f3cd559f50b7ae681fa59dc1acd19173b7e6
 
-PODFILE CHECKSUM: bb699049918fd274895762b2708bc8dee23a1f46
+PODFILE CHECKSUM: 4167183f9ab215abfa235935d6bcd3045559b9a1
 
 COCOAPODS: 1.9.3

@@ -13,8 +13,15 @@ target 'BookReminder' do
   pod 'Firebase/Storage'
   pod 'KakaoSDK', '~> 2.0.0-beta.7'
   pod 'Firebase/Auth'
+  pod 'Carte'
   pod 'GoogleSignIn'
   # add pods for any other desired Firebase products
   # https://firebase.google.com/docs/ios/setup#available-podso
+end
+  post_install do |installer|
+  pods_dir = File.dirname(installer.pods_project.path)
+  at_exit { `ruby #{pods_dir}/Carte/Sources/Carte/carte.rb configure` }
+
 
 end
+

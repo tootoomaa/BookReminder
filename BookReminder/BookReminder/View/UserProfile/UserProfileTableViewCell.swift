@@ -48,10 +48,10 @@ class UserProfileTableViewCell: UITableViewCell {
       $0.centerY.equalTo(self)
     }
     
-    detailContextButton.snp.makeConstraints{
-      $0.trailing.equalTo(self).offset(-30)
-      $0.centerY.equalTo(self)
-    }
+//    detailContextButton.snp.makeConstraints{
+//      $0.trailing.equalTo(self).offset(-30)
+//      $0.centerY.equalTo(self)
+//    }
   }
   
   required init?(coder: NSCoder) {
@@ -63,7 +63,7 @@ class UserProfileTableViewCell: UITableViewCell {
     titleLabel.text = titleText
     contextLabel.text = contextText
     
-    detailContextButton.isHidden = !isNeedDetailMenu
+//    detailContextButton.isHidden = !isNeedDetailMenu
     contextLabel.isHidden = isNeedDetailMenu
     
   }

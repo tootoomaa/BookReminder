@@ -176,7 +176,7 @@ class AddCommentView: UIScrollView {
       $0.top.equalTo(safeGuide.snp.top).offset(16)
       $0.leading.equalTo(safeGuide.snp.leading).offset(16)
       $0.trailing.equalTo(safeGuide).offset(-16)
-      $0.height.equalTo(captureImageView.snp.width).multipliedBy(0.7)
+      $0.height.equalTo(captureImageView.snp.width).multipliedBy(1)
     }
     
     drawImageView.snp.makeConstraints{
