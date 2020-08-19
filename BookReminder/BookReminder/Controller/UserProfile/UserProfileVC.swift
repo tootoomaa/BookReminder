@@ -44,11 +44,11 @@ class UserProfileVC: UITableViewController {
   let secionData = ["독서 관련", "기타 정보"]
   let aboutBookInfo = [
     ["등록 권수", "완독 수" ,"완독률", "comment 수", "권당 comment 수"],
-    ["현재 버전"]//, "오픈소스 라이센스"]
+    ["현재 버전", "오픈소스 라이센스"]
   ]
   var aboutBookInfoValue = [
     ["0", "0", "0", "0", "0"],
-    ["v1.0","오픈소스 라이센스"]
+    ["1.0","오픈소스 라이센스"]
   ]
   
   var userProfileValue: [String: Int] = [:] {
@@ -235,6 +235,11 @@ class UserProfileVC: UITableViewController {
   }
   
   override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+    
+    if section == 1 { // 오픈소스 라이브러리 메뉴 제거
+      return aboutBookInfo[section].count - 1
+    }
+    
     return aboutBookInfo[section].count
   }
   
