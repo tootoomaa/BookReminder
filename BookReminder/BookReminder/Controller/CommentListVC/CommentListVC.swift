@@ -54,6 +54,7 @@ class CommentListVC: UITableViewController {
     tableView.frame = view.frame
     
     tableView.separatorStyle = .none
+    
     tableView.register(CommentListCell.self, forCellReuseIdentifier: CommentListCell.identifier)
     
   }
@@ -86,7 +87,7 @@ class CommentListVC: UITableViewController {
   override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
     
     let addCommentVC = AddCommentVC()
-    guard let view = addCommentVC.view as? AddCommentView else { return }
+    let view = addCommentVC.addCommentView
     guard let cell = tableView.cellForRow(at: indexPath) as? CommentListCell else { return }
     
     view.myTextView.text = cell.myTextView.text

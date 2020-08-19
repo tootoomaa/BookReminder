@@ -53,22 +53,6 @@ class MainVC: UIViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
     
-//    // 로그아웃 루틴 (테스트용
-//    if (Auth.auth().currentUser?.uid) != nil {
-//      let firebaseAuth = Auth.auth()
-//      do { // Firebase 계정 로그아웃
-//        try firebaseAuth.signOut()
-//        print("Success logout")
-//
-//        let loginVC = LoginVC()
-//        loginVC.modalPresentationStyle = .fullScreen
-//        present(loginVC, animated: true)
-//
-//      } catch let signOutError as NSError {
-//        print ("Error signing out: %@", signOutError)
-//      }
-//    }
-    
     configureView()
     
     fetUserProfileData()
@@ -93,6 +77,7 @@ class MainVC: UIViewController {
   private func configureView() {
     
     view.backgroundColor = .white
+    tableView.backgroundColor = .white
     
     view.layoutMargins = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
     

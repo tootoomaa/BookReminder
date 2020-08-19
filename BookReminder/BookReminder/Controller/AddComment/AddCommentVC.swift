@@ -19,10 +19,12 @@ class AddCommentVC: UIViewController {
   var tempKeyboardHeight: CGFloat = 0
   var isMultibuttomActive: Bool = false
   var isDrawing = false
+  var isScrolled = false
   var isUserInputText: Bool = false {
     didSet {
+      let view = addCommentView
       if !isUserInputText {
-        addCommentView.configureMultiButton(systemImageName: "plus")
+         addCommentView.configureMultiButton(systemImageName: "plus")
       } else {
         addCommentView.configureMultiButton(systemImageName: "square.and.arrow.up.fill")
       }
@@ -38,10 +40,13 @@ class AddCommentVC: UIViewController {
   var commentInfo: Comment?
   
   // drwaing
-  var startPoint: CGPoint = CGPoint(x: 0, y: 0)
-  var lastPoint: CGPoint = CGPoint(x: 0, y: 0)
-  var strokeColor: CGColor = #colorLiteral(red: 0.6670694947, green: 0.4954431057, blue: 0.64269346, alpha: 0.2)
+  let colorSet: [UIColor] = [#colorLiteral(red: 0.999956429, green: 0.8100972176, blue: 0.8099586368, alpha: 0.2), #colorLiteral(red: 0.9965302348, green: 1, blue: 0.8521329761, alpha: 0.2), #colorLiteral(red: 0.7270262837, green: 0.7612577081, blue: 1, alpha: 0.2), #colorLiteral(red: 0.7421473861, green: 1, blue: 0.7957901359, alpha: 0.2), #colorLiteral(red: 1, green: 0.5636324883, blue: 0.7579589486, alpha: 0.2)]
+  
+  var startPoint: CGPoint? //= CGPoint(x: 0, y: 0)
+  var lastPoint: CGPoint?// = CGPoint(x: 0, y: 0)
+  var strokeColor: CGColor = #colorLiteral(red: 0.999956429, green: 0.8100972176, blue: 0.8099586368, alpha: 0.2)
   var strokes = [Stroke]()
+  var backupImage: UIImage?
   
   struct  Stroke {
     let startPoint : CGPoint
@@ -49,14 +54,19 @@ class AddCommentVC: UIViewController {
     let strokeColor : CGColor
   }
   
+  let deviceSzie = UIScreen.main.bounds
+  
   lazy var addCommentView: AddCommentView = {
     let view = AddCommentView()
     view.multiButton.addTarget(self, action: #selector(tabMultiButton), for: .touchUpInside)
     view.cameraButton.addTarget(self, action: #selector(tabTakePhoto), for: .touchUpInside)
     view.photoAlbumButton.addTarget(self, action: #selector(tabPhotoAlnum), for: .touchUpInside)
     view.multiButton.addTarget(self, action: #selector(tabMultiButton), for: .touchUpInside)
-    //    view..addTarget(self, action: #selector(tabFeatureButton(_:)), for: .touchUpInside)
+    view.saveButton.addTarget(self, action: #selector(tabSaveButton), for: .touchUpInside)
+    view.contentSize = CGSize(width: deviceSzie.width, height: 1000)
     view.pagetextField.delegate = self
+    view.isScrollEnabled = true
+    view.delegate = self
     return view
   }()
   
@@ -73,12 +83,10 @@ class AddCommentVC: UIViewController {
     
     configureSetUI()
     
-    multiButtonAppear()
+    configureLayout()
     
-  }
+    multiButtonAppear()
   
-  override func loadView() {
-    view = addCommentView
   }
   
   override func viewWillAppear(_ animated: Bool) {
@@ -98,133 +106,116 @@ class AddCommentVC: UIViewController {
     NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
   }
   
+  private func configureLayout() {
+    
+    view.addSubview(addCommentView)
+    
+    addCommentView.snp.makeConstraints{
+      $0.top.leading.trailing.bottom.equalTo(view)
+    }
+  }
+  
   private func configureSetUI() {
-    
     navigationItem.title = isEditingMode == false ? markedBookInfo?.title : "Comment 수정"
-    
     view.backgroundColor = .white
   }
   
   // MARK: - Drawing Handler
-  
-  func touchesBeganHandler() {
+  private func touchesBeganHandler() {
     addCommentView.passTouchBeginData = { touches in
       if !self.isDrawing {
         self.isDrawing = true
-        
         guard let touch = touches.first else { return }
-        let currentPoint = touch.location(in: self.addCommentView.captureImageView)
+        let currentPoint = touch.location(in: self.addCommentView.drawnImageView)
         self.startPoint = currentPoint
       }
     }
   }
   
-  func touchesMovedHandler() {
+  private func touchesMovedHandler() {
     initializationMultiButton()
     addCommentView.passTouchMoveData = { touches in
       guard self.isDrawing else { return }
       
       guard let touch = touches.first else { return }
-      let currentPoint = touch.location(in: self.addCommentView.drawImageView)
+      let currentPoint = touch.location(in: self.addCommentView.drawnImageView)
       
       // 움직이는 동안 현제 커서를 이어줌
       self.lastPoint = currentPoint
       
       // 변경되는 커서에 따라서 그림을 계속 그려줌
-      UIGraphicsBeginImageContext(self.addCommentView.drawImageView.frame.size)
+      UIGraphicsBeginImageContext(self.addCommentView.drawnImageView.frame.size)
       let context = UIGraphicsGetCurrentContext()!
-      
       context.setLineWidth(10)
       context.setLineCap(.round)
       context.beginPath()
-      context.move(to: self.startPoint)
-      context.addLine(to: self.lastPoint)
-      context.setStrokeColor(self.strokeColor)
-      print(self.lastPoint)
-       context.strokePath()
-//      self.draw(type: "end")
-//      // 현재 콘텍스트에 그려진 이미지를 가지고 와서 이미지 뷰에 할당
-         self.addCommentView.drawImageView.image = UIGraphicsGetImageFromCurrentImageContext()
-//         // 그림 그리기를 끝냄
-         UIGraphicsEndImageContext()
-      
-      self.addCommentView.setNeedsLayout()
+      if let startPoint = self.startPoint,
+        let lastPoint = self.lastPoint {
+        
+        context.move(to: startPoint)
+        context.addLine(to: lastPoint)
+        context.setStrokeColor(self.strokeColor)
+        context.strokePath()
+        self.addCommentView.drawnImageView.image = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        self.addCommentView.setNeedsLayout()
+      }
     }
   }
   
   func touchesEndedHandler() {
     addCommentView.passTouchEndData = { touches in
-      guard self.isDrawing else { return }
+      guard self.isDrawing else { return}
       self.isDrawing = false
       
-      guard let touch = touches.first else { return }
-      
-      let currentPoint = touch.location(in: self.addCommentView.drawImageView)
-
-      let stroke = Stroke(startPoint: self.startPoint, endPoint: currentPoint, strokeColor: self.strokeColor)
-      self.strokes.append(stroke)
-      
-      self.draw(type: "end") // 전체 밑줄 그리기
-      
-      self.addCommentView.setNeedsLayout()
-      self.lastPoint = CGPoint(x: 0, y: 0)
-      self.startPoint = CGPoint(x: 0, y: 0)
-    }
-  }
-  
-  func draw(type: String) {
-    UIGraphicsBeginImageContext(self.addCommentView.drawImageView.frame.size)
-    let context = UIGraphicsGetCurrentContext()!
-    
-    context.setLineWidth(10)
-    context.setLineCap(.round)
-    context.beginPath()
-  
-    if type == "move" {
-      context.move(to: startPoint)
-      context.addLine(to: lastPoint)
-      context.setStrokeColor(self.strokeColor)
-      // 추가하 선을 콘텍스트에 그림
-      context.strokePath()
-    } else {
-//      for strok in strokes {
-      if let strok = strokes.last {
-        let render = UIGraphicsImageRenderer(size: addCommentView.captureImageView.bounds.size)
-        let image = render.image { context in
-          context.cgContext.draw((addCommentView.captureImageView.image?.cgImage!)!, in: addCommentView.captureImageView.frame)
-//          context.cgContext.setFillColor(UIColor.red.cgColor)
-//          context.cgContext.setStrokeColor(UIColor.black.cgColor)
-          context.cgContext.setLineWidth(10)
-          context.cgContext.addRect(view.frame)
-          context.cgContext.drawPath(using: .fillStroke)
-        }
-        // 커서의 위치를 (50,50)으로 이동
-        context.move(to: strok.startPoint)
-        // 시작 위치에서 (250,250)까지 선 추가
-        context.addLine(to: strok.endPoint)
-        // 선 색상 설정
-        context.setStrokeColor(self.strokeColor)
-        // 추가하 선을 콘텍스트에 그림
+      guard let touch = touches.first else {return}
+      let currentPoint = touch.location(in: self.addCommentView.drawnImageView)
+      if let lastPoint = self.lastPoint {
+        let stroke = Stroke(startPoint: lastPoint, endPoint: currentPoint, strokeColor: self.strokeColor)
         
-        self.addCommentView.drawImageView.image = image
-        print("Draw")
+        self.strokes.append(stroke)
+        self.addCommentView.setNeedsLayout()
         
-        context.strokePath()
+        self.lastPoint = nil
+        self.draw()
       }
     }
-    
-    // 현재 콘텍스트에 그려진 이미지를 가지고 와서 이미지 뷰에 할당
-    // 그림 그리기를 끝냄
-    UIGraphicsEndImageContext()
   }
   
-  
-  func erase() {
-    strokes = []
-    strokeColor = UIColor.black.cgColor
-//    setNeedsDisplay() // ditampilkan ke layar
+  func draw() {
+    UIGraphicsBeginImageContext(self.addCommentView.drawnImageView.frame.size)
+    if let context = UIGraphicsGetCurrentContext() {
+      context.setLineWidth(5)
+      context.setLineCap(.round)
+      
+      if let stroke = strokes.last {
+        context.beginPath()
+        context.move(to: stroke.startPoint)
+        context.addLine(to: stroke.endPoint)
+        context.setStrokeColor(stroke.strokeColor)
+        context.strokePath()
+        
+        addCommentView.captureImageView.image = addCommentView.captureImageView.screenShot
+        UIGraphicsEndImageContext()
+        self.addCommentView.setNeedsLayout()
+      }
+    }
   }
   
+  // 이미지 하단의 색이랑 지움 버튼 컨트롤러
+  private func drawColorChanger() {
+    addCommentView.passColorButtonTag = { tag in
+      if (0...4).contains(tag) {
+        // 색상 변경
+        self.strokeColor = self.colorSet[tag].cgColor
+      } else {
+        // 이미지 내 줄 삭제
+        guard let backupImage = self.backupImage else { return }
+        self.addCommentView.captureImageView.image = backupImage
+        self.addCommentView.drawnImageView.image = backupImage
+      }
+    }
+  }
   
   // MARK: - Button Handler
   @objc func tabMultiButton() {
@@ -253,7 +244,7 @@ class AddCommentVC: UIViewController {
           //          self.bookSearchButton.transform = .init(scaleX: 2, y: 2)
         }
         UIView.addKeyframe(withRelativeStartTime: 0.2, relativeDuration: 0.3) {
-          view.deleteBookButton.center.x -= view.featureButtonSize*2
+          view.saveButton.center.x -= view.featureButtonSize*2
         }
         UIView.addKeyframe(withRelativeStartTime: 0.3, relativeDuration: 0.1) {
           view.cameraButton.center.y += view.bounceDistance
@@ -263,7 +254,7 @@ class AddCommentVC: UIViewController {
           view.photoAlbumButton.center.x += view.bounceDistance
         }
         UIView.addKeyframe(withRelativeStartTime: 0.5, relativeDuration: 0.1) {
-          view.deleteBookButton.center.x += view.bounceDistance
+          view.saveButton.center.x += view.bounceDistance
         }
       })
     } else {
@@ -274,7 +265,7 @@ class AddCommentVC: UIViewController {
       UIView.animateKeyframes(withDuration: 0.7, delay: 0, options: [], animations: {
         // 바운드
         UIView.addKeyframe(withRelativeStartTime: 0, relativeDuration: 0.1) {
-          view.deleteBookButton.center.x -= view.bounceDistance
+          view.saveButton.center.x -= view.bounceDistance
         }
         UIView.addKeyframe(withRelativeStartTime: 0.1, relativeDuration: 0.1) {
           view.photoAlbumButton.center.y -= view.bounceDistance
@@ -285,7 +276,7 @@ class AddCommentVC: UIViewController {
         }
         // 사라짐
         UIView.addKeyframe(withRelativeStartTime: 0.3, relativeDuration: 0.3) {
-          view.deleteBookButton.center.x += view.featureButtonSize*2
+          view.saveButton.center.x += view.featureButtonSize*2
         }
         UIView.addKeyframe(withRelativeStartTime: 0.4, relativeDuration: 0.3) {
           view.photoAlbumButton.center.y += view.featureButtonSize*1.5
@@ -297,6 +288,10 @@ class AddCommentVC: UIViewController {
       })
     }
     isMultibuttomActive.toggle()
+  }
+  
+  @objc private func tabSaveButton() {
+    popSaveAlertController()
   }
   
   private func popSaveAlertController() {
@@ -350,7 +345,7 @@ class AddCommentVC: UIViewController {
   private func multiButtonAppear() {
     //multi Button 에니메이션 처리, 화면 밖에서 안으로 들어옴
     UIView.animate(withDuration: 0.5) {
-      [self.addCommentView.cameraButton, self.addCommentView.photoAlbumButton, self.addCommentView.deleteBookButton, self.addCommentView.multiButton].forEach{
+      [self.addCommentView.cameraButton, self.addCommentView.photoAlbumButton, self.addCommentView.saveButton, self.addCommentView.multiButton].forEach{
         $0.center.x = $0.center.x - 100
       }
     }
@@ -362,7 +357,7 @@ class AddCommentVC: UIViewController {
     
     isMultibuttomActive = false
     
-    view.deleteBookButton.center.x = view.multiButton.center.x
+    view.saveButton.center.x = view.multiButton.center.x
     view.photoAlbumButton.center.y = view.multiButton.center.y
     view.photoAlbumButton.center.x = view.multiButton.center.x
     view.cameraButton.center.y = view.multiButton.center.y
@@ -423,14 +418,13 @@ class AddCommentVC: UIViewController {
     return checker == true ? errorMessage : nil
   }
   
-  
   // MARK: - Keyboard Handler
   @objc func keyboardWillAppear( noti: NSNotification ) {
     if let keyboardFrame: NSValue = noti.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue  {
       if keyboardUpChecker == false {
         let keyboardRectangle = keyboardFrame.cgRectValue
         let keyboardHeight = keyboardRectangle.height
-        self.addCommentView.frame.origin.y -= keyboardHeight
+        view.frame.origin.y -= keyboardHeight
         tempKeyboardHeight = keyboardHeight
         initializationMultiButton()
         isUserInputText = true
@@ -444,7 +438,7 @@ class AddCommentVC: UIViewController {
       if keyboardUpChecker == true {
         let keyboardRectangle = keyboardFrame.cgRectValue
         let keyboardHeight = keyboardRectangle.height
-        self.addCommentView.frame.origin.y += keyboardHeight
+        view.frame.origin.y += keyboardHeight
         tempKeyboardHeight = keyboardHeight
         if !isEditingMode { // 사진 수정 방지 기능
           isUserInputText = false
@@ -467,14 +461,16 @@ extension AddCommentVC: UIImagePickerControllerDelegate & UINavigationController
     if UTTypeEqual(mediaType, kUTTypeImage) {
       // handle Image Type
       let originalImage = info[.originalImage] as! UIImage    // 이미지를 가져옴
-      let editedImage = info[.cropRect] as? UIImage        // editedImage
+      let editedImage = info[.originalImage] as? UIImage        // editedImage
       let selectedImage = editedImage ?? originalImage
       addCommentView.captureImageView.image = selectedImage
+      backupImage = selectedImage                               // 백업 이미지 저장
     }
     dismiss(animated: true, completion: {
       self.touchesBeganHandler()
       self.touchesEndedHandler()
       self.touchesMovedHandler()
+      self.drawColorChanger()
     })
   }
 }
@@ -484,9 +480,16 @@ extension AddCommentVC: UITextFieldDelegate {
   
   func textFieldShouldReturn(_ textField: UITextField) -> Bool {
     addCommentView.myTextView.becomeFirstResponder()
+    self.addCommentView.frame.origin.y -= 100
     isUserInputText = true
     return true
   }
+}
+
+// MARK: - UITextViewDelegate
+extension AddCommentVC: UITextViewDelegate {
+
+
 }
 
 // MARK: - Network Handler
@@ -551,3 +554,14 @@ extension AddCommentVC {
   }
 }
 
+
+extension AddCommentVC: UIScrollViewDelegate {
+  
+  func scrollViewDidScroll(_ scrollView: UIScrollView) {
+    if isDrawing {
+      addCommentView.isScrollEnabled = false
+    } else {
+      addCommentView.isScrollEnabled = true
+    }
+  }
+}
