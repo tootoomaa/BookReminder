@@ -49,10 +49,9 @@ class UserProfileTableViewCell: UITableViewCell {
     }
     
     detailContextButton.snp.makeConstraints{
-      $0.trailing.equalTo(self).offset(-20)
+      $0.trailing.equalTo(self).offset(-30)
       $0.centerY.equalTo(self)
     }
-    
   }
   
   required init?(coder: NSCoder) {

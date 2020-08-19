@@ -64,19 +64,6 @@ extension Database {
     userProfileStaticsHanlder(uid: uid, plusMinus: plusMinus, updateCategory: .commentCount, amount: 1)
   }
   
-//  static func compliteCountHandler(uid: String, isbnCode: String, plusMinus: UpDownController) {
-//    DB_REF_COMPLITEBOOKS_STATICS.child(uid).child(isbnCode).observeSingleEvent(of: .value) { (snapshot) in
-//
-//      guard let commentCount = snapshot.value as? Int else { return print("Fail to read value")}
-//      if plusMinus == .plus {
-//        DB_REF_COMPLITEBOOKS_STATICS.child(uid).updateChildValues([isbnCode: commentCount + 1])
-//      } else if plusMinus == .down {
-//        DB_REF_COMPLITEBOOKS_STATICS.child(uid).updateChildValues([isbnCode: commentCount - 1])
-//      }
-//    }
-//    userProfileStaticsHanlder(uid: uid, plusMinus: plusMinus, updateCategory: .compliteBookCount, amount: 1)
-//  }
-  
   static func userProfileStaticsHanlder(uid: String, plusMinus: UpDownController, updateCategory: UserProfileStatics, amount: Int) {
     DB_REF_USERPROFILE.child(uid).observeSingleEvent(of: .value) { (snapshot) in
       guard var value = snapshot.value as? Dictionary<String, Int> else { return print("Fail to get data")}
@@ -184,11 +171,11 @@ extension UIAlertController {
                                             preferredStyle: .alert)
     
     let okAction = okAction
-    let cancelAction = UIAlertAction(title: "취소", style: .destructive) { (_) in
+    let cancelAction = UIAlertAction(title: "취소", style: .cancel) { (_) in
       
     }
-    alertController.addAction(okAction)
     alertController.addAction(cancelAction)
+    alertController.addAction(okAction)
     
     return alertController
   }

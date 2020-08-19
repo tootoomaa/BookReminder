@@ -53,6 +53,7 @@ class CommentListVC: UITableViewController {
     
     tableView.frame = view.frame
     
+    tableView.separatorStyle = .none
     tableView.register(CommentListCell.self, forCellReuseIdentifier: CommentListCell.identifier)
     
   }

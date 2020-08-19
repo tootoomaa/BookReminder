@@ -202,7 +202,7 @@ class MainVC: UIViewController {
   @objc private func tabCompliteButton() {
     guard (markedBookList.first?.title) != nil else {popErrorAlertController(); return} // 책 정보 체크
     
-    let okAction = UIAlertAction(title: "확인", style: .default) { (_) in
+    let okAction = UIAlertAction(title: "완독 처리", style: .destructive) { (_) in
       let deleteBookIndex = self.userSelectedBookIndex.item
       guard let uid = Auth.auth().currentUser?.uid,
             let isbnCode = self.markedBookList[deleteBookIndex].isbn else { return }
@@ -238,12 +238,40 @@ class MainVC: UIViewController {
     guard let title = markedBookList[userSelectedBookIndex.row].title else { return }
     let alertController = UIAlertController.okCancelSetting(title: "\(title) 완독", message: message, okAction: okAction)
     present(alertController, animated: true, completion: nil)
-    
+  }
+  
+  // main 페이지에서 북마크 된 책 북마크 제거
+  @objc private func tabBookMarkLabel() {
+    guard (markedBookList.first?.title) != nil else {popErrorAlertController(); return} // 책 정보 체크
+   
+    let index = userSelectedBookIndex.item
+    let bookInfo = markedBookList[index]
+    if let bookTitle = bookInfo.title,
+      let bookIsbnCode = bookInfo.isbn {
+      
+      let okAction = UIAlertAction(title: "북마크 제거", style: .destructive) { (_) in
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        DB_REF_MARKBOOKS.child(uid).child(bookIsbnCode).removeValue()
+        self.markedBookList.remove(at: index)
+        self.tableView.reloadData()
+      }
+      
+      let alert = UIAlertController.okCancelSetting(title: "북마크 제거", message: "\(bookTitle) 책을 북마크에서 제거 합니다.", okAction: okAction)
+      present(alert, animated: true, completion: nil)
+    }
+  }
+  
+  @objc private func tabCommentLabel() {
+    guard (markedBookList.first?.title) != nil else {popErrorAlertController(); return} // 책 정보 체크
+    let commentListVC = CommentListVC(style: .plain)
+    commentListVC.markedBookInfo = markedBookList[userSelectedBookIndex.item]
+    navigationController?.pushViewController(commentListVC, animated: true)
   }
   
   private func popErrorAlertController() {
     present(UIAlertController.defaultSetting(title: "오류", message: "북마크된 책이 선택되지 않았습니다."),
-    animated: true, completion: nil)
+            animated: true,
+            completion: nil)
   }
 }
 
@@ -282,6 +310,11 @@ extension MainVC: UITableViewDataSource {
         for: indexPath
         ) as? BookInfoCell else { fatalError() }
       
+      let tabBookMarkLabelGuesture = UITapGestureRecognizer(target: self, action: #selector(tabBookMarkLabel))
+      let tabCommentLabelGuesture = UITapGestureRecognizer(target: self, action: #selector(tabCommentLabel))
+      
+      myCell.bookMarkLabel.addGestureRecognizer(tabBookMarkLabelGuesture)
+      myCell.commentLabel.addGestureRecognizer(tabCommentLabelGuesture)
       myCell.commentAddButton.addTarget(self, action: #selector(tabAddCommentButton), for: .touchUpInside)
       myCell.commentEditButton.addTarget(self, action: #selector(tabCommentListEditButton), for: .touchUpInside)
       myCell.compliteButton.addTarget(self, action: #selector(tabCompliteButton), for: .touchUpInside)

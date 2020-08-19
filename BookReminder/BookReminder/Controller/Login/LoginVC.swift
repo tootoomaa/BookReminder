@@ -55,14 +55,24 @@ class LoginVC: UIViewController {
     return button
   }()
   
-  lazy var googleLoginButton: GIDSignInButton = {
-    let button = GIDSignInButton()
-    button.colorScheme = .dark
-    button.style = .wide
-    //    button.addTarget(self, action: #selector(tabGoogleLoginButton), for: .touchUpInside)
+  lazy var googleLoginButton: UIButton = {
+    let button = UIButton()
+    button.titleLabel?.font = .boldSystemFont(ofSize: 20)
+    button.setTitle("     Sign in With Google", for: .normal)
+    button.setTitleColor(.black, for: .normal)
+    button.addTarget(self, action: #selector(tabGoogleLoginButton), for: .touchUpInside)
+    button.backgroundColor = .white
+    button.layer.borderWidth = 1
+    button.layer.borderColor = UIColor.gray.cgColor
     button.layer.cornerRadius = 10
     button.layer.masksToBounds = true
     return button
+  }()
+  
+  let googleLogoImageView: UIImageView = {
+    let imageView = UIImageView(frame: .zero)
+    imageView.image = UIImage(named: "googleLogo1")
+    return imageView
   }()
   
   let appleLoginButton: ASAuthorizationAppleIDButton = {
@@ -108,7 +118,7 @@ class LoginVC: UIViewController {
     // 하단 뷰
     bottomView.layoutMargins = UIEdgeInsets(top: 10, left: 15, bottom: 20, right: 15)
     
-    [loginTextLabel, googleLoginButton, appleLoginButton ].forEach{
+    [loginTextLabel, googleLoginButton, appleLoginButton, googleLogoImageView].forEach{
       bottomView.addSubview($0)
     }
     
@@ -134,16 +144,22 @@ class LoginVC: UIViewController {
       $0.width.equalTo(330)
     }
     
+    googleLogoImageView.snp.makeConstraints{
+      $0.centerX.equalTo(googleLoginButton.snp.centerX).offset(-95)
+      $0.centerY.equalTo(googleLoginButton.snp.centerY)
+      $0.width.height.equalTo(15)
+    }
+    
   }
   
   // MARK: - Handler
-  //  @objc private func tabGoogleLoginButton() {
-  //    GIDSignIn.sharedInstance().signIn()
-  //
-  //    if GIDSignIn.sharedInstance().currentUser != nil {
-  //      GIDSignIn.sharedInstance().signIn()
-  //    }
-  //  }
+    @objc private func tabGoogleLoginButton() {
+      GIDSignIn.sharedInstance().signIn()
+  
+      if GIDSignIn.sharedInstance().currentUser != nil {
+        GIDSignIn.sharedInstance().signIn()
+      }
+    }
   
   @objc private func tapKakaoLoginButton() {
     
@@ -265,9 +281,7 @@ extension LoginVC: ASAuthorizationControllerDelegate {
           
           // user static Profile data update
           DB_REF_USERPROFILE.child(uid).observeSingleEvent(of: .value) { (snapshot) in
-            if (snapshot.value as? Dictionary<String, AnyObject>) != nil {
-              
-            } else {
+            if (snapshot.value as? Dictionary<String, AnyObject>) == nil {
               let value = [
                 "commentCount": 0,
                 "compliteBookCount": 0,
@@ -310,17 +324,14 @@ extension LoginVC: ASAuthorizationControllerDelegate {
 
 extension LoginVC: GIDSignInDelegate {
   func sign(_ signIn: GIDSignIn!, didSignInFor user: GIDGoogleUser!, withError error: Error!) {
-    print("aaaa")
     if let error = error {
       print("Error",error.localizedDescription)
       return
     }
-    print("bbbb")
     guard let authentication = user.authentication else { return }
     let credential = GoogleAuthProvider.credential(withIDToken: authentication.idToken,
                                                    accessToken: authentication.accessToken)
     Auth.auth().signIn(with: credential) { (authResult, error) in
-      print("ddfdd")
       // ...
       if let err = error {
         print("LoginViewController:    error = \(err)")
@@ -333,9 +344,7 @@ extension LoginVC: GIDSignInDelegate {
         
         // user static Profile data update
         DB_REF_USERPROFILE.child(uid).observeSingleEvent(of: .value) { (snapshot) in
-          if (snapshot.value as? Dictionary<String, AnyObject>) != nil {
-            
-          } else {
+          if (snapshot.value as? Dictionary<String, AnyObject>) == nil {
             let value = [
               "commentCount": 0,
               "compliteBookCount": 0,

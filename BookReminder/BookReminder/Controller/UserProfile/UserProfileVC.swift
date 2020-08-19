@@ -83,6 +83,7 @@ class UserProfileVC: UITableViewController {
 
   lazy var checkDetailMenuString = aboutBookInfo[secionData.count-1].last // 오픈소스 라이센스
   
+  // MARK: - Life Cycle
   override func viewDidLoad() {
     super.viewDidLoad()
     
@@ -221,6 +222,11 @@ class UserProfileVC: UITableViewController {
     present(alertController, animated: true, completion: nil)
   }
   
+  @objc private func tabDetailContextButton() {
+    print("tab Detail context Button")
+    
+  }
+  
   // MARK: - TableViewDataSource
   override func numberOfSections(in tableView: UITableView) -> Int {
     return secionData.count
@@ -240,6 +246,11 @@ class UserProfileVC: UITableViewController {
     let contextText = aboutBookInfoValue[indexPath.section][indexPath.row]
     
     let isNeedDetailMenu = titleText == checkDetailMenuString ? true : false
+    if isNeedDetailMenu {
+      cell.detailContextButton.addTarget(self,
+                                         action: #selector(tabDetailContextButton),
+                                         for: .touchUpInside)
+    }
     cell.configure(titleText: titleText,
                    contextText: contextText,
                    isNeedDetailMenu: isNeedDetailMenu)

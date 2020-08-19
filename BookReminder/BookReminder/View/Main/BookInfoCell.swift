@@ -17,7 +17,7 @@ class BookInfoCell: UITableViewCell {
   let myBackgroundView: UIView = {
     let view = UIView()
     view.backgroundColor = CommonUI.subBackgroundColor
-    view.layer.cornerRadius = 25
+    view.layer.cornerRadius = 10
     view.clipsToBounds = true
     return view
   }()
@@ -25,7 +25,7 @@ class BookInfoCell: UITableViewCell {
   let statusBackgroundView: UIView = {
     let view = UIView()
     view.backgroundColor = CommonUI.titleTextColor
-    view.layer.cornerRadius = 25
+    view.layer.cornerRadius = 10
     view.clipsToBounds = true
     return view
   }()
@@ -33,10 +33,11 @@ class BookInfoCell: UITableViewCell {
   let commentLabel: UILabel = {
     let label = UILabel()
     let fullString = NSAttributedString.configureAttributedString(systemName: "bubble.left.fill", setText: "0")
-    label.font = .systemFont(ofSize: 15)//.preferredFont(forTextStyle: .footnote)
-    label.textColor = .white //.label
+    label.font = .systemFont(ofSize: 15)
+    label.textColor = .white
     label.attributedText = fullString
     label.textAlignment = .center
+    label.isUserInteractionEnabled = true
     return label
   }()
   
@@ -46,13 +47,14 @@ class BookInfoCell: UITableViewCell {
     return view
   }()
   
-  let readingLabel: UILabel = {
+  let bookMarkLabel: UILabel = {
     let label = UILabel()
-    let fullString = NSAttributedString.configureAttributedString(systemName: "book", setText: "10")
-    label.font = .systemFont(ofSize: 15)//.preferredFont(forTextStyle: .footnote)
-    label.textColor = .white //.label
+    let fullString = NSAttributedString.configureAttributedString(systemName: "bookmark.fill", setText: "북마크 제거")
+    label.font = .systemFont(ofSize: 15)
+    label.textColor = .white
     label.attributedText = fullString
     label.textAlignment = .center
+    label.isUserInteractionEnabled = true
     return label
   }()
   
@@ -68,7 +70,7 @@ class BookInfoCell: UITableViewCell {
   
   let commentEditButton: UIButton = {
     let button = UIButton()
-    let fullString = NSAttributedString.configureAttributedString(systemName: "pencil", setText: "수정")
+    let fullString = NSAttributedString.configureAttributedString(systemName: "pencil.and.ellipsis.rectangle", setText: "수정")
     button.setAttributedTitle(fullString, for: .normal)
     button.backgroundColor = .white
     button.layer.cornerRadius = 10
@@ -112,40 +114,38 @@ class BookInfoCell: UITableViewCell {
       myBackgroundView.addSubview($0)
     }
     
-    commentAddButton.snp.makeConstraints{
-      $0.bottom.equalTo(myBackgroundView.snp.bottom).offset(-20)
-      $0.leading.equalTo(statusBackgroundView.snp.leading)
-      $0.height.equalTo(50)
-    }
-    
-    commentEditButton.snp.makeConstraints{
-      $0.leading.equalTo(commentAddButton.snp.trailing).offset(20)
-      $0.centerY.equalTo(commentAddButton.snp.centerY)
-      $0.height.equalTo(50)
-      $0.width.equalTo(commentAddButton.snp.width)
-    }
-    
-    compliteButton.snp.makeConstraints{
-      $0.leading.equalTo(commentEditButton.snp.trailing).offset(20)
-      $0.trailing.equalTo(statusBackgroundView.snp.trailing)
-      $0.centerY.equalTo(commentAddButton.snp.centerY)
-      $0.height.equalTo(50)
-      $0.width.equalTo(commentAddButton.snp.width)
-    }
-    
     statusBackgroundView.snp.makeConstraints{
       $0.top.equalTo(myBackgroundView.snp.top).offset(20)
       $0.leading.equalTo(myBackgroundView.snp.leading).offset(20)
       $0.trailing.equalTo(myBackgroundView.snp.trailing).offset(-20)
       $0.centerX.equalTo(myBackgroundView.snp.centerX)
-      $0.height.equalTo(commentAddButton).multipliedBy(1.5)
     }
     
-
+    commentAddButton.snp.makeConstraints{
+      $0.top.equalTo(statusBackgroundView.snp.bottom).offset(20)
+      $0.leading.equalTo(myBackgroundView.snp.leading).offset(20)
+      $0.bottom.equalTo(myBackgroundView.snp.bottom).offset(-20)
+      $0.height.equalTo(statusBackgroundView)
+    }
     
+    commentEditButton.snp.makeConstraints{
+      $0.top.equalTo(statusBackgroundView.snp.bottom).offset(20)
+      $0.leading.equalTo(commentAddButton.snp.trailing).offset(20)
+      $0.bottom.equalTo(myBackgroundView.snp.bottom).offset(-20)
+      $0.width.equalTo(commentAddButton)
+    }
+    
+    compliteButton.snp.makeConstraints{
+      $0.top.equalTo(statusBackgroundView.snp.bottom).offset(20)
+      $0.leading.equalTo(commentEditButton.snp.trailing).offset(20)
+      $0.trailing.equalTo(myBackgroundView.snp.trailing).offset(-20)
+      $0.bottom.equalTo(myBackgroundView.snp.bottom).offset(-20)
+      $0.width.equalTo(commentEditButton)
+    }
+  
     let seperateview1 = seperateView
     
-    [commentLabel, seperateview1, readingLabel].forEach{
+    [commentLabel, seperateview1, bookMarkLabel].forEach{
       statusBackgroundView.addSubview($0)
     }
     
@@ -162,7 +162,7 @@ class BookInfoCell: UITableViewCell {
       $0.width.equalTo(1)
     }
     
-    readingLabel.snp.makeConstraints{
+    bookMarkLabel.snp.makeConstraints{
       $0.leading.equalTo(seperateview1.snp.trailing)
       $0.trailing.equalTo(statusBackgroundView.snp.trailing)
       $0.centerY.equalTo(statusBackgroundView.snp.centerY)
