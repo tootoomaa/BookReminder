@@ -273,6 +273,17 @@ class MyBookVC: UIViewController {
     guard let uid = Auth.auth().currentUser?.uid else { return }
     let searchBookVC = SearchBookVC()
     searchBookVC.passBookInfoClosure = { isbnCode, bookDicValue in
+      
+      for bookInfo in self.bookDetailInfoArray {
+        if bookInfo.isbn == isbnCode {
+          let alertController = UIAlertController.defaultSetting(
+            title: "중복 등록",
+            message: "\(bookInfo.title ?? "제목을 알수없는 도서")\n해당 도서는 이미 등록된 도서입니다.")
+          self.present(alertController, animated: true, completion: nil)
+          return
+        }
+      }
+      
       DispatchQueue.main.async {
         // DB 업데이트
         DB_REF_COMMENT_STATICS.child(uid).updateChildValues([isbnCode:0])
@@ -306,6 +317,17 @@ class MyBookVC: UIViewController {
     scannerVC.modalPresentationStyle = .popover
     // 스켄을 통한 데이터 받기
     scannerVC.passBookInfoClosure = { isbnCode, bookDicValue in
+      
+      for bookInfo in self.bookDetailInfoArray {
+        if bookInfo.isbn == isbnCode {
+          let alertController = UIAlertController.defaultSetting(
+            title: "중복 등록",
+            message: "\(bookInfo.title ?? "제목을 알수없는 도서")\n해당 도서는 이미 등록된 도서입니다.")
+          self.present(alertController, animated: true, completion: nil)
+          return
+        }
+      }
+      
       DispatchQueue.main.async {
         // DB 업데이트
         DB_REF_COMMENT_STATICS.child(uid).updateChildValues([isbnCode:0])
