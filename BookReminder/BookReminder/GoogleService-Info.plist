@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>685335188671-mv7spton8l4cdnoaobojsj82k8hcthip.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.685335188671-mv7spton8l4cdnoaobojsj82k8hcthip</string>
+	<key>API_KEY</key>
+	<string>AIzaSyBkygQhWwWK07cJdSTB4kQrzdPRKf5se2Q</string>
+	<key>GCM_SENDER_ID</key>
+	<string>685335188671</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.kr.tootoomaa.BookReminder</string>
+	<key>PROJECT_ID</key>
+	<string>bookreminder-9b325</string>
+	<key>STORAGE_BUCKET</key>
+	<string>bookreminder-9b325.appspot.com</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:685335188671:ios:a9fc4e893e4425c325220a</string>
+	<key>DATABASE_URL</key>
+	<string>https://bookreminder-9b325.firebaseio.com</string>
+</dict>
+</plist>
