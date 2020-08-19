@@ -11,6 +11,7 @@ import SnapKit
 import KakaoSDKAuth
 import KakaoOpenSDK
 import Firebase
+import GoogleSignIn
 import AuthenticationServices // apple login
 import CryptoKit
 
@@ -54,18 +55,30 @@ class LoginVC: UIViewController {
     return button
   }()
   
+  lazy var googleLoginButton: GIDSignInButton = {
+    let button = GIDSignInButton()
+    button.colorScheme = .dark
+    button.style = .wide
+    //    button.addTarget(self, action: #selector(tabGoogleLoginButton), for: .touchUpInside)
+    button.layer.cornerRadius = 10
+    button.layer.masksToBounds = true
+    return button
+  }()
+  
   let appleLoginButton: ASAuthorizationAppleIDButton = {
     let button = ASAuthorizationAppleIDButton(authorizationButtonType: .signIn, authorizationButtonStyle: .black)
     button.addTarget(self, action: #selector(tapAppleLoginbutton), for: .touchUpInside)
     return button
   }()
-
+  
   // MARK: - Inti
   override func viewDidLoad() {
     super.viewDidLoad()
     
     view.backgroundColor = CommonUI.titleTextColor
     
+    GIDSignIn.sharedInstance().presentingViewController = self
+    GIDSignIn.sharedInstance().delegate = self
     configureLayout()
     
   }
@@ -73,7 +86,7 @@ class LoginVC: UIViewController {
   private func configureLayout() {
     
     let padding: CGFloat = 50
-//    let bottomViewPadding: CGFloat = padding*0.7
+    //    let bottomViewPadding: CGFloat = padding*0.7
     
     // 상단 뷰
     [titleLabel, bottomView].forEach{
@@ -95,7 +108,7 @@ class LoginVC: UIViewController {
     // 하단 뷰
     bottomView.layoutMargins = UIEdgeInsets(top: 10, left: 15, bottom: 20, right: 15)
     
-    [loginTextLabel, kakaoLoginButton, appleLoginButton ].forEach{
+    [loginTextLabel, googleLoginButton, appleLoginButton ].forEach{
       bottomView.addSubview($0)
     }
     
@@ -114,16 +127,23 @@ class LoginVC: UIViewController {
       $0.width.equalTo(330)
     }
     
-    kakaoLoginButton.snp.makeConstraints{
+    googleLoginButton.snp.makeConstraints{
       $0.top.equalTo(appleLoginButton.snp.bottom).offset(20)
       $0.centerX.equalTo(loginTextLabel.snp.centerX)
       $0.height.equalTo(56)
       $0.width.equalTo(330)
     }
-
+    
   }
   
   // MARK: - Handler
+  //  @objc private func tabGoogleLoginButton() {
+  //    GIDSignIn.sharedInstance().signIn()
+  //
+  //    if GIDSignIn.sharedInstance().currentUser != nil {
+  //      GIDSignIn.sharedInstance().signIn()
+  //    }
+  //  }
   
   @objc private func tapKakaoLoginButton() {
     
@@ -203,7 +223,7 @@ class LoginVC: UIViewController {
     let hashString = hashedData.compactMap {
       return String(format: "%02x", $0)
     }.joined()
-
+    
     return hashString
   }
 }
@@ -260,23 +280,22 @@ extension LoginVC: ASAuthorizationControllerDelegate {
           
           // user Data check
           DB_REF.child("user").child(uid).observeSingleEvent(of: .value, with: { (snapshot) in
-            if snapshot.value != nil {
-              guard let email = authResult.user.email else { return print("fail to get imformation") }
+            if snapshot.value == nil {
+              guard let email = authResult.user.email else { return }
               
               let value = [
                 "nickName": "사용자",
                 "email": email,
                 "profileImageUrl": ""
-              ] as Dictionary<String, AnyObject>
+                ] as Dictionary<String, AnyObject>
               
               DB_REF_USER.updateChildValues([uid: value])
-              
-              guard let tabBarVC = UIApplication.shared.keyWindow?.rootViewController as? TabBarVC else { return }
-              tabBarVC.configureViewController()
-              
-              self.dismiss(animated: true)
-              
             }
+            
+            guard let tabBarVC = UIApplication.shared.keyWindow?.rootViewController as? TabBarVC else { return }
+            tabBarVC.configureViewController()
+            
+            self.dismiss(animated: true)
           })
         }
       }
@@ -286,5 +305,78 @@ extension LoginVC: ASAuthorizationControllerDelegate {
   func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
     // 에러 발생 시 처리 사항
     print("Sign in with Applec Error: \(Error.self)")
+  }
+}
+
+extension LoginVC: GIDSignInDelegate {
+  func sign(_ signIn: GIDSignIn!, didSignInFor user: GIDGoogleUser!, withError error: Error!) {
+    print("aaaa")
+    if let error = error {
+      print("Error",error.localizedDescription)
+      return
+    }
+    print("bbbb")
+    guard let authentication = user.authentication else { return }
+    let credential = GoogleAuthProvider.credential(withIDToken: authentication.idToken,
+                                                   accessToken: authentication.accessToken)
+    Auth.auth().signIn(with: credential) { (authResult, error) in
+      print("ddfdd")
+      // ...
+      if let err = error {
+        print("LoginViewController:    error = \(err)")
+        return
+      } else {
+        print("sing in gogole at Appdelgate  ")
+        // Login Process
+        guard let authResult = authResult else { return }
+        let uid = authResult.user.uid
+        
+        // user static Profile data update
+        DB_REF_USERPROFILE.child(uid).observeSingleEvent(of: .value) { (snapshot) in
+          if (snapshot.value as? Dictionary<String, AnyObject>) != nil {
+            
+          } else {
+            let value = [
+              "commentCount": 0,
+              "compliteBookCount": 0,
+              "enrollBookCount": 0
+              ] as Dictionary<String, AnyObject>
+            
+            DB_REF_USERPROFILE.updateChildValues([uid: value])
+          }
+        }
+        
+        // user Data check
+        DB_REF.child("user").child(uid).observeSingleEvent(of: .value, with: { (snapshot) in
+          if snapshot.value == nil {
+            guard let email = authResult.user.email else { return }
+            guard let name = authResult.user.displayName else { return }
+            
+            print(name)
+            print(email)
+            let value = [
+              "nickName": name,
+              "email": email,
+              "profileImageUrl": ""
+              ] as Dictionary<String, AnyObject>
+            
+            DB_REF_USER.updateChildValues([uid: value])
+          }
+          
+          guard let tabBarVC = UIApplication.shared.keyWindow?.rootViewController as? TabBarVC else { return }
+          tabBarVC.configureViewController()
+          
+          self.dismiss(animated: true)
+        })
+      }
+    }
+    
+    func sign(_ signIn: GIDSignIn!, didDisconnectWith user: GIDGoogleUser!, withError error: Error!) {
+      // Perform any operations when the user disconnects from app here.
+      // ...
+      if let clintID = signIn.clientID {
+        print("AppDelegate:signIn:clintID : \(clintID)")
+      }
+    }
   }
 }

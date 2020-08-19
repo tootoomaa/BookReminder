@@ -79,7 +79,6 @@ class MainVC: UIViewController {
   }
   
   override func viewWillAppear(_ animated: Bool) {
-    print("aa")
     navigationController?.navigationBar.isHidden = true
     fetUserProfileData()
     guard let profileData = userProfileData else { return }
@@ -166,7 +165,6 @@ class MainVC: UIViewController {
     DB_REF_COMMENT_STATICS.child(uid).child(isbnCode).observe(.value) { (snapshot) in
       
       guard let value = snapshot.value as? Int else { return }
-      print(value)`
       cell.commentLabel.attributedText = .configureAttributedString(systemName: "bubble.left.fill",
                                                                     setText: "\(value)")
     }

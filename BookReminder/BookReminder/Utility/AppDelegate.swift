@@ -10,6 +10,7 @@ import UIKit
 import Firebase
 import KakaoSDKCommon
 import KakaoOpenSDK
+import GoogleSignIn
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -19,7 +20,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
   func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
     
     FirebaseApp.configure()
+    
+    // KaKao Login
     KakaoSDKCommon.initSDK(appKey: "9fa3b96b5ff7ed8383316d152dde1824")
+    
+    // google Login
+    GIDSignIn.sharedInstance().clientID = FirebaseApp.app()?.options.clientID
     
     window = UIWindow(frame: UIScreen.main.bounds)
     window?.rootViewController = TabBarVC()
@@ -33,6 +39,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     if KOSession.handleOpen(url) {
       return true
     }
+    
+    if GIDSignIn.sharedInstance().handle(url) {
+      return true
+    }
+    
     return true
   }
   
@@ -41,8 +52,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     if KOSession.handleOpen(url) {
       return true
     }
+    
+    if GIDSignIn.sharedInstance().handle(url) {
+      return true
+    }
+    
     return true
   }
-  
-}
 
+}
