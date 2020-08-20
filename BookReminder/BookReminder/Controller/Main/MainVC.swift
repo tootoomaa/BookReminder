@@ -117,7 +117,7 @@ class MainVC: UIViewController {
   func fetUserProfileData() {
     guard let uid = Auth.auth().currentUser?.uid else { return }
     
-    DB_REF_USER.child(uid).observe(.value) { (snapshot) in
+    DB_REF_USER.child(uid).observeSingleEvent(of: .value) { (snapshot) in
       if let value = snapshot.value as? Dictionary<String, AnyObject> {
         
         let userData = User(uid: uid, dictionary: value)

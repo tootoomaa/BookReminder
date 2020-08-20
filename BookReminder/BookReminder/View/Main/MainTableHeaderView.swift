@@ -72,7 +72,7 @@ class MainTableHeaderView: UIView {
     }
     
     profileImageView.snp.makeConstraints{
-      $0.top.leading.equalTo(20)
+      $0.top.leading.equalTo(self).offset(20)
       $0.width.height.equalTo(70)
     }
     

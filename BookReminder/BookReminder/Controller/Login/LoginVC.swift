@@ -294,7 +294,7 @@ extension LoginVC: ASAuthorizationControllerDelegate {
           
           // user Data check
           DB_REF.child("user").child(uid).observeSingleEvent(of: .value, with: { (snapshot) in
-            if snapshot.value == nil {
+            if (snapshot.value as? Dictionary<String, AnyObject>) == nil {
               guard let email = authResult.user.email else { return }
               
               let value = [

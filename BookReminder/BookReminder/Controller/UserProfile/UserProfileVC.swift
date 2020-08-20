@@ -160,15 +160,16 @@ class UserProfileVC: UITableViewController {
       guard UIImagePickerController.isSourceTypeAvailable(.camera) else { return }
       self.imagePicker.sourceType = .camera // sourceType 카메라 선택
       
-      let mediaTypes = UIImagePickerController.availableMediaTypes(for: .camera)
-      
-      self.imagePicker.mediaTypes = mediaTypes ?? []
-      self.imagePicker.mediaTypes = ["public.image"]
-      //    imagePicker.mediaTypes = [kUTTypeImage] as [String]
+//      self.imagePicker.mediaTypes = ["public.image"]
+      self.imagePicker.delegate = self
+      self.imagePicker.sourceType = .camera
+      self.imagePicker.mediaTypes = [kUTTypeImage as String]
+      self.imagePicker.allowsEditing = false
       
       if UIImagePickerController.isFlashAvailable(for: .rear) {
         self.imagePicker.cameraFlashMode = .off
       }
+      
       self.present(self.imagePicker, animated: true)
     }
     
@@ -222,6 +223,15 @@ class UserProfileVC: UITableViewController {
     alertController.addAction(okAction)
     alertController.addAction(cancelAction)
     present(alertController, animated: true, completion: nil)
+  }
+  
+  // MARK: - Handler
+  private func fetchStaticData() {
+    guard let uid = Auth.auth().currentUser?.uid else { return }
+    DB_REF_USERPROFILE.child(uid).observeSingleEvent(of: .value) { (snapshot) in
+      guard let dictionaryValue = snapshot.value as? [String: Int] else { return }
+      self.userProfileValue = dictionaryValue
+    }
   }
   
   // MARK: - TableViewDataSource
@@ -283,6 +293,7 @@ extension UserProfileVC: UIImagePickerControllerDelegate & UINavigationControlle
   }
   
   func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+    print("Start")
     let mediaType = info[.mediaType] as! NSString
     if UTTypeEqual(mediaType, kUTTypeImage) {
       // handle Image Type
@@ -295,53 +306,48 @@ extension UserProfileVC: UIImagePickerControllerDelegate & UINavigationControlle
       profileImageView.layer.cornerRadius = (profileImageView.frame.height)/2
       profileImageView.clipsToBounds = true
     }
-    
-    guard let uid = Auth.auth().currentUser?.uid,
-          let userdata = self.userProfileData,
-          let nickName = userdata.nickName,
-          let email = userdata.email else { return }
-    
-    guard let userProfileImage = self.mainTableHeaderView.profileImageView.image else { return }
-    guard let uploadImageDate = userProfileImage.jpegData(compressionQuality: 0.3) else { return }
-    
-    let filename = NSUUID().uuidString
-    
-    if let beforeImageURL = self.userProfileData?.profileImageUrl {
-      if beforeImageURL != "" {
-        Storage.storage().reference(forURL: beforeImageURL).delete(completion: nil)
-      }
-    }
-    
-    STORAGE_REF_USER_PROFILEIMAGE.child(filename).putData(uploadImageDate, metadata: nil) { (metadata, error) in
-      if let error = error {
-        print("error",error.localizedDescription)
-        return
+    print("aaaa")
+    dismiss(animated: true, completion: {
+      
+      guard let uid = Auth.auth().currentUser?.uid,
+            let userdata = self.userProfileData,
+            let nickName = userdata.nickName,
+            let email = userdata.email else { return }
+      
+      guard let userProfileImage = self.mainTableHeaderView.profileImageView.image else { return }
+      guard let uploadImageDate = userProfileImage.jpegData(compressionQuality: 0.3) else { return }
+      
+      let filename = NSUUID().uuidString
+      
+      if let beforeImageURL = self.userProfileData?.profileImageUrl {
+        if beforeImageURL != "" {
+          Storage.storage().reference(forURL: beforeImageURL).delete(completion: nil)
+        }
       }
       
-      let uploadImageRef = STORAGE_REF_USER_PROFILEIMAGE.child(filename)
-      uploadImageRef.downloadURL { (url, error) in
-        if let error = error { print("Error", error.localizedDescription); return }
-        guard let url = url else { return }
+      STORAGE_REF_USER_PROFILEIMAGE.child(filename).putData(uploadImageDate, metadata: nil) { (metadata, error) in
+        if let error = error {
+          print("error",error.localizedDescription)
+          return
+        }
         
-        let value = [
-          "nickName": nickName,
-          "email": email,
-          "profileImageUrl": url.absoluteString
-        ] as Dictionary<String, AnyObject>
-        
-        DB_REF_USER.child(uid).updateChildValues(value)
-        
-        self.dismiss(animated: true, completion: nil)
+        let uploadImageRef = STORAGE_REF_USER_PROFILEIMAGE.child(filename)
+        uploadImageRef.downloadURL { (url, error) in
+          if let error = error { print("Error", error.localizedDescription); return }
+          guard let url = url else { return }
+          
+          let value = [
+            "nickName": nickName,
+            "email": email,
+            "profileImageUrl": url.absoluteString
+          ] as Dictionary<String, AnyObject>
+          
+          self.userProfileData = User(uid: uid, dictionary: value)
+          
+          DB_REF_USER.child(uid).updateChildValues(value)
+        }
       }
-    }
-  }
-  
-  private func fetchStaticData() {
-    guard let uid = Auth.auth().currentUser?.uid else { return }
-    DB_REF_USERPROFILE.child(uid).observeSingleEvent(of: .value) { (snapshot) in
-      guard let dictionaryValue = snapshot.value as? [String: Int] else { return }
-      self.userProfileValue = dictionaryValue
-    }
+    })
   }
 }
 

@@ -22,7 +22,6 @@ class AddCommentVC: UIViewController {
   var isScrolled = false
   var isUserInputText: Bool = false {
     didSet {
-      let view = addCommentView
       if !isUserInputText {
          addCommentView.configureMultiButton(systemImageName: "plus")
       } else {
