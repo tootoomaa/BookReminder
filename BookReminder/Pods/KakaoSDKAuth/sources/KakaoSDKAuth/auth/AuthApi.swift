@@ -82,12 +82,10 @@ final public class AuthApi {
     /// - note: AuthApi.isKakaoTalkLoginAvailable() 메소드로 실행 가능한 상태인지 확인이 필요합니다. 카카오톡을 실행할 수 없을 경우 loginWithKakaoAccount() 메소드로 웹 로그인을 시도할 수 있습니다.
     public func loginWithKakaoTalk(channelPublicIds: [String]? = nil,
                                    serviceTerms: [String]? = nil,
-                                   autoLogin: Bool? = nil,
                                    completion: @escaping (OAuthToken?, Error?) -> Void) {
         
         AuthController.shared.authorizeWithTalk(channelPublicIds:channelPublicIds,
                                                 serviceTerms:serviceTerms,
-                                                autoLogin:autoLogin,
                                                 completion:completion)
         
     }
@@ -125,13 +123,11 @@ final public class AuthApi {
     
     /// :nodoc: 카카오싱크 전용입니다. 자세한 내용은 카카오싱크 전용 개발가이드를 참고하시기 바랍니다.
     public func loginWithKakaoAccount(channelPublicIds: [String]? = nil,
-                                      serviceTerms: [String]? = nil,
-                                      autoLogin: Bool? = nil,
+                                      serviceTerms: [String]? = nil,                                      
                                       completion: @escaping (OAuthToken?, Error?) -> Void) {
         
         AuthController.shared.authorizeWithAuthenticationSession(channelPublicIds: channelPublicIds,
                                                                  serviceTerms: serviceTerms,
-                                                                 autoLogin: autoLogin,
                                                                  completion: completion)
     }
     

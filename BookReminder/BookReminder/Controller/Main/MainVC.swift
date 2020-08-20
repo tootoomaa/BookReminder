@@ -53,6 +53,21 @@ class MainVC: UIViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
     
+//    if (Auth.auth().currentUser?.uid) != nil {
+//      let firebaseAuth = Auth.auth()
+//      do { // Firebase 계정 로그아웃
+//        try firebaseAuth.signOut()
+//        print("Success logout")
+//
+//        let loginVC = LoginVC()
+//        loginVC.modalPresentationStyle = .fullScreen
+//        present(loginVC, animated: true)
+//
+//      } catch let signOutError as NSError {
+//        print ("Error signing out: %@", signOutError)
+//      }
+//    }
+    
     configureView()
     
     fetUserProfileData()
@@ -64,7 +79,6 @@ class MainVC: UIViewController {
   
   override func viewWillAppear(_ animated: Bool) {
     navigationController?.navigationBar.isHidden = true
-    fetUserProfileData()
     guard let profileData = userProfileData else { return }
     if let nickName = profileData.nickName,
       let imageUrl = profileData.profileImageUrl {
@@ -103,7 +117,7 @@ class MainVC: UIViewController {
   func fetUserProfileData() {
     guard let uid = Auth.auth().currentUser?.uid else { return }
     
-    DB_REF_USER.child(uid).observeSingleEvent(of: .value) { (snapshot) in
+    DB_REF_USER.child(uid).observe(.value) { (snapshot) in
       if let value = snapshot.value as? Dictionary<String, AnyObject> {
         
         let userData = User(uid: uid, dictionary: value)
