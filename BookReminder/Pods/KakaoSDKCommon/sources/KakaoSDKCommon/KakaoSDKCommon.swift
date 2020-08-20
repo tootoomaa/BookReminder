@@ -27,7 +27,7 @@ import Foundation
 ///         return true
 ///     }
 /// - important: SDK 초기화가 수행되지 않으면 SDK 내 모든 기능을 사용할 수 없습니다. 반드시 가장 먼저 실행되어야 합니다.
-public final class KakaoSDKCommon {
+final public class KakaoSDKCommon {
     
     // MARK: Fields
     
@@ -40,12 +40,13 @@ public final class KakaoSDKCommon {
     
     private var _hosts : Hosts? = nil
     
+    private var _sdkType : SdkType!
+    
     public init() {
         _appKey = nil
         _customRedirectUri = nil
     }
-    
-    
+        
     // MARK: Initializers
     
     /// SDK 초기화를 수행합니다.
@@ -55,31 +56,34 @@ public final class KakaoSDKCommon {
     ///   - loggingEnable: SDK에서 디버그 로깅를 사용 여부
     
     public static func initSDK(appKey: String, customRedirectUri: String? = nil, loggingEnable: Bool = false, hosts: Hosts? = nil) {
-        KakaoSDKCommon.shared.initialize(appKey: appKey, customRedirectUri: customRedirectUri, loggingEnable: loggingEnable, hosts: hosts)
+        KakaoSDKCommon.shared.initialize(appKey: appKey, customRedirectUri: customRedirectUri, loggingEnable: loggingEnable, hosts: hosts, sdkType: .Swift)
     }
 
-    private func initialize(appKey: String, customRedirectUri: String? = nil, loggingEnable: Bool = false, hosts: Hosts? = nil) {
+    /// :nodoc:
+    public func initialize(appKey: String, customRedirectUri: String? = nil, loggingEnable: Bool = false, hosts: Hosts? = nil, sdkType: SdkType) {
         _appKey = appKey
         _customRedirectUri = customRedirectUri
         _loggingEnable = loggingEnable
         _hosts = hosts
+        
+        _sdkType = sdkType
         
         SdkLog.shared.clearLog()        
     }
     
     /// 현재 SDK의 버전을 조회합니다.
     public func sdkVersion() -> String {
-        //앱스토어 서밋버전스펙 에러때문에 plist 버전은 2.0.0으로, 실제버전은 베타버전을 하드코딩한다. (베타버전 동안 == 정식버전 전까지)
-        return "2.0.0-beta.7"
-//        let bundle = Bundle(for: type(of: self))
-//        if let version = bundle.infoDictionary?["CFBundleShortVersionString"] as? String {
-//            SdkLog.d("sdk_version : \(version)")
-//            return version
-//        }
-//        else {
-//            SdkLog.e("not_defined_version")
-//            return "not_defined_version"
-//        }
+//        //앱스토어 서밋버전스펙 에러때문에 plist 버전은 2.0.0으로, 실제버전은 베타버전을 하드코딩한다. (베타버전 동안 == 정식버전 전까지)
+//        return "2.0.0-beta.7"
+        let bundle = Bundle(for: type(of: self))
+        if let version = bundle.infoDictionary?["CFBundleShortVersionString"] as? String {
+            SdkLog.d("sdk_version : \(version)")
+            return version
+        }
+        else {
+            SdkLog.e("not_defined_version")
+            return "not_defined_version"
+        }
     }
     
     /// 초기화 시 지정한 loggingEnable
@@ -90,7 +94,11 @@ public final class KakaoSDKCommon {
     
     public func hosts() -> Hosts {
         return _hosts != nil ? _hosts! : Hosts.shared
-    }    
+    }
+    
+    public func sdkType() -> SdkType {
+        return _sdkType != nil ? _sdkType : .Swift
+    }
 }
 
 extension KakaoSDKCommon {

@@ -26,7 +26,7 @@ public class AuthController {
     /// 간편하게 API를 호출할 수 있도록 제공되는 공용 싱글톤 객체입니다.
     public static let shared = AuthController()
     
-    //TODO: parameter 로 빼자.
+    //TODO: parameter 방식으로 바꾸기.
     @available(iOS 13.0, *)
     public lazy var presentationContextProvider: Any? = DefaultPresentationContextProvider()
     
@@ -43,7 +43,6 @@ public class AuthController {
     /// :nodoc:
     public func authorizeWithTalk(channelPublicIds: [String]? = nil,
                                   serviceTerms: [String]? = nil,
-                                  autoLogin: Bool? = nil,
                                   completion: @escaping (OAuthToken?, Error?) -> Void) {
         
         authController.authorizeWithTalkCompletionHandler = { (callbackUrl) in
@@ -79,8 +78,7 @@ public class AuthController {
         
         var extraParameters = [String: Any]()
         extraParameters["channel_public_id"] = channelPublicIds?.joined(separator: ",")
-        extraParameters["service_terms"] = serviceTerms?.joined(separator: ",")
-        extraParameters["auto_login"] = autoLogin
+        extraParameters["service_terms"] = serviceTerms?.joined(separator: ",")        
         if extraParameters.count > 0 {
             parameters["params"] = extraParameters.toJsonString()
         }
@@ -139,13 +137,11 @@ public class AuthController {
     /// :nodoc: 카카오싱크 전용입니다. 자세한 내용은 카카오싱크 전용 개발가이드를 참고하시기 바랍니다.
     public func authorizeWithAuthenticationSession(channelPublicIds: [String]? = nil,
                                                    serviceTerms: [String]? = nil,
-                                                   autoLogin: Bool? = nil,
                                                    completion: @escaping (OAuthToken?, Error?) -> Void) {
         return self.authorizeWithAuthenticationSession(agtToken: nil,
                                                        scopes: nil,
                                                        channelPublicIds: channelPublicIds,
                                                        serviceTerms:serviceTerms,
-                                                       autoLogin: autoLogin,
                                                        completion: completion)
     }
     
@@ -169,7 +165,6 @@ public class AuthController {
                                             scopes:[String]? = nil,
                                             channelPublicIds: [String]? = nil,
                                             serviceTerms: [String]? = nil,
-                                            autoLogin: Bool? = nil,
                                             completion: @escaping (OAuthToken?, Error?) -> Void) {
         
         let authenticationSessionCompletionHandler : (URL?, Error?) -> Void = {
@@ -237,8 +232,7 @@ public class AuthController {
         }
         
         parameters["channel_public_id"] = channelPublicIds?.joined(separator: ",")
-        parameters["service_terms"] = serviceTerms?.joined(separator: ",")
-        parameters["auto_login"] = autoLogin
+        parameters["service_terms"] = serviceTerms?.joined(separator: ",")        
         
         if let url = SdkUtils.makeUrlWithParameters(Urls.compose(.Kauth, path:Paths.authAuthorize), parameters:parameters) {
             SdkLog.d("\n===================================================================================================")

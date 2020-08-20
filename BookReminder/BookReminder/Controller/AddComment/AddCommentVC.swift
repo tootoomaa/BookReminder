@@ -331,6 +331,7 @@ class AddCommentVC: UIViewController {
         self.uploadCommentData(uid: uid, isbnCode: isbnCode)
         Database.commentCountHandler(uid: uid, isbnCode: isbnCode, plusMinus: .plus)
       }
+      
       self.navigationController?.popViewController(animated: true)
     }
     

@@ -9,7 +9,6 @@
 import UIKit
 import Firebase
 import MobileCoreServices
-import Carte
 
 class UserProfileVC: UITableViewController {
   
@@ -212,6 +211,8 @@ class UserProfileVC: UITableViewController {
             "profileImageUrl": profileImageUrl
             ] as Dictionary<String, AnyObject>
           
+          self.userProfileData = User(uid: uid, dictionary: value)
+          
           DB_REF_USER.updateChildValues([uid: value])
         }
       }
@@ -221,12 +222,6 @@ class UserProfileVC: UITableViewController {
     alertController.addAction(okAction)
     alertController.addAction(cancelAction)
     present(alertController, animated: true, completion: nil)
-  }
-  
-  @objc private func tabDetailContextButton() {
-    print("tab Detail context Button")
-    let carteViewController = CarteViewController()
-    navigationController?.pushViewController(carteViewController, animated: true)
   }
   
   // MARK: - TableViewDataSource
@@ -253,11 +248,7 @@ class UserProfileVC: UITableViewController {
     let contextText = aboutBookInfoValue[indexPath.section][indexPath.row]
     
     let isNeedDetailMenu = titleText == checkDetailMenuString ? true : false
-    if isNeedDetailMenu {
-      cell.detailContextButton.addTarget(self,
-                                         action: #selector(tabDetailContextButton),
-                                         for: .touchUpInside)
-    }
+
     cell.configure(titleText: titleText,
                    contextText: contextText,
                    isNeedDetailMenu: isNeedDetailMenu)
@@ -303,48 +294,46 @@ extension UserProfileVC: UIImagePickerControllerDelegate & UINavigationControlle
       profileImageView.image = selectedImage
       profileImageView.layer.cornerRadius = (profileImageView.frame.height)/2
       profileImageView.clipsToBounds = true
-      
     }
-    dismiss(animated: true, completion: {
-      
-      guard let uid = Auth.auth().currentUser?.uid,
-            let userdata = self.userProfileData,
-            let nickName = userdata.nickName,
-            let email = userdata.email else { return }
-      
-      guard let userProfileImage = self.mainTableHeaderView.profileImageView.image else { return }
-      guard let uploadImageDate = userProfileImage.jpegData(compressionQuality: 0.3) else { return }
-      
-      let filename = NSUUID().uuidString
-      
-      if let beforeImageURL = self.userProfileData?.profileImageUrl {
-        print(beforeImageURL)
-        if beforeImageURL != "" {
-          Storage.storage().reference(forURL: beforeImageURL).delete(completion: nil)
-        }
+    
+    guard let uid = Auth.auth().currentUser?.uid,
+          let userdata = self.userProfileData,
+          let nickName = userdata.nickName,
+          let email = userdata.email else { return }
+    
+    guard let userProfileImage = self.mainTableHeaderView.profileImageView.image else { return }
+    guard let uploadImageDate = userProfileImage.jpegData(compressionQuality: 0.3) else { return }
+    
+    let filename = NSUUID().uuidString
+    
+    if let beforeImageURL = self.userProfileData?.profileImageUrl {
+      if beforeImageURL != "" {
+        Storage.storage().reference(forURL: beforeImageURL).delete(completion: nil)
+      }
+    }
+    
+    STORAGE_REF_USER_PROFILEIMAGE.child(filename).putData(uploadImageDate, metadata: nil) { (metadata, error) in
+      if let error = error {
+        print("error",error.localizedDescription)
+        return
       }
       
-      STORAGE_REF_USER_PROFILEIMAGE.child(filename).putData(uploadImageDate, metadata: nil) { (metadata, error) in
-        if let error = error {
-          print("error",error.localizedDescription)
-          return
-        }
+      let uploadImageRef = STORAGE_REF_USER_PROFILEIMAGE.child(filename)
+      uploadImageRef.downloadURL { (url, error) in
+        if let error = error { print("Error", error.localizedDescription); return }
+        guard let url = url else { return }
         
-        let uploadImageRef = STORAGE_REF_USER_PROFILEIMAGE.child(filename)
-        uploadImageRef.downloadURL { (url, error) in
-          if let error = error { print("Error", error.localizedDescription); return }
-          guard let url = url else { return }
-          
-          let value = [
-            "nickName": nickName,
-            "email": email,
-            "profileImageUrl": url.absoluteString
-          ] as Dictionary<String, AnyObject>
-          
-          DB_REF_USER.child(uid).updateChildValues(value)
-        }
+        let value = [
+          "nickName": nickName,
+          "email": email,
+          "profileImageUrl": url.absoluteString
+        ] as Dictionary<String, AnyObject>
+        
+        DB_REF_USER.child(uid).updateChildValues(value)
+        
+        self.dismiss(animated: true, completion: nil)
       }
-    })
+    }
   }
   
   private func fetchStaticData() {

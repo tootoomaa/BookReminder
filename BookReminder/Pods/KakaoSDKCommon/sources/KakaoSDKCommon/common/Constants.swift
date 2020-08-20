@@ -15,14 +15,22 @@
 import Foundation
 import UIKit
 
-public struct Constants {
+public enum SdkType : String {
+    case Swift = "swift"
+    case RxSwift = "rx_swift"
+}
+
+public class Constants {
 //    static public let SafariAuthrizeResponseCallbackNotification = "SafariAuthrizeResponseCallbackNotification"
     static public let responseType = "code"
     
     static public let kaHeader : String = generateKaHeader()
     static func generateKaHeader() -> String {
     
-        let sdkVersion = KakaoSDKCommon.shared.sdkVersion()
+        let sdkVersion = KakaoSDKCommon.shared.sdkVersion()        
+
+        let sdkType = KakaoSDKCommon.shared.sdkType().rawValue
+        
         let osVersion = UIDevice.current.systemVersion
         
         let langCode = (Locale.preferredLanguages.count > 0) ? Locale.preferredLanguages[0] : Locale.current.languageCode
@@ -35,7 +43,7 @@ public struct Constants {
         let appBundleId = Bundle.main.bundleIdentifier
         let appVersion = self.appVersion()
         
-        return "sdk/\(sdkVersion) os/ios-\(osVersion) lang/\(lang) res/\(resX)x\(resY) device/\(device) origin/\(appBundleId ?? "") app_ver/\(appVersion ?? "")"
+        return "sdk/\(sdkVersion) sdk_type/\(sdkType) os/ios-\(osVersion) lang/\(lang) res/\(resX)x\(resY) device/\(device) origin/\(appBundleId ?? "") app_ver/\(appVersion ?? "")"
     }
     
     static public func appVersion() -> String? {
