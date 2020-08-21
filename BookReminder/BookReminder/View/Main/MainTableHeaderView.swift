@@ -72,7 +72,7 @@ class MainTableHeaderView: UIView {
     }
     
     profileImageView.snp.makeConstraints{
-      $0.top.leading.equalTo(20)
+      $0.top.leading.equalTo(self).offset(20)
       $0.width.height.equalTo(70)
     }
     
@@ -97,7 +97,7 @@ class MainTableHeaderView: UIView {
   func configureHeaderView(profileImageUrlString: String?, userName: String?, isHiddenLogoutButton: Bool) {
     if let profileImageUrlString = profileImageUrlString { // 사용자 데이터에 이미지가 있는 경우 이미지 추가 // 없으면 기본 설정 값
       profileImageView.loadImage(urlString: profileImageUrlString)
-      profileImageView.layer.cornerRadius = (profileImageView.frame.height)/2
+      profileImageView.layer.cornerRadius = (profileImageView.frame.size.width)/2
       profileImageView.clipsToBounds = true
     }
     
