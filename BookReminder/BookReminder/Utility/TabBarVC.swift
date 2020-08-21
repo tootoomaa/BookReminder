@@ -7,7 +7,7 @@
 //
 
 import UIKit
-import Firebase
+import FirebaseAuth
 
 class TabBarVC: UITabBarController {
   
@@ -43,5 +43,4 @@ class TabBarVC: UITabBarController {
     }
     return
   }
-  
 }

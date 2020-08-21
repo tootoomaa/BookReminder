@@ -8,6 +8,8 @@
 
 import UIKit
 import Firebase
+import FirebaseAuth
+import FirebaseStorage
 import MobileCoreServices
 
 class UserProfileVC: UITableViewController {
@@ -100,7 +102,7 @@ class UserProfileVC: UITableViewController {
     super.viewWillAppear(true)
     navigationController?.navigationBar.isHidden = false
     let imageView =  mainTableHeaderView.profileImageView
-    imageView.layer.cornerRadius = (imageView.frame.height)/2
+    imageView.layer.cornerRadius = (imageView.frame.size.height)/2
     imageView.clipsToBounds = true
   }
   
@@ -161,10 +163,8 @@ class UserProfileVC: UITableViewController {
       self.imagePicker.sourceType = .camera // sourceType 카메라 선택
       
 //      self.imagePicker.mediaTypes = ["public.image"]
-      self.imagePicker.delegate = self
       self.imagePicker.sourceType = .camera
       self.imagePicker.mediaTypes = [kUTTypeImage as String]
-      self.imagePicker.allowsEditing = false
       
       if UIImagePickerController.isFlashAvailable(for: .rear) {
         self.imagePicker.cameraFlashMode = .off
@@ -293,7 +293,6 @@ extension UserProfileVC: UIImagePickerControllerDelegate & UINavigationControlle
   }
   
   func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-    print("Start")
     let mediaType = info[.mediaType] as! NSString
     if UTTypeEqual(mediaType, kUTTypeImage) {
       // handle Image Type
@@ -303,10 +302,10 @@ extension UserProfileVC: UIImagePickerControllerDelegate & UINavigationControlle
       
       let profileImageView = mainTableHeaderView.profileImageView
       profileImageView.image = selectedImage
-      profileImageView.layer.cornerRadius = (profileImageView.frame.height)/2
+      profileImageView.layer.cornerRadius = (profileImageView.frame.size.height)/2
       profileImageView.clipsToBounds = true
     }
-    print("aaaa")
+    
     dismiss(animated: true, completion: {
       
       guard let uid = Auth.auth().currentUser?.uid,

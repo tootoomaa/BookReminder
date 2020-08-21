@@ -11,7 +11,9 @@ import SnapKit
 import KakaoSDKAuth
 import KakaoOpenSDK
 import Firebase
+import FirebaseAuth
 import GoogleSignIn
+import GoogleDataTransport
 import AuthenticationServices // apple login
 import CryptoKit
 
