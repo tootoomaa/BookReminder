@@ -1,8 +1,8 @@
 ![RookReminderLogo](./Info/RookReminderLogo.png)
 
-## BookReminder
+# BookReminder
 
-### App 소개
+## App 소개
 
 책 읽는 순간을 저장하고 기록하세요!
 
@@ -12,9 +12,9 @@
 
 [AppStore Link🔗](https://apps.apple.com/kr/app/bookreminder/id1528348501)
 
-### App 구현 사항
+## App 구현 사항
 
-#### App 개발 관련 사항
+### App 개발 관련 사항
 
 - 프로젝트 기간 
 
@@ -28,9 +28,9 @@
 
   <img src="./Info/AppDesignWithFigma.png" alt="AppDesignWithFigma" style="zoom:50%;" />
 
-#### App 기능 실행 화면
+### App 기능 실행 화면
 
-##### API를 통한 책 등록 기능
+#### API를 통한 책 등록 기능
 
 - 책 이름 검색 또는 스케너를 통한 등록
 
@@ -62,7 +62,7 @@
     </a>
 <p>
 
-### 후기
+## 후기
 
  **BookReminder** 는 처음으로 기획, 디자인, 설계 및 구현까지 혼자서 진행한 프로젝트입니다. 평소에 책을 읽으면서 읽었던 내용을 자주 잊어버리는 경험이 있어서 이 앱을 기획하게 되었습니다.
 
