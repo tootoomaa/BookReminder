@@ -36,10 +36,8 @@ class MyBookVC: UIViewController {
   
   lazy var searchBar: UISearchBar = {
     let sBar = UISearchBar(frame: .zero)
-    sBar.placeholder = "  책 검색.."
+    sBar.placeholder = " 등록된 책 검색.."
     sBar.backgroundColor = .white
-    //    sBar.layer.borderColor = UIColor.gray.cgColor
-    //    sBar.layer.borderWidth = 2
     sBar.barStyle = .default
     sBar.barTintColor = .none
     sBar.searchBarStyle = .minimal
@@ -96,7 +94,6 @@ class MyBookVC: UIViewController {
     return button
   }()
   
-  
   lazy var deleteBookButton: UIButton = {
     let button = UIButton()
     let imageConfigure = UIImage.SymbolConfiguration(pointSize: 20, weight: .heavy, scale: .medium)
@@ -127,6 +124,10 @@ class MyBookVC: UIViewController {
     configureUI()
     
     configureLayout()
+  }
+  
+  override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+    print("aaa")
   }
   
   override func viewWillAppear(_ animated: Bool) {
@@ -192,11 +193,7 @@ class MyBookVC: UIViewController {
       }
     }
   }
-  
-  override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-    hideKeyBoard()
-  }
-  
+
   private func hideKeyBoard() {
     self.view.endEditing(true)
   }
