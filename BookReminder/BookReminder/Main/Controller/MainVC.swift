@@ -102,6 +102,7 @@ class MainVC: UIViewController {
   
   // MARK: - Network handler
   private func getInitalData() {
+    mainView.activityIndicator.startAnimating()
     
     let fetchGroup = DispatchGroup()
     
@@ -133,6 +134,7 @@ class MainVC: UIViewController {
     fetchGroup.notify(queue: .main) {
       self.updateUserDataUI()
       self.mainView.collectionView.reloadData()
+      self.mainView.activityIndicator.stopAnimating()
     }
   }
   
@@ -330,31 +332,23 @@ extension MainVC: UICollectionViewDataSource {
   }
   
   func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-    var cell = UICollectionViewCell()
-    print("bbbbb")
-    if userBookListVM.books.count != 0 {
-      print("not Null")
-      guard let myCell = collectionView.dequeueReusableCell(
-        withReuseIdentifier: CollecionViewCustomCell.identifier,
-        for: indexPath) as? CollecionViewCustomCell else { fatalError() }
-      
-//      let thumbnailImageUrl = userBookListVM.bookAt(indexPath.row).book.thumbnail
-//      myCell.bookThumbnailImageView.loadImage(urlString: thumbnailImageUrl!)
-      print("indexPath", indexPath.row)
-      print("BookUIRL ", userBookListVM.bookAt(indexPath.row).book.thumbnail)
-      if let imageURL = userBookListVM.bookAt(indexPath.row).book.thumbnail {
-        myCell.configureCell(imageURL: imageURL)
-      }
-      cell = myCell
-    } else {
-      print("zzzzzzzzzz")
+    
+    if userBookListVM.books.count == 0 {
       guard let myCell = collectionView.dequeueReusableCell(
         withReuseIdentifier: CollectionViewNoDataCell.identifier,
         for: indexPath) as? CollectionViewNoDataCell else { fatalError() }
-      cell = myCell
+      return myCell
     }
-    print("kkkkkkk")
-    return cell
+    
+    guard let myCell = collectionView.dequeueReusableCell(
+            withReuseIdentifier: CollecionViewCustomCell.identifier,
+            for: indexPath) as? CollecionViewCustomCell else { fatalError() }
+    
+    if let imageURL = userBookListVM.bookAt(indexPath.row).book.thumbnail {
+      myCell.configureCell(imageURL: imageURL)
+    }
+
+    return myCell
   }
 }
 

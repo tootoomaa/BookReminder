@@ -58,6 +58,14 @@ class MainView: UIView {
   
   let mainConrtollMenu = MainControllMenu()
   
+  let activityIndicator: UIActivityIndicatorView = {
+    let activityView = UIActivityIndicatorView()
+    activityView.color = CommonUI.mainBackgroudColor
+    activityView.hidesWhenStopped = true
+    activityView.style = .large
+    return activityView
+  }()
+  
   // MARK: - Life cycle
   override init(frame: CGRect) {
     super.init(frame: frame)
@@ -70,6 +78,7 @@ class MainView: UIView {
     
     configureMainConrollMenu()
     
+    configureActivityIndicatorView()
   }
   
   required init?(coder: NSCoder) {
@@ -124,6 +133,14 @@ class MainView: UIView {
       $0.top.equalTo(collectionView.snp.bottom).offset(10)
       $0.leading.trailing.equalToSuperview()
       $0.height.equalTo(180)
+    }
+  }
+  
+  private func configureActivityIndicatorView() {
+    addSubview(activityIndicator)
+    
+    activityIndicator.snp.makeConstraints {
+      $0.centerX.centerY.equalToSuperview()
     }
   }
 }
