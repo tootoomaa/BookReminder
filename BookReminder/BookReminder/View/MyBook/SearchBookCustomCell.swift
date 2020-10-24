@@ -146,7 +146,7 @@ class SearchBookCustomCell: UICollectionViewCell {
   
   // MARK: - Handler
   
-  func configure(bookDetailInfo : BookDetailInfo) {
+  func configure(bookDetailInfo : Book) {
     
     guard let url = URL(string: bookDetailInfo.thumbnail) else { return }
     

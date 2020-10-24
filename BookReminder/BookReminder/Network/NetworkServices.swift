@@ -56,7 +56,7 @@ class NetworkServices {
         
         do {
           
-          let bookInfo = try JSONDecoder().decode(Book.self, from: data)
+          let bookInfo = try JSONDecoder().decode(BookList.self, from: data)
           
           if type == .isbn {
             let creationDate = Int(NSDate().timeIntervalSince1970)

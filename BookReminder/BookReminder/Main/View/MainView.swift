@@ -50,18 +50,6 @@ class MainView: UIView {
     return label
   }()
   
-  var passSelectedCellInfo: ((IndexPath)->())?
-  var selectedBookIndexPath: IndexPath?
-  
-  var markedBookList: [BookDetailInfo] = [] {
-    didSet {
-      collectionView.reloadData()
-      
-      selectedBookIndexPath = IndexPath(item: 0, section: 0)
-      collectionView.selectItem(at: selectedBookIndexPath, animated: false, scrollPosition: .bottom)
-    }
-  }
-
   let collectionView: UICollectionView = {
     let layout = UICollectionViewFlowLayout()
     layout.scrollDirection = .horizontal

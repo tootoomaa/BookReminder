@@ -6,6 +6,7 @@
 //  Copyright © 2020 김광수. All rights reserved.
 //
 
+import FirebaseAuth
 
 class User {
 
@@ -29,4 +30,21 @@ class User {
       self.profileImageUrl = profileImageUrl
     }
   }
+}
+
+extension User {
+  
+  static func getUserProfileData(completion: @escaping ((UserViewModel)->Void)) {
+    guard let uid = Auth.auth().currentUser?.uid else { return }
+    
+    DB_REF_USER.child(uid).observeSingleEvent(of: .value) { (snapshot) in
+      if let value = snapshot.value as? Dictionary<String, AnyObject> {
+        
+        let userVM = UserViewModel(User(uid: uid, dictionary: value))
+        completion(userVM)
+        
+      }
+    }
+  }
+  
 }

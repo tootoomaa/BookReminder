@@ -21,10 +21,10 @@ class MyBookVC: UIViewController {
   let bounceDistance: CGFloat = 25
   
   var bookScanedCode: String = ""
-  var bookDetailInfoArray: [BookDetailInfo] = []
+  var bookDetailInfoArray: [Book] = []
   
   var filterOn: Bool = false
-  var filterdBookArray: [BookDetailInfo] = []
+  var filterdBookArray: [Book] = []
   
   var userSelectedCellForDelete: IndexPath?
   
@@ -293,7 +293,7 @@ class MyBookVC: UIViewController {
                                            updateCategory: .enrollBookCount,
                                            amount: 1)
         // book model 생성
-        let bookDetailInfo = BookDetailInfo(isbnCode: isbnCode, dictionary: bookDicValue)
+        let bookDetailInfo = Book(isbnCode: isbnCode, dictionary: bookDicValue)
         self.bookDetailInfoArray.append(bookDetailInfo)
         
         self.bookDetailInfoArray.sort { (book1, book2) -> Bool in
@@ -337,7 +337,7 @@ class MyBookVC: UIViewController {
                                            updateCategory: .enrollBookCount,
                                            amount: 1)
         // book model 생성
-        let bookDetailInfo = BookDetailInfo(isbnCode: isbnCode, dictionary: bookDicValue)
+        let bookDetailInfo = Book(isbnCode: isbnCode, dictionary: bookDicValue)
         self.bookDetailInfoArray.append(bookDetailInfo)
         
         self.bookDetailInfoArray.sort { (book1, book2) -> Bool in
@@ -423,7 +423,7 @@ class MyBookVC: UIViewController {
   }
   
   // cell 에서 리턴 받은 버튼에 종류에 따라서 처리
-  private func tabBookDetailButton(buttonName: String, bookDetailInfo: BookDetailInfo, isMarked: Bool) {
+  private func tabBookDetailButton(buttonName: String, bookDetailInfo: Book, isMarked: Bool) {
     // mark: 즐겨찾기, comment: 코멘트, info: 자세한 설명 화면
     
     if buttonName == MyBookCellButtonTitle.bookMark.rawValue {
@@ -474,7 +474,7 @@ class MyBookVC: UIViewController {
           return print("Fail to change detail Book info ")
         }
         
-        let bookDetailInfo = BookDetailInfo(isbnCode: bookInfo.key, dictionary: value)
+        let bookDetailInfo = Book(isbnCode: bookInfo.key, dictionary: value)
         
         DispatchQueue.main.async {
           self.bookDetailInfoArray.append(bookDetailInfo)

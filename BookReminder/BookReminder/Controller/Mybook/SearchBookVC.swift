@@ -17,7 +17,7 @@ class SearchBookVC: UIViewController {
   var menuActive: Bool = false
   var userSelectSearchCategory: String = "책이름"
   let networkServices = NetworkServices()
-  var searchedBookList: [BookDetailInfo] = []
+  var searchedBookList: [Book] = []
   
   var passBookInfoClosure:((String, [String: AnyObject]) -> ())? // handle Result return closure
   
@@ -177,7 +177,7 @@ extension SearchBookVC: UISearchBarDelegate {
     networkServices.fetchBookInfomationFromKakao(type: .bookName, forSearch: searchString) { (isbnCode, bookDicValue) in
       DispatchQueue.main.async {
         // book model 생성
-        let bookDetailInfo = BookDetailInfo(isbnCode: isbnCode, dictionary: bookDicValue)
+        let bookDetailInfo = Book(isbnCode: isbnCode, dictionary: bookDicValue)
         self.searchedBookList.append(bookDetailInfo)
         
         self.searchedBookList.sort { (book1, book2) -> Bool in

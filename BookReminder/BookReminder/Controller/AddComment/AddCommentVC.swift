@@ -14,7 +14,7 @@ import MobileCoreServices
 class AddCommentVC: UIViewController {
   
   // MARK: - Properties
-  var markedBookInfo: BookDetailInfo?
+  var markedBookInfo: Book?
   var keyboardUpChecker: Bool = false
   var tempKeyboardHeight: CGFloat = 0
   var isMultibuttomActive: Bool = false

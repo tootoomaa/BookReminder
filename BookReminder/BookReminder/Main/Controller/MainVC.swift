@@ -9,22 +9,27 @@
 import UIKit
 import SnapKit
 import Firebase
+import RxSwift
+import RxCocoa
 
 class MainVC: UIViewController {
   
   // MARK: - Properties
   let mainView = MainView()
   
-  var userProfileData: User?                  // 사용자 프로필 데이터
+  var userVM: UserViewModel!
+  var userBookListVM: UserBookListModel!
   
-  var markedBookList: [BookDetailInfo] = [] { // 사용자의 북마크된 책 리스트
+  let dispoeBag = DisposeBag()
+  
+  var markedBookList: [Book] = [] { // 사용자의 북마크된 책 리스트
     didSet {
-      if markedBookList.count != 0 {          // 사용자가 북마크된 책을 모두 제거한 경우 오류 방지
-        userSelectedBookIndex = IndexPath(row: 0, section: 0) // 북마크 제거시 첫 북마크 책으로 변경
-        fetchMarkedBookCommentCount()         // comment Count 재설정
-      }
+      
+      self.userBookListVM = UserBookListModel(markedBookList)
+      
     }
   }
+  
   var markedBookCommentCountList: [Int] = [] 
   var userSelectedBookIndex: IndexPath = IndexPath(row: 0, section: 0) {
     didSet {
@@ -50,11 +55,11 @@ class MainVC: UIViewController {
 //        print ("Error signing out: %@", signOutError)
 //      }
 //    }
+    getInitalData()
+    
     configureCollectionViewSetting()
     
     configureViewGesture()
-    
-    fetUserProfileData()
     
     fetchMarkedBookList()
   }
@@ -84,50 +89,86 @@ class MainVC: UIViewController {
     let gesture = UITapGestureRecognizer(target: self, action: #selector(tabProfileImageButton))
     mainView.profileImageView.addGestureRecognizer(gesture)
     mainView.profileImageView.addGestureRecognizer(gesture)
+    
+    let tabBookMarkLabelGuesture = UITapGestureRecognizer(target: self, action: #selector(tabBookMarkLabel))
+    let tabCommentLabelGuesture = UITapGestureRecognizer(target: self, action: #selector(tabCommentLabel))
+    
+    mainView.mainConrtollMenu.bookMarkLabel.addGestureRecognizer(tabBookMarkLabelGuesture)
+    mainView.mainConrtollMenu.commentLabel.addGestureRecognizer(tabCommentLabelGuesture)
+    mainView.mainConrtollMenu.commentAddButton.addTarget(self, action: #selector(tabAddCommentButton), for: .touchUpInside)
+    mainView.mainConrtollMenu.commentEditButton.addTarget(self, action: #selector(tabCommentListEditButton), for: .touchUpInside)
+    mainView.mainConrtollMenu.compliteButton.addTarget(self, action: #selector(tabCompliteButton), for: .touchUpInside)
   }
   
   // MARK: - Network handler
-  
-  func fetUserProfileData() {
-    guard let uid = Auth.auth().currentUser?.uid else { return }
+  private func getInitalData() {
     
-    DB_REF_USER.child(uid).observeSingleEvent(of: .value) { (snapshot) in
-      if let value = snapshot.value as? Dictionary<String, AnyObject> {
-        
-        let userData = User(uid: uid, dictionary: value)
-        
-        if let profileImageUrl = userData.profileImageUrl,
-          let nickName = userData.nickName {
-          // 사용자 데이터가 있는 경우
-//          self.mainTableHeaderView.configureHeaderView(profileImageUrlString: profileImageUrl,
-//                                                  userName: nickName,
-//                                                  isHiddenLogoutButton: true)
-        } else {
-          // 사용자 데이터 없는 경우
-//          self.mainTableHeaderView.configureHeaderView(profileImageUrlString: nil,
-//                                                       userName: "사용자",
-//                                                       isHiddenLogoutButton: true)
-        }
-        self.userProfileData = userData
+    let fetchGroup = DispatchGroup()
+    
+    fetchGroup.enter()
+    DispatchQueue.main.async {
+      User.getUserProfileData { [weak self] (userVM) in
+        self?.userVM = userVM
+        fetchGroup.leave()
       }
     }
+    
+    DispatchQueue.main.async {
+      guard let uid = Auth.auth().currentUser?.uid else { return }
+      DB_REF_MARKBOOKS.child(uid).observe(.value) { (snapshot) in
+        guard let value = snapshot.value as? [String: Int] else { return }
+        value.keys.forEach{
+          fetchGroup.enter()
+          Database.fetchBookDetailData(uid: uid, isbnCode: $0) { [weak self] (bookDetailInfo) in
+            self?.markedBookList.append(bookDetailInfo)
+            self?.markedBookList.sort { (book1, book2) -> Bool in
+              book1.creationDate > book2.creationDate
+            }
+            fetchGroup.leave()
+          }
+        }
+      }
+    }
+   
+    fetchGroup.notify(queue: .main) {
+      self.updateUserDataUI()
+      self.mainView.collectionView.reloadData()
+    }
+  }
+  
+  private func updateUserDataUI() {
+    userVM.nickName.asDriver(onErrorJustReturn: "NickName")
+      .drive(mainView.nameLabel.rx.text)
+      .disposed(by: dispoeBag)
+    
+    mainView.profileImageView.loadImage(urlString: userVM.user.profileImageUrl)
+    mainView.profileImageView.clipsToBounds = true
+    
   }
   
   private func fetchMarkedBookList() {
-    guard let uid = Auth.auth().currentUser?.uid else { return }
-    DB_REF_MARKBOOKS.child(uid).observeSingleEvent(of: .value) { (snapshot) in
-      guard let value = snapshot.value as? [String: Int] else { return }
-      value.keys.forEach{
-        Database.fetchBookDetailData(uid: uid, isbnCode: $0) { (bookDetailInfo) in
-          self.markedBookList.append(bookDetailInfo)
-          self.markedBookList.sort { (book1, book2) -> Bool in
-            book1.creationDate > book2.creationDate
-          }
-//          self.tableView.reloadData()
-        }
-      }
-    }
+    
+    
   }
+  
+  /*
+   static func getMarkedBookList() {
+     var bookList = [Book]()
+     guard let uid = Auth.auth().currentUser?.uid else { return }
+     DB_REF_MARKBOOKS.child(uid).observe(.value) { (snapshot) in
+       guard let value = snapshot.value as? [String: Int] else { return }
+       value.keys.forEach{
+         Database.fetchBookDetailData(uid: uid, isbnCode: $0) { (bookDetailInfo) in
+           print(bookDetailInfo.title)
+           bookList.append(bookDetailInfo)
+           bookList.sort { (book1, book2) -> Bool in
+             book1.creationDate > book2.creationDate
+           }
+         }
+       }
+     }
+   }
+   */
   
   private func fetchMarkedBookCommentCount() {
     
@@ -154,7 +195,6 @@ class MainVC: UIViewController {
   
   private func presentUserProfileVC() {
     let userProfileVC = UserProfileVC(style: .grouped)
-    userProfileVC.userProfileData = self.userProfileData
     navigationController?.pushViewController(userProfileVC, animated: true)
   }
   
@@ -284,30 +324,36 @@ extension MainVC: UICollectionViewDelegate {
 
 // MARK: - UICollectionViewDataSource
 extension MainVC: UICollectionViewDataSource {
-  
   func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-    
-    return markedBookList.count == 0 ? 1 : markedBookList.count
+    print("count")
+    return userBookListVM == nil ? 0 : userBookListVM.books.count
   }
   
   func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
     var cell = UICollectionViewCell()
-    
-    if markedBookList.count != 0 {
+    print("bbbbb")
+    if userBookListVM.books.count != 0 {
+      print("not Null")
       guard let myCell = collectionView.dequeueReusableCell(
         withReuseIdentifier: CollecionViewCustomCell.identifier,
         for: indexPath) as? CollecionViewCustomCell else { fatalError() }
       
-      if let imageURL = markedBookList[indexPath.item].thumbnail {
+//      let thumbnailImageUrl = userBookListVM.bookAt(indexPath.row).book.thumbnail
+//      myCell.bookThumbnailImageView.loadImage(urlString: thumbnailImageUrl!)
+      print("indexPath", indexPath.row)
+      print("BookUIRL ", userBookListVM.bookAt(indexPath.row).book.thumbnail)
+      if let imageURL = userBookListVM.bookAt(indexPath.row).book.thumbnail {
         myCell.configureCell(imageURL: imageURL)
       }
       cell = myCell
     } else {
+      print("zzzzzzzzzz")
       guard let myCell = collectionView.dequeueReusableCell(
         withReuseIdentifier: CollectionViewNoDataCell.identifier,
         for: indexPath) as? CollectionViewNoDataCell else { fatalError() }
       cell = myCell
     }
+    print("kkkkkkk")
     return cell
   }
 }
@@ -345,15 +391,3 @@ extension MainVC: UICollectionViewDelegateFlowLayout {
     return mySize
   }
 }
-
-
-/*
- let tabBookMarkLabelGuesture = UITapGestureRecognizer(target: self, action: #selector(tabBookMarkLabel))
- let tabCommentLabelGuesture = UITapGestureRecognizer(target: self, action: #selector(tabCommentLabel))
- 
- myCell.bookMarkLabel.addGestureRecognizer(tabBookMarkLabelGuesture)
- myCell.commentLabel.addGestureRecognizer(tabCommentLabelGuesture)
- myCell.commentAddButton.addTarget(self, action: #selector(tabAddCommentButton), for: .touchUpInside)
- myCell.commentEditButton.addTarget(self, action: #selector(tabCommentListEditButton), for: .touchUpInside)
- myCell.compliteButton.addTarget(self, action: #selector(tabCompliteButton), for: .touchUpInside)
- */

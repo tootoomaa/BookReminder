@@ -27,8 +27,6 @@ class DetailBookInfoHeaderView: UIView {
     blurView.alpha = 1
     backgroundColor = .systemGray4
     
-    self.setGradient(color1: .blue, color2: .darkGray)
-    
     [blurView, bookThumbnailImageView].forEach{
       addSubview($0)
     }

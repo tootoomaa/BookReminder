@@ -13,14 +13,14 @@ import UIKit
 // MARK: - Database Extension
 extension Database {
   // uid와 isbn 코드를 통한 책 정보 추출
-  static func fetchBookDetailData(uid: String, isbnCode: String, complition: @escaping(BookDetailInfo) -> ()) {
+  static func fetchBookDetailData(uid: String, isbnCode: String, complition: @escaping(Book) -> ()) {
     
     DB_REF_USERBOOKS.child(uid).child(isbnCode).observeSingleEvent(of: .value) { (snapshot) in
       
       let key = snapshot.key
       guard let dictionary = snapshot.value as? Dictionary<String, AnyObject> else { return }
       
-      let bookDetailInfo = BookDetailInfo(isbnCode: key, dictionary: dictionary)
+      let bookDetailInfo = Book(isbnCode: key, dictionary: dictionary)
       
       complition(bookDetailInfo)
     }
@@ -79,7 +79,7 @@ extension Database {
     }
   }
   
-  static func bookDeleteHandler(uid: String, deleteBookData: BookDetailInfo) {
+  static func bookDeleteHandler(uid: String, deleteBookData: Book) {
     guard let isbnCode = deleteBookData.isbn else { return }
     // enroll 책 count 감소
     userProfileStaticsHanlder(uid: uid, plusMinus: .down, updateCategory: .enrollBookCount, amount: 1)
@@ -180,17 +180,4 @@ extension UIAlertController {
     return alertController
   }
   
-}
-
-// MARK: - UIView
-extension UIView{
-    func setGradient(color1:UIColor,color2:UIColor){
-        let gradient: CAGradientLayer = CAGradientLayer()
-        gradient.colors = [color1.cgColor,color2.cgColor]
-        gradient.locations = [0.0 , 1.0]
-        gradient.startPoint = CGPoint(x: 1.0, y: 0.0)
-        gradient.endPoint = CGPoint(x: 1.0, y: 1.0)
-        gradient.frame = bounds
-        layer.addSublayer(gradient)
-    }
 }

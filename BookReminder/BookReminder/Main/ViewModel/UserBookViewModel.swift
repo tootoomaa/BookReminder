@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import RxSwift
 
 struct UserBookListModel {
   let books: [UserBookModel]
@@ -16,6 +17,14 @@ struct UserBookListModel {
   }
 }
 
+extension UserBookListModel {
+  
+  func bookAt(_ index: Int) -> UserBookModel {
+    return books[index]
+  }
+  
+}
+
 struct UserBookModel {
   
   let book: Book
@@ -23,5 +32,27 @@ struct UserBookModel {
   init(_ book: Book) {
     self.book = book
   }
+  
+}
+
+extension UserBookModel {
+  
+  var thumbnail: Observable<String> {
+    return Observable<String>.just(self.book.thumbnail)
+  }
+  
+//  var authors: [String]!
+//  var contents: String!
+//  var datetime: String!
+//  var isbn: String!
+//  var price: Int!
+//  var publisher: String!
+//  var sale_price: Int!
+//  var status: String!
+//  var thumbnail: String!
+//  var title: String!
+//  var translators: [String]?
+//  var url: String!
+//  var creationDate: Int!
   
 }
