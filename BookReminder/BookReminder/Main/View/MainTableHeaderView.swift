@@ -15,7 +15,7 @@ class MainTableHeaderView: UIView {
   let profileImageView: CustomImageView = {
     let imageView = CustomImageView()
     let imageconf = UIImage.SymbolConfiguration(pointSize: 50, weight: .medium)
-    imageView.image = UIImage(systemName: "person.crop.circle.fill.badge.plus",
+    imageView.image = UIImage(systemName: "person.circle",
                               withConfiguration: imageconf)
     imageView.tintColor = CommonUI.titleTextColor
     imageView.layer.cornerRadius = (imageView.frame.height)/2
@@ -72,7 +72,8 @@ class MainTableHeaderView: UIView {
     }
     
     profileImageView.snp.makeConstraints{
-      $0.top.leading.equalTo(self).offset(20)
+      $0.top.equalTo(self)
+      $0.leading.equalTo(self).offset(20)
       $0.width.height.equalTo(70)
     }
     

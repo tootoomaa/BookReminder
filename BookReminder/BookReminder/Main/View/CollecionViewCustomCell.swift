@@ -25,7 +25,6 @@ class CollecionViewCustomCell: UICollectionViewCell {
   let selectedimageView: UIImageView = {
     let imageView = UIImageView()
     imageView.image = UIImage(systemName: "checkmark.circle.fill")
-//    imageView.tintColor = .systemPink
     imageView.tintColor = CommonUI.mainBackgroudColor
     imageView.layer.cornerRadius = 25
     imageView.backgroundColor = .white

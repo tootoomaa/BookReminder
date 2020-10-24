@@ -389,7 +389,7 @@ class MyBookVC: UIViewController {
         mainVC.markedBookList.remove(at: index)
       }
       
-      mainVC.tableView.reloadData()
+//      mainVC.tableView.reloadData()
     }
     
     let imageView = UIImageView(frame: CGRect(x: 80, y: 110, width: 140, height: 200))
@@ -446,7 +446,7 @@ class MyBookVC: UIViewController {
           mainVC.markedBookList.remove(at: index)
         }
       }
-      mainVC.tableView.reloadData()
+//      mainVC.tableView.reloadData()
       
     } else if buttonName == MyBookCellButtonTitle.comment.rawValue {
       

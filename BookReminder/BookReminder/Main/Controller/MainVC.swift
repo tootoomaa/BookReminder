@@ -13,7 +13,10 @@ import Firebase
 class MainVC: UIViewController {
   
   // MARK: - Properties
+  let mainView = MainView()
+  
   var userProfileData: User?                  // 사용자 프로필 데이터
+  
   var markedBookList: [BookDetailInfo] = [] { // 사용자의 북마크된 책 리스트
     didSet {
       if markedBookList.count != 0 {          // 사용자가 북마크된 책을 모두 제거한 경우 오류 방지
@@ -29,27 +32,7 @@ class MainVC: UIViewController {
     }
   }
   
-  lazy var mainTableHeaderView: MainTableHeaderView = {
-    let view = MainTableHeaderView()
-    view.detailProfileButton.addTarget(self, action: #selector(tabDetailProfileButton), for: .touchUpInside)
-    return view
-  }()
-  
-  lazy var tableView: UITableView = {
-    let tableView = UITableView(frame: .zero, style: .grouped)
-    tableView.dataSource = self
-    tableView.delegate = self
-    tableView.separatorStyle = .none
-    tableView.allowsSelection = false
-    tableView.tableHeaderView = mainTableHeaderView
-    tableView.tableHeaderView?.frame.size = CGSize(width: view.frame.width, height: 100)
-    tableView.register(UITableViewCell.self, forCellReuseIdentifier: "Cell")
-    tableView.register(MainVCBookListCell.self, forCellReuseIdentifier: MainVCBookListCell.identifier)
-    tableView.register(BookInfoCell.self, forCellReuseIdentifier: BookInfoCell.identifier)
-    return tableView
-  }()
-  
-  // MARK: - Init
+  // MARK: - Life Cycle
   override func viewDidLoad() {
     super.viewDidLoad()
     
@@ -67,49 +50,40 @@ class MainVC: UIViewController {
 //        print ("Error signing out: %@", signOutError)
 //      }
 //    }
+    configureCollectionViewSetting()
     
-    configureView()
+    configureViewGesture()
     
     fetUserProfileData()
     
     fetchMarkedBookList()
-    
-    configureLayout()
+  }
+  
+  override func loadView() {
+    view = mainView
   }
   
   override func viewWillAppear(_ animated: Bool) {
     navigationController?.navigationBar.isHidden = true
-    guard let profileData = userProfileData else { return }
-    if let nickName = profileData.nickName,
-      let imageUrl = profileData.profileImageUrl {
-    mainTableHeaderView.configureHeaderView(profileImageUrlString: imageUrl,
-                                            userName: nickName,
-                                            isHiddenLogoutButton: true)
-    }
   }
   
-  private func configureView() {
+  private func configureCollectionViewSetting() {
+    mainView.collectionView.backgroundColor = .white
+    mainView.collectionView.dataSource = self
+    mainView.collectionView.delegate = self
+    mainView.collectionView.allowsMultipleSelection = false
+    mainView.collectionView.register(CollecionViewCustomCell.self,
+                            forCellWithReuseIdentifier: CollecionViewCustomCell.identifier)
     
-    view.backgroundColor = .white
-    tableView.backgroundColor = .white
+    mainView.collectionView.register(CollectionViewNoDataCell.self,
+                            forCellWithReuseIdentifier: CollectionViewNoDataCell.identifier)
     
-    view.layoutMargins = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
-    
+  }
+  
+  private func configureViewGesture() {
     let gesture = UITapGestureRecognizer(target: self, action: #selector(tabProfileImageButton))
-    mainTableHeaderView.profileImageView.addGestureRecognizer(gesture)
-    mainTableHeaderView.profileImageView.addGestureRecognizer(gesture)
-  }
-  
-  private func configureLayout() {
-    
-    [tableView].forEach{
-      view.addSubview($0)
-    }
-    
-    tableView.snp.makeConstraints{
-      $0.top.equalTo(view.safeAreaLayoutGuide).offset(10)
-      $0.leading.trailing.bottom.equalTo(view.safeAreaLayoutGuide)
-    }
+    mainView.profileImageView.addGestureRecognizer(gesture)
+    mainView.profileImageView.addGestureRecognizer(gesture)
   }
   
   // MARK: - Network handler
@@ -125,14 +99,14 @@ class MainVC: UIViewController {
         if let profileImageUrl = userData.profileImageUrl,
           let nickName = userData.nickName {
           // 사용자 데이터가 있는 경우
-          self.mainTableHeaderView.configureHeaderView(profileImageUrlString: profileImageUrl,
-                                                  userName: nickName,
-                                                  isHiddenLogoutButton: true)
+//          self.mainTableHeaderView.configureHeaderView(profileImageUrlString: profileImageUrl,
+//                                                  userName: nickName,
+//                                                  isHiddenLogoutButton: true)
         } else {
           // 사용자 데이터 없는 경우
-          self.mainTableHeaderView.configureHeaderView(profileImageUrlString: nil,
-                                                       userName: "사용자",
-                                                       isHiddenLogoutButton: true)
+//          self.mainTableHeaderView.configureHeaderView(profileImageUrlString: nil,
+//                                                       userName: "사용자",
+//                                                       isHiddenLogoutButton: true)
         }
         self.userProfileData = userData
       }
@@ -149,7 +123,7 @@ class MainVC: UIViewController {
           self.markedBookList.sort { (book1, book2) -> Bool in
             book1.creationDate > book2.creationDate
           }
-          self.tableView.reloadData()
+//          self.tableView.reloadData()
         }
       }
     }
@@ -159,13 +133,13 @@ class MainVC: UIViewController {
     
     guard let uid = Auth.auth().currentUser?.uid else { return }
     guard let isbnCode = markedBookList[userSelectedBookIndex.item].isbn else { return }
-    guard let cell = tableView.cellForRow(at: IndexPath(row: 1, section: 0)) as? BookInfoCell else { return }
+//    guard let cell = tableView.cellForRow(at: IndexPath(row: 1, section: 0)) as? BookInfoCell else { return }
     
     DB_REF_COMMENT_STATICS.child(uid).child(isbnCode).observe(.value) { (snapshot) in
       
       guard let value = snapshot.value as? Int else { return }
-      cell.commentLabel.attributedText = .configureAttributedString(systemName: "bubble.left.fill",
-                                                                    setText: "\(value)")
+//      cell.commentLabel.attributedText = .configureAttributedString(systemName: "bubble.left.fill",
+//                                                                    setText: "\(value)")
     }
   }
   
@@ -220,7 +194,7 @@ class MainVC: UIViewController {
         // 북마크 북 제거
         self.markedBookList.remove(at: deleteBookIndex)
         // TableView reload
-        self.tableView.reloadRows(at: [IndexPath(row: 0, section: 0)], with: .fade)
+//        self.tableView.reloadRows(at: [IndexPath(row: 0, section: 0)], with: .fade)
         
         // myBook 재설정
         guard let window = UIApplication.shared.delegate?.window,
@@ -252,7 +226,7 @@ class MainVC: UIViewController {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         DB_REF_MARKBOOKS.child(uid).child(bookIsbnCode).removeValue()
         self.markedBookList.remove(at: index)
-        self.tableView.reloadData()
+//        self.tableView.reloadData()
       }
       
       let alert = UIAlertController.okCancelSetting(title: "북마크 제거", message: "\(bookTitle) 책을 북마크에서 제거 합니다.", okAction: okAction)
@@ -274,84 +248,112 @@ class MainVC: UIViewController {
   }
 }
 
-// MARK: - UITableViewDataSource
-extension MainVC: UITableViewDataSource {
+// MARK: - UICollectionViewDelegate
+extension MainVC: UICollectionViewDelegate {
   
-  func numberOfSections(in tableView: UITableView) -> Int {
-    return 1
+  func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+    // Mark 된 책 선택시 해당 책의 정보를 mainVC로 넘겨줌
+//    guard let passSelectedCellInfo = passSelectedCellInfo else { return }
+    guard let cell = collectionView.cellForItem(at: indexPath) as? CollecionViewCustomCell else { return }
+    // 책 선택시 체크 표시, 무조건 하나는 선택해야 하기 때문에 동일한 책 선택시 선택 해제 불가능
+    if cell.selectedimageView.isHidden == true {
+      cell.selectedimageView.isHidden.toggle()
+//      selectedBookIndexPath = indexPath
+
+    }
   }
   
-  func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-    return 2
+  func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
+    guard let cell = collectionView.cellForItem(at: indexPath) as? CollecionViewCustomCell else { return }
+    // 책 선택 해제시 체크 표시 없애기
+    cell.selectedimageView.isHidden = true
   }
   
-  func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-    var cell = UITableViewCell(style: .default, reuseIdentifier: "Cell")
+  func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+    // Cell 재사용에 따른 체크 표시 수정
+//    guard let castedCell = cell as? CollecionViewCustomCell else { return }
+//    if indexPath == selectedBookIndexPath || castedCell.isSelected {
+//      castedCell.selectedimageView.isHidden = false
+//      castedCell.isSelected = true
+//    } else {
+//      castedCell.selectedimageView.isHidden = true
+//      castedCell.isSelected = false
+//    }
+  }
+}
+
+// MARK: - UICollectionViewDataSource
+extension MainVC: UICollectionViewDataSource {
+  
+  func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
     
-    if indexPath.row == 0 {
-      // collectionView 있는 Cell 책 정보들
-      guard let myCell = tableView.dequeueReusableCell(
-        withIdentifier: MainVCBookListCell.identifier,
-        for: indexPath
-        ) as? MainVCBookListCell else { fatalError() }
+    return markedBookList.count == 0 ? 1 : markedBookList.count
+  }
+  
+  func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+    var cell = UICollectionViewCell()
+    
+    if markedBookList.count != 0 {
+      guard let myCell = collectionView.dequeueReusableCell(
+        withReuseIdentifier: CollecionViewCustomCell.identifier,
+        for: indexPath) as? CollecionViewCustomCell else { fatalError() }
       
-      myCell.markedBookList = markedBookList
-      myCell.passSelectedCellInfo = { indexPath in
-        self.userSelectedBookIndex = indexPath
+      if let imageURL = markedBookList[indexPath.item].thumbnail {
+        myCell.configureCell(imageURL: imageURL)
       }
-      
       cell = myCell
-      
-    } else if indexPath.row == 1 {
-      // 특정 책에 대한 상세한 정보
-      guard let myCell = tableView.dequeueReusableCell(
-        withIdentifier: BookInfoCell.identifier,
-        for: indexPath
-        ) as? BookInfoCell else { fatalError() }
-      
-      let tabBookMarkLabelGuesture = UITapGestureRecognizer(target: self, action: #selector(tabBookMarkLabel))
-      let tabCommentLabelGuesture = UITapGestureRecognizer(target: self, action: #selector(tabCommentLabel))
-      
-      myCell.bookMarkLabel.addGestureRecognizer(tabBookMarkLabelGuesture)
-      myCell.commentLabel.addGestureRecognizer(tabCommentLabelGuesture)
-      myCell.commentAddButton.addTarget(self, action: #selector(tabAddCommentButton), for: .touchUpInside)
-      myCell.commentEditButton.addTarget(self, action: #selector(tabCommentListEditButton), for: .touchUpInside)
-      myCell.compliteButton.addTarget(self, action: #selector(tabCompliteButton), for: .touchUpInside)
+    } else {
+      guard let myCell = collectionView.dequeueReusableCell(
+        withReuseIdentifier: CollectionViewNoDataCell.identifier,
+        for: indexPath) as? CollectionViewNoDataCell else { fatalError() }
       cell = myCell
     }
-    
     return cell
   }
 }
 
-// MARK: - UITableViewDelegate
-extension MainVC: UITableViewDelegate {
-  
-  func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-    let rowHeight = CGFloat(indexPath.row == 0 ? 230 : 200)
-    return rowHeight
+// MARK: - UICollectionViewDelegateFlowLayout
+extension MainVC: UICollectionViewDelegateFlowLayout {
+ 
+  func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAt section: Int) -> CGFloat {
+    return 10
   }
   
-  func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
-    let view = UIView(frame: CGRect(x: 10, y: 0, width: self.view.frame.width, height: 40))
-    let sectionTitleLabel = UILabel()
-    sectionTitleLabel.font = .boldSystemFont(ofSize: 30)
-    sectionTitleLabel.textColor = CommonUI.titleTextColor
+  func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAt section: Int) -> CGFloat {
+    return 0
+  }
+  
+  func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, insetForSectionAt section: Int) -> UIEdgeInsets {
+    return UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
+  }
+  
+  func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
     
-    if section == 0 {
-      sectionTitleLabel.text = "Reading..."
+    var mySize = CGSize(width: 0, height: 0)
+    
+    if markedBookList.count == 0 {
+      
+      let width: CGFloat = UIScreen.main.bounds.width - 10 - 10
+      let height: CGFloat = 200
+      
+      mySize = CGSize(width: width, height: height)
+      
+    } else {
+      mySize = CGSize(width: 138, height: 200)
     }
     
-    view.addSubview(sectionTitleLabel)
-    sectionTitleLabel.frame = view.frame
-    view.backgroundColor = .white
-    
-    self.view.bringSubviewToFront(sectionTitleLabel)
-    
-    return view
-  }
-  
-  func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
-    return 40
+    return mySize
   }
 }
+
+
+/*
+ let tabBookMarkLabelGuesture = UITapGestureRecognizer(target: self, action: #selector(tabBookMarkLabel))
+ let tabCommentLabelGuesture = UITapGestureRecognizer(target: self, action: #selector(tabCommentLabel))
+ 
+ myCell.bookMarkLabel.addGestureRecognizer(tabBookMarkLabelGuesture)
+ myCell.commentLabel.addGestureRecognizer(tabCommentLabelGuesture)
+ myCell.commentAddButton.addTarget(self, action: #selector(tabAddCommentButton), for: .touchUpInside)
+ myCell.commentEditButton.addTarget(self, action: #selector(tabCommentListEditButton), for: .touchUpInside)
+ myCell.compliteButton.addTarget(self, action: #selector(tabCompliteButton), for: .touchUpInside)
+ */

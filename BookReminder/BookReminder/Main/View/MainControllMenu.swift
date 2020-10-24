@@ -9,12 +9,10 @@
 import UIKit
 import SnapKit
 
-class BookInfoCell: UITableViewCell {
+class MainControllMenu: UIView {
   
   // MARK: - Properties
-  static let identifier = "BookInfoCell"
-  
-  let myBackgroundView: UIView = {
+  let containerView: UIView = {
     let view = UIView()
     view.backgroundColor = CommonUI.subBackgroundColor
     view.layer.cornerRadius = 10
@@ -92,57 +90,31 @@ class BookInfoCell: UITableViewCell {
   
   
   // MARK: - Init
-  override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
-    super.init(style: style, reuseIdentifier: reuseIdentifier)
-    
+  override init(frame: CGRect) {
+    super.init(frame: frame)
     backgroundColor = .white
-    
-    configureLayout()
-    
+    configureContainerView()
+    configureStatusBackgroundView()
+    configureBottomButtonView()
   }
   
-  private func configureLayout() {
+  private func configureContainerView() {
+    addSubview(containerView)
     
-    addSubview(myBackgroundView)
-    
-    myBackgroundView.snp.makeConstraints{
+    containerView.snp.makeConstraints{
       $0.top.leading.equalTo(self).offset(10)
       $0.bottom.trailing.equalTo(self).offset(-10)
     }
-    
-    [statusBackgroundView, commentAddButton, commentEditButton, compliteButton].forEach{
-      myBackgroundView.addSubview($0)
-    }
-    
-    statusBackgroundView.snp.makeConstraints{
-      $0.top.equalTo(myBackgroundView.snp.top).offset(20)
-      $0.leading.equalTo(myBackgroundView.snp.leading).offset(20)
-      $0.trailing.equalTo(myBackgroundView.snp.trailing).offset(-20)
-      $0.centerX.equalTo(myBackgroundView.snp.centerX)
-    }
-    
-    commentAddButton.snp.makeConstraints{
-      $0.top.equalTo(statusBackgroundView.snp.bottom).offset(20)
-      $0.leading.equalTo(myBackgroundView.snp.leading).offset(20)
-      $0.bottom.equalTo(myBackgroundView.snp.bottom).offset(-20)
-      $0.height.equalTo(statusBackgroundView)
-    }
-    
-    commentEditButton.snp.makeConstraints{
-      $0.top.equalTo(statusBackgroundView.snp.bottom).offset(20)
-      $0.leading.equalTo(commentAddButton.snp.trailing).offset(20)
-      $0.bottom.equalTo(myBackgroundView.snp.bottom).offset(-20)
-      $0.width.equalTo(commentAddButton)
-    }
-    
-    compliteButton.snp.makeConstraints{
-      $0.top.equalTo(statusBackgroundView.snp.bottom).offset(20)
-      $0.leading.equalTo(commentEditButton.snp.trailing).offset(20)
-      $0.trailing.equalTo(myBackgroundView.snp.trailing).offset(-20)
-      $0.bottom.equalTo(myBackgroundView.snp.bottom).offset(-20)
-      $0.width.equalTo(commentEditButton)
-    }
+  }
   
+  private func configureStatusBackgroundView() {
+    addSubview(statusBackgroundView)
+    statusBackgroundView.snp.makeConstraints{
+      $0.top.leading.equalTo(containerView).offset(20)
+      $0.trailing.equalTo(containerView.snp.trailing).offset(-20)
+      $0.centerX.equalTo(containerView.snp.centerX)
+    }
+    
     let seperateview1 = seperateView
     
     [commentLabel, seperateview1, bookMarkLabel].forEach{
@@ -167,6 +139,34 @@ class BookInfoCell: UITableViewCell {
       $0.trailing.equalTo(statusBackgroundView.snp.trailing)
       $0.centerY.equalTo(statusBackgroundView.snp.centerY)
       $0.width.equalTo(commentLabel.snp.width)
+    }
+  }
+  
+  private func configureBottomButtonView() {
+    [commentAddButton, commentEditButton, compliteButton].forEach{
+      containerView.addSubview($0)
+    }
+    
+    commentAddButton.snp.makeConstraints{
+      $0.top.equalTo(statusBackgroundView.snp.bottom).offset(20)
+      $0.leading.equalTo(containerView.snp.leading).offset(20)
+      $0.bottom.equalTo(containerView.snp.bottom).offset(-20)
+      $0.height.equalTo(statusBackgroundView)
+    }
+    
+    commentEditButton.snp.makeConstraints{
+      $0.top.equalTo(statusBackgroundView.snp.bottom).offset(20)
+      $0.leading.equalTo(commentAddButton.snp.trailing).offset(20)
+      $0.bottom.equalTo(containerView.snp.bottom).offset(-20)
+      $0.width.equalTo(commentAddButton)
+    }
+    
+    compliteButton.snp.makeConstraints{
+      $0.top.equalTo(statusBackgroundView.snp.bottom).offset(20)
+      $0.leading.equalTo(commentEditButton.snp.trailing).offset(20)
+      $0.trailing.equalTo(containerView.snp.trailing).offset(-20)
+      $0.bottom.equalTo(containerView.snp.bottom).offset(-20)
+      $0.width.equalTo(commentEditButton)
     }
   }
   

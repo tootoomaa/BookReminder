@@ -125,9 +125,9 @@ class BookDetailInfo: Equatable {
       "status": documents.status!,
       "thumbnail": documents.thumbnail!,
       "title": documents.title!,
-      "translators": documents.translators ?? "",
+      "translators": documents.translators ?? [],
       "url": documents.url!,
-      "creationDate": documents.creationDate!
+      "creationDate": documents.creationDate ?? Int(NSDate().timeIntervalSince1970)
       ] as Dictionary<String, AnyObject>
     return bookDicValue
   }
