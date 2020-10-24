@@ -309,7 +309,6 @@ class MyBookVC: UIViewController {
     initializationMultiButton()
   }
   
-  // Barcode handler
   @objc private func tabBarcodeButton(_ sender: UIButton) {
     
     guard let uid = Auth.auth().currentUser?.uid else { return }
@@ -389,7 +388,7 @@ class MyBookVC: UIViewController {
         mainVC.markedBookList.remove(at: index)
       }
       
-//      mainVC.tableView.reloadData()
+      mainVC.mainView.collectionView.reloadData()
     }
     
     let imageView = UIImageView(frame: CGRect(x: 80, y: 110, width: 140, height: 200))
@@ -438,15 +437,19 @@ class MyBookVC: UIViewController {
             let uid = Auth.auth().currentUser?.uid else { return }
       
       if !isMarked  {
+        print("Add BookMakrEd book")
         DB_REF_MARKBOOKS.child(uid).updateChildValues([isbnCode:1])
         mainVC.markedBookList.append(bookDetailInfo)
+        mainVC.userBookListVM.addBook(bookDetailInfo)
       } else {
+        print("Delete BookMarked Book")
         DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue()
         if let index = mainVC.markedBookList.firstIndex(of: bookDetailInfo) {
           mainVC.markedBookList.remove(at: index)
+          mainVC.userBookListVM.removeBook(bookDetailInfo)
         }
       }
-//      mainVC.tableView.reloadData()
+      mainVC.mainView.collectionView.reloadData()
       
     } else if buttonName == MyBookCellButtonTitle.comment.rawValue {
       

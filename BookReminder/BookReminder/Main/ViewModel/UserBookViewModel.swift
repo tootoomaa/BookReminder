@@ -9,23 +9,34 @@
 import Foundation
 import RxSwift
 
-struct UserBookListModel {
-  let books: [UserBookModel]
+struct MarkedBookListModel {
+  var books: [MarkedBookModel]
   
   init(_ books:[Book]) {
-    self.books = books.compactMap(UserBookModel.init)
+    self.books = books.compactMap(MarkedBookModel.init)
   }
 }
 
-extension UserBookListModel {
+extension MarkedBookListModel {
   
-  func bookAt(_ index: Int) -> UserBookModel {
+  func bookAt(_ index: Int) -> MarkedBookModel {
     return books[index]
   }
   
+  mutating func addBook(_ addBook: Book) {
+    let addBookModel = MarkedBookModel(addBook)
+    self.books.append(addBookModel)
+  }
+  
+  mutating func removeBook(_ removeBook: Book) {
+    let removeBookModel = MarkedBookModel(removeBook)
+    if let index = self.books.firstIndex(of: removeBookModel) {
+      self.books.remove(at: index)
+    }
+  }
 }
 
-struct UserBookModel {
+struct MarkedBookModel: Equatable{
   
   let book: Book
   
@@ -35,7 +46,7 @@ struct UserBookModel {
   
 }
 
-extension UserBookModel {
+extension MarkedBookModel {
   
   var thumbnail: Observable<String> {
     return Observable<String>.just(self.book.thumbnail)

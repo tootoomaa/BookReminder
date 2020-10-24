@@ -18,17 +18,11 @@ class MainVC: UIViewController {
   let mainView = MainView()
   
   var userVM: UserViewModel!
-  var userBookListVM: UserBookListModel!
+  var userBookListVM: MarkedBookListModel!
   
   let dispoeBag = DisposeBag()
   
-  var markedBookList: [Book] = [] { // 사용자의 북마크된 책 리스트
-    didSet {
-      
-      self.userBookListVM = UserBookListModel(markedBookList)
-      
-    }
-  }
+  var markedBookList: [Book] = []
   
   var markedBookCommentCountList: [Int] = [] 
   var userSelectedBookIndex: IndexPath = IndexPath(row: 0, section: 0) {
@@ -36,6 +30,7 @@ class MainVC: UIViewController {
       fetchMarkedBookCommentCount()           // 사용자가 선택한 markedBookList의 값을 통한 comment 수 가져옴
     }
   }
+  
   
   // MARK: - Life Cycle
   override func viewDidLoad() {
@@ -60,8 +55,6 @@ class MainVC: UIViewController {
     configureCollectionViewSetting()
     
     configureViewGesture()
-    
-    fetchMarkedBookList()
   }
   
   override func loadView() {
@@ -86,9 +79,11 @@ class MainVC: UIViewController {
   }
   
   private func configureViewGesture() {
-    let gesture = UITapGestureRecognizer(target: self, action: #selector(tabProfileImageButton))
-    mainView.profileImageView.addGestureRecognizer(gesture)
-    mainView.profileImageView.addGestureRecognizer(gesture)
+    let imageViewGesture = UITapGestureRecognizer(target: self, action: #selector(tabProfileImageButton))
+    let nameLabelGesture = UITapGestureRecognizer(target: self, action: #selector(tabProfileImageButton))
+    mainView.profileImageView.addGestureRecognizer(imageViewGesture)
+    mainView.nameLabel.addGestureRecognizer(nameLabelGesture)
+    mainView.detailProfileButton.addTarget(self, action: #selector(tabDetailProfileButton), for: .touchUpInside)
     
     let tabBookMarkLabelGuesture = UITapGestureRecognizer(target: self, action: #selector(tabBookMarkLabel))
     let tabCommentLabelGuesture = UITapGestureRecognizer(target: self, action: #selector(tabCommentLabel))
@@ -132,13 +127,13 @@ class MainVC: UIViewController {
     }
    
     fetchGroup.notify(queue: .main) {
-      self.updateUserDataUI()
-      self.mainView.collectionView.reloadData()
-      self.mainView.activityIndicator.stopAnimating()
+      self.updateInitialUserDataAtUI()
     }
   }
   
-  private func updateUserDataUI() {
+  private func updateInitialUserDataAtUI() {
+    self.userBookListVM = MarkedBookListModel(markedBookList)
+    
     userVM.nickName.asDriver(onErrorJustReturn: "NickName")
       .drive(mainView.nameLabel.rx.text)
       .disposed(by: dispoeBag)
@@ -146,43 +141,20 @@ class MainVC: UIViewController {
     mainView.profileImageView.loadImage(urlString: userVM.user.profileImageUrl)
     mainView.profileImageView.clipsToBounds = true
     
+    self.mainView.collectionView.reloadData()
+    self.mainView.activityIndicator.stopAnimating()
   }
-  
-  private func fetchMarkedBookList() {
-    
-    
-  }
-  
-  /*
-   static func getMarkedBookList() {
-     var bookList = [Book]()
-     guard let uid = Auth.auth().currentUser?.uid else { return }
-     DB_REF_MARKBOOKS.child(uid).observe(.value) { (snapshot) in
-       guard let value = snapshot.value as? [String: Int] else { return }
-       value.keys.forEach{
-         Database.fetchBookDetailData(uid: uid, isbnCode: $0) { (bookDetailInfo) in
-           print(bookDetailInfo.title)
-           bookList.append(bookDetailInfo)
-           bookList.sort { (book1, book2) -> Bool in
-             book1.creationDate > book2.creationDate
-           }
-         }
-       }
-     }
-   }
-   */
-  
+
   private func fetchMarkedBookCommentCount() {
     
     guard let uid = Auth.auth().currentUser?.uid else { return }
     guard let isbnCode = markedBookList[userSelectedBookIndex.item].isbn else { return }
-//    guard let cell = tableView.cellForRow(at: IndexPath(row: 1, section: 0)) as? BookInfoCell else { return }
     
     DB_REF_COMMENT_STATICS.child(uid).child(isbnCode).observe(.value) { (snapshot) in
       
       guard let value = snapshot.value as? Int else { return }
-//      cell.commentLabel.attributedText = .configureAttributedString(systemName: "bubble.left.fill",
-//                                                                    setText: "\(value)")
+      self.mainView.mainConrtollMenu.commentLabel.attributedText = .configureAttributedString(systemName: "bubble.left.fill",
+                                                                    setText: "\(value)")
     }
   }
   
@@ -222,9 +194,9 @@ class MainVC: UIViewController {
       guard let uid = Auth.auth().currentUser?.uid,
             let isbnCode = self.markedBookList[deleteBookIndex].isbn else { return }
       
-      DB_REF_COMPLITEBOOKS.child(uid).observeSingleEvent(of: .value) { (snapshot) in
+      DB_REF_COMPLITEBOOKS.child(uid).observeSingleEvent(of: .value) { [weak self] (snapshot) in
         guard (snapshot.value as? Dictionary<String, AnyObject>) == nil else {
-          self.present(UIAlertController.defaultSetting(title: "오류", message: "이미 완독된 책 입니다"),
+          self?.present(UIAlertController.defaultSetting(title: "오류", message: "이미 완독된 책 입니다"),
                        animated: true, completion: nil)
           return
         }
@@ -234,9 +206,9 @@ class MainVC: UIViewController {
         Database.userProfileStaticsHanlder(uid: uid, plusMinus: .plus, updateCategory: .compliteBookCount, amount: 1) // 완료 통계 증가
         
         // 북마크 북 제거
-        self.markedBookList.remove(at: deleteBookIndex)
+        self?.markedBookList.remove(at: deleteBookIndex)
         // TableView reload
-//        self.tableView.reloadRows(at: [IndexPath(row: 0, section: 0)], with: .fade)
+        self?.mainView.collectionView.reloadData()
         
         // myBook 재설정
         guard let window = UIApplication.shared.delegate?.window,
@@ -255,7 +227,6 @@ class MainVC: UIViewController {
     present(alertController, animated: true, completion: nil)
   }
   
-  // main 페이지에서 북마크 된 책 북마크 제거
   @objc private func tabBookMarkLabel() {
     guard (markedBookList.first?.title) != nil else {popErrorAlertController(); return} // 책 정보 체크
    
@@ -264,11 +235,11 @@ class MainVC: UIViewController {
     if let bookTitle = bookInfo.title,
       let bookIsbnCode = bookInfo.isbn {
       
-      let okAction = UIAlertAction(title: "북마크 제거", style: .destructive) { (_) in
+      let okAction = UIAlertAction(title: "북마크 제거", style: .destructive) { [weak self] (_) in
         guard let uid = Auth.auth().currentUser?.uid else { return }
         DB_REF_MARKBOOKS.child(uid).child(bookIsbnCode).removeValue()
-        self.markedBookList.remove(at: index)
-//        self.tableView.reloadData()
+        self?.markedBookList.remove(at: index)
+        self?.mainView.collectionView.reloadData()
       }
       
       let alert = UIAlertController.okCancelSetting(title: "북마크 제거", message: "\(bookTitle) 책을 북마크에서 제거 합니다.", okAction: okAction)
@@ -284,7 +255,7 @@ class MainVC: UIViewController {
   }
   
   private func popErrorAlertController() {
-    present(UIAlertController.defaultSetting(title: "오류", message: "북마크된 책이 선택되지 않았습니다."),
+    present(UIAlertController.defaultSetting(title: "오류 ", message: "북마크된 책이 선택되지 않았습니다."),
             animated: true,
             completion: nil)
   }
@@ -294,61 +265,57 @@ class MainVC: UIViewController {
 extension MainVC: UICollectionViewDelegate {
   
   func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-    // Mark 된 책 선택시 해당 책의 정보를 mainVC로 넘겨줌
-//    guard let passSelectedCellInfo = passSelectedCellInfo else { return }
     guard let cell = collectionView.cellForItem(at: indexPath) as? CollecionViewCustomCell else { return }
     // 책 선택시 체크 표시, 무조건 하나는 선택해야 하기 때문에 동일한 책 선택시 선택 해제 불가능
     if cell.selectedimageView.isHidden == true {
       cell.selectedimageView.isHidden.toggle()
-//      selectedBookIndexPath = indexPath
-
+      userSelectedBookIndex = indexPath
     }
   }
   
   func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
     guard let cell = collectionView.cellForItem(at: indexPath) as? CollecionViewCustomCell else { return }
-    // 책 선택 해제시 체크 표시 없애기
     cell.selectedimageView.isHidden = true
   }
   
   func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
     // Cell 재사용에 따른 체크 표시 수정
-//    guard let castedCell = cell as? CollecionViewCustomCell else { return }
-//    if indexPath == selectedBookIndexPath || castedCell.isSelected {
-//      castedCell.selectedimageView.isHidden = false
-//      castedCell.isSelected = true
-//    } else {
-//      castedCell.selectedimageView.isHidden = true
-//      castedCell.isSelected = false
-//    }
+    guard let cell = cell as? CollecionViewCustomCell else { return }
+    if indexPath == userSelectedBookIndex || cell.isSelected {
+      cell.selectedimageView.isHidden = false
+      cell.isSelected = true
+    } else {
+      cell.selectedimageView.isHidden = true
+      cell.isSelected = false
+    }
   }
 }
 
 // MARK: - UICollectionViewDataSource
 extension MainVC: UICollectionViewDataSource {
   func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-    print("count")
-    return userBookListVM == nil ? 0 : userBookListVM.books.count
+    return userBookListVM == nil ? 1 : userBookListVM.books.count
   }
   
   func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
     
-    if userBookListVM.books.count == 0 {
+    if userBookListVM == nil {
       guard let myCell = collectionView.dequeueReusableCell(
         withReuseIdentifier: CollectionViewNoDataCell.identifier,
         for: indexPath) as? CollectionViewNoDataCell else { fatalError() }
       return myCell
+      
+    } else {
+      guard let myCell = collectionView.dequeueReusableCell(
+              withReuseIdentifier: CollecionViewCustomCell.identifier,
+              for: indexPath) as? CollecionViewCustomCell else { fatalError() }
+      
+      if let imageURL = userBookListVM.bookAt(indexPath.row).book.thumbnail {
+        myCell.configureCell(imageURL: imageURL)
+      }
+      
+      return myCell
     }
-    
-    guard let myCell = collectionView.dequeueReusableCell(
-            withReuseIdentifier: CollecionViewCustomCell.identifier,
-            for: indexPath) as? CollecionViewCustomCell else { fatalError() }
-    
-    if let imageURL = userBookListVM.bookAt(indexPath.row).book.thumbnail {
-      myCell.configureCell(imageURL: imageURL)
-    }
-
-    return myCell
   }
 }
 
