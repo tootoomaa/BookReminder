@@ -8,6 +8,7 @@
 
 import Foundation
 import RxSwift
+import FirebaseAuth
 
 struct MarkedBookListModel {
   var books: [MarkedBookModel]
@@ -18,6 +19,10 @@ struct MarkedBookListModel {
 }
 
 extension MarkedBookListModel {
+  
+  func allcase() -> Observable<[MarkedBookModel]> {
+    return Observable.of(self.books)
+  }
   
   func bookAt(_ index: Int) -> MarkedBookModel {
     return books[index]
@@ -33,6 +38,26 @@ extension MarkedBookListModel {
     if let index = self.books.firstIndex(of: removeBookModel) {
       self.books.remove(at: index)
     }
+  }
+}
+
+extension MarkedBookListModel {
+  
+  func fetchMarkedBookCommentCountAt(_ index: IndexPath) -> Observable<NSAttributedString>? {
+    if let uid = Auth.auth().currentUser?.uid,
+       let isbnCode = self.books[index.row].book.isbn {
+    
+      return Observable<NSAttributedString>.create({ (observer) -> Disposable in
+        DB_REF_COMMENT_STATICS.child(uid).child(isbnCode).observe(.value) { (snapshot) in
+          
+          guard let value = snapshot.value as? Int else { return }
+          let attributedString = NSAttributedString.configureAttributedString(systemName: "bubble.left.fill", setText: "\(value)")
+          observer.onNext(attributedString)
+        }
+        return Disposables.create()
+      })
+    }
+    return nil
   }
 }
 

@@ -27,7 +27,7 @@ class MainVC: UIViewController {
   var markedBookCommentCountList: [Int] = [] 
   var userSelectedBookIndex: IndexPath = IndexPath(row: 0, section: 0) {
     didSet {
-      fetchMarkedBookCommentCount()           // 사용자가 선택한 markedBookList의 값을 통한 comment 수 가져옴
+      setupSelectedMarkedBookCommentCount()
     }
   }
   
@@ -141,21 +141,17 @@ class MainVC: UIViewController {
     mainView.profileImageView.loadImage(urlString: userVM.user.profileImageUrl)
     mainView.profileImageView.clipsToBounds = true
     
+    setupSelectedMarkedBookCommentCount()
+    
     self.mainView.collectionView.reloadData()
     self.mainView.activityIndicator.stopAnimating()
   }
-
-  private func fetchMarkedBookCommentCount() {
-    
-    guard let uid = Auth.auth().currentUser?.uid else { return }
-    guard let isbnCode = markedBookList[userSelectedBookIndex.item].isbn else { return }
-    
-    DB_REF_COMMENT_STATICS.child(uid).child(isbnCode).observe(.value) { (snapshot) in
-      
-      guard let value = snapshot.value as? Int else { return }
-      self.mainView.mainConrtollMenu.commentLabel.attributedText = .configureAttributedString(systemName: "bubble.left.fill",
-                                                                    setText: "\(value)")
-    }
+  
+  private func setupSelectedMarkedBookCommentCount() {
+    userBookListVM.fetchMarkedBookCommentCountAt(userSelectedBookIndex)?
+      .asDriver(onErrorJustReturn: NSAttributedString(string: ""))
+      .drive(mainView.mainConrtollMenu.commentLabel.rx.attributedText)
+      .disposed(by: dispoeBag)
   }
   
   // MARK: - Button Handler
