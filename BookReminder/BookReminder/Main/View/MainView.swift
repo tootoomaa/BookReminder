@@ -50,18 +50,6 @@ class MainView: UIView {
     return label
   }()
   
-  var passSelectedCellInfo: ((IndexPath)->())?
-  var selectedBookIndexPath: IndexPath?
-  
-  var markedBookList: [BookDetailInfo] = [] {
-    didSet {
-      collectionView.reloadData()
-      
-      selectedBookIndexPath = IndexPath(item: 0, section: 0)
-      collectionView.selectItem(at: selectedBookIndexPath, animated: false, scrollPosition: .bottom)
-    }
-  }
-
   let collectionView: UICollectionView = {
     let layout = UICollectionViewFlowLayout()
     layout.scrollDirection = .horizontal
@@ -69,6 +57,14 @@ class MainView: UIView {
   }()
   
   let mainConrtollMenu = MainControllMenu()
+  
+  let activityIndicator: UIActivityIndicatorView = {
+    let activityView = UIActivityIndicatorView()
+    activityView.color = CommonUI.mainBackgroudColor
+    activityView.hidesWhenStopped = true
+    activityView.style = .large
+    return activityView
+  }()
   
   // MARK: - Life cycle
   override init(frame: CGRect) {
@@ -82,6 +78,7 @@ class MainView: UIView {
     
     configureMainConrollMenu()
     
+    configureActivityIndicatorView()
   }
   
   required init?(coder: NSCoder) {
@@ -119,6 +116,7 @@ class MainView: UIView {
   }
   
   private func configureCollectionView() {
+    collectionView.backgroundColor = .white
     addSubview(collectionView)
 
     collectionView.snp.makeConstraints{
@@ -136,6 +134,14 @@ class MainView: UIView {
       $0.top.equalTo(collectionView.snp.bottom).offset(10)
       $0.leading.trailing.equalToSuperview()
       $0.height.equalTo(180)
+    }
+  }
+  
+  private func configureActivityIndicatorView() {
+    addSubview(activityIndicator)
+    
+    activityIndicator.snp.makeConstraints {
+      $0.centerX.centerY.equalToSuperview()
     }
   }
 }

@@ -21,10 +21,10 @@ class MyBookVC: UIViewController {
   let bounceDistance: CGFloat = 25
   
   var bookScanedCode: String = ""
-  var bookDetailInfoArray: [BookDetailInfo] = []
+  var bookDetailInfoArray: [Book] = []
   
   var filterOn: Bool = false
-  var filterdBookArray: [BookDetailInfo] = []
+  var filterdBookArray: [Book] = []
   
   var userSelectedCellForDelete: IndexPath?
   
@@ -293,7 +293,7 @@ class MyBookVC: UIViewController {
                                            updateCategory: .enrollBookCount,
                                            amount: 1)
         // book model 생성
-        let bookDetailInfo = BookDetailInfo(isbnCode: isbnCode, dictionary: bookDicValue)
+        let bookDetailInfo = Book(isbnCode: isbnCode, dictionary: bookDicValue)
         self.bookDetailInfoArray.append(bookDetailInfo)
         
         self.bookDetailInfoArray.sort { (book1, book2) -> Bool in
@@ -309,7 +309,6 @@ class MyBookVC: UIViewController {
     initializationMultiButton()
   }
   
-  // Barcode handler
   @objc private func tabBarcodeButton(_ sender: UIButton) {
     
     guard let uid = Auth.auth().currentUser?.uid else { return }
@@ -337,7 +336,7 @@ class MyBookVC: UIViewController {
                                            updateCategory: .enrollBookCount,
                                            amount: 1)
         // book model 생성
-        let bookDetailInfo = BookDetailInfo(isbnCode: isbnCode, dictionary: bookDicValue)
+        let bookDetailInfo = Book(isbnCode: isbnCode, dictionary: bookDicValue)
         self.bookDetailInfoArray.append(bookDetailInfo)
         
         self.bookDetailInfoArray.sort { (book1, book2) -> Bool in
@@ -389,7 +388,7 @@ class MyBookVC: UIViewController {
         mainVC.markedBookList.remove(at: index)
       }
       
-//      mainVC.tableView.reloadData()
+      mainVC.mainView.collectionView.reloadData()
     }
     
     let imageView = UIImageView(frame: CGRect(x: 80, y: 110, width: 140, height: 200))
@@ -423,7 +422,7 @@ class MyBookVC: UIViewController {
   }
   
   // cell 에서 리턴 받은 버튼에 종류에 따라서 처리
-  private func tabBookDetailButton(buttonName: String, bookDetailInfo: BookDetailInfo, isMarked: Bool) {
+  private func tabBookDetailButton(buttonName: String, bookDetailInfo: Book, isMarked: Bool) {
     // mark: 즐겨찾기, comment: 코멘트, info: 자세한 설명 화면
     
     if buttonName == MyBookCellButtonTitle.bookMark.rawValue {
@@ -439,15 +438,13 @@ class MyBookVC: UIViewController {
       
       if !isMarked  {
         DB_REF_MARKBOOKS.child(uid).updateChildValues([isbnCode:1])
-        mainVC.markedBookList.append(bookDetailInfo)
+        mainVC.userBookListVM.addBook(bookDetailInfo)
       } else {
         DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue()
-        if let index = mainVC.markedBookList.firstIndex(of: bookDetailInfo) {
-          mainVC.markedBookList.remove(at: index)
-        }
+        mainVC.userBookListVM.removeBook(bookDetailInfo)
       }
-//      mainVC.tableView.reloadData()
-      
+      mainVC.allcase.accept(mainVC.userBookListVM.books)
+
     } else if buttonName == MyBookCellButtonTitle.comment.rawValue {
       
       let commentList = CommentListVC(style: .plain)
@@ -474,7 +471,7 @@ class MyBookVC: UIViewController {
           return print("Fail to change detail Book info ")
         }
         
-        let bookDetailInfo = BookDetailInfo(isbnCode: bookInfo.key, dictionary: value)
+        let bookDetailInfo = Book(isbnCode: bookInfo.key, dictionary: value)
         
         DispatchQueue.main.async {
           self.bookDetailInfoArray.append(bookDetailInfo)

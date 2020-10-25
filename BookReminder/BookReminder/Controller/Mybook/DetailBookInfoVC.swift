@@ -16,7 +16,7 @@ class DetailBookInfoVC: UITableViewController {
     return imageView
   }()
   
-  var detailBookInfo: BookDetailInfo? {
+  var detailBookInfo: Book? {
     didSet {
       guard let detailBookInfo = detailBookInfo else { return }
       guard let bookThumnailImageUrl = detailBookInfo.thumbnail else { return }
@@ -26,7 +26,7 @@ class DetailBookInfoVC: UITableViewController {
       
       configureNavigation()
       
-      bookDetilInfoDictonaryValue = BookDetailInfo.returnDictionaryValue(documents: detailBookInfo)
+      bookDetilInfoDictonaryValue = Book.returnDictionaryValue(documents: detailBookInfo)
       tableView.reloadData()
     }
   }

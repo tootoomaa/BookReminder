@@ -7,8 +7,11 @@
 //
 
 import Foundation
+import FirebaseAuth
+import Firebase
+import RxSwift
 
-struct Book: Decodable {
+struct BookList: Decodable {
   
   var documents: [BookInfo]
   var meta: Meta
@@ -40,7 +43,7 @@ struct Book: Decodable {
   }
 }
 
-class BookDetailInfo: Equatable {
+class Book: Equatable {
   var authors: [String]!
   var contents: String!
   var datetime: String!
@@ -108,11 +111,11 @@ class BookDetailInfo: Equatable {
     }
   }
   
-  static func == (lhs: BookDetailInfo, rhs: BookDetailInfo) -> Bool {
+  static func == (lhs: Book, rhs: Book) -> Bool {
     lhs.isbn == rhs.isbn
   }
   
-  static func returnDictionaryValue(documents: BookDetailInfo) -> Dictionary<String, AnyObject> {
+  static func returnDictionaryValue(documents: Book) -> Dictionary<String, AnyObject> {
 //    guard let documents = documents else { fatalError() }
       let bookDicValue = [
       "authors": documents.authors!,
@@ -133,4 +136,10 @@ class BookDetailInfo: Equatable {
   }
 }
 
-
+extension Book {
+  
+  static func empty() -> Book {
+    return Book(isbnCode: "aa", dictionary: Dictionary<String, AnyObject>())
+  }
+  
+}

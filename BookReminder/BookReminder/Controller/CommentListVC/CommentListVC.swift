@@ -19,7 +19,7 @@ class CommentListVC: UITableViewController {
     return label
   }()
   
-  var markedBookInfo: BookDetailInfo? {
+  var markedBookInfo: Book? {
     didSet {
       guard let bookTitle = markedBookInfo?.title else { return }
       var naviTitleString = ""
