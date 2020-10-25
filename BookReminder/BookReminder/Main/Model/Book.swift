@@ -135,3 +135,11 @@ class Book: Equatable {
     return bookDicValue
   }
 }
+
+extension Book {
+  
+  static func empty() -> Book {
+    return Book(isbnCode: "aa", dictionary: Dictionary<String, AnyObject>())
+  }
+  
+}

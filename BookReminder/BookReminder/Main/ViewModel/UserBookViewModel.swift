@@ -8,6 +8,7 @@
 
 import Foundation
 import RxSwift
+import RxCocoa
 import FirebaseAuth
 
 struct MarkedBookListModel {
@@ -19,10 +20,6 @@ struct MarkedBookListModel {
 }
 
 extension MarkedBookListModel {
-  
-  func allcase() -> Observable<[MarkedBookModel]> {
-    return Observable.of(self.books)
-  }
   
   func bookAt(_ index: Int) -> MarkedBookModel {
     return books[index]
@@ -44,8 +41,8 @@ extension MarkedBookListModel {
 extension MarkedBookListModel {
   
   func fetchMarkedBookCommentCountAt(_ index: IndexPath) -> Observable<NSAttributedString>? {
-    if let uid = Auth.auth().currentUser?.uid,
-       let isbnCode = self.books[index.row].book.isbn {
+    if let uid = Auth.auth().currentUser?.uid, !self.books.isEmpty {
+       let isbnCode = self.books[index.row].book.isbn!
     
       return Observable<NSAttributedString>.create({ (observer) -> Disposable in
         DB_REF_COMMENT_STATICS.child(uid).child(isbnCode).observe(.value) { (snapshot) in
@@ -56,8 +53,9 @@ extension MarkedBookListModel {
         }
         return Disposables.create()
       })
+    } else {
+      return Observable<NSAttributedString>.just(NSAttributedString.configureAttributedString(systemName: "bubble.left.fill", setText: "0"))
     }
-    return nil
   }
 }
 
@@ -68,7 +66,6 @@ struct MarkedBookModel: Equatable{
   init(_ book: Book) {
     self.book = book
   }
-  
 }
 
 extension MarkedBookModel {

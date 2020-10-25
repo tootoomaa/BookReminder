@@ -437,20 +437,14 @@ class MyBookVC: UIViewController {
             let uid = Auth.auth().currentUser?.uid else { return }
       
       if !isMarked  {
-        print("Add BookMakrEd book")
         DB_REF_MARKBOOKS.child(uid).updateChildValues([isbnCode:1])
-        mainVC.markedBookList.append(bookDetailInfo)
         mainVC.userBookListVM.addBook(bookDetailInfo)
       } else {
-        print("Delete BookMarked Book")
         DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue()
-        if let index = mainVC.markedBookList.firstIndex(of: bookDetailInfo) {
-          mainVC.markedBookList.remove(at: index)
-          mainVC.userBookListVM.removeBook(bookDetailInfo)
-        }
+        mainVC.userBookListVM.removeBook(bookDetailInfo)
       }
-      mainVC.mainView.collectionView.reloadData()
-      
+      mainVC.allcase.accept(mainVC.userBookListVM.books)
+
     } else if buttonName == MyBookCellButtonTitle.comment.rawValue {
       
       let commentList = CommentListVC(style: .plain)

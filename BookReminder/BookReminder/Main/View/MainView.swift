@@ -116,6 +116,7 @@ class MainView: UIView {
   }
   
   private func configureCollectionView() {
+    collectionView.backgroundColor = .white
     addSubview(collectionView)
 
     collectionView.snp.makeConstraints{

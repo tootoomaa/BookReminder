@@ -11,6 +11,7 @@ import SnapKit
 import Firebase
 import RxSwift
 import RxCocoa
+import RxDataSources
 
 class MainVC: UIViewController {
   
@@ -22,9 +23,12 @@ class MainVC: UIViewController {
   
   let dispoeBag = DisposeBag()
   
+  lazy var allcase = BehaviorRelay(value: self.userBookListVM.books.sorted(by: { (markedbook1, markedbook2) -> Bool in
+    return markedbook1.book.creationDate > markedbook2.book.creationDate
+  }))
+  
   var markedBookList: [Book] = []
   
-  var markedBookCommentCountList: [Int] = [] 
   var userSelectedBookIndex: IndexPath = IndexPath(row: 0, section: 0) {
     didSet {
       setupSelectedMarkedBookCommentCount()
@@ -51,9 +55,7 @@ class MainVC: UIViewController {
 //      }
 //    }
     getInitalData()
-    
-    configureCollectionViewSetting()
-    
+
     configureViewGesture()
   }
   
@@ -64,20 +66,7 @@ class MainVC: UIViewController {
   override func viewWillAppear(_ animated: Bool) {
     navigationController?.navigationBar.isHidden = true
   }
-  
-  private func configureCollectionViewSetting() {
-    mainView.collectionView.backgroundColor = .white
-    mainView.collectionView.dataSource = self
-    mainView.collectionView.delegate = self
-    mainView.collectionView.allowsMultipleSelection = false
-    mainView.collectionView.register(CollecionViewCustomCell.self,
-                            forCellWithReuseIdentifier: CollecionViewCustomCell.identifier)
-    
-    mainView.collectionView.register(CollectionViewNoDataCell.self,
-                            forCellWithReuseIdentifier: CollectionViewNoDataCell.identifier)
-    
-  }
-  
+
   private func configureViewGesture() {
     let imageViewGesture = UITapGestureRecognizer(target: self, action: #selector(tabProfileImageButton))
     let nameLabelGesture = UITapGestureRecognizer(target: self, action: #selector(tabProfileImageButton))
@@ -143,7 +132,10 @@ class MainVC: UIViewController {
     
     setupSelectedMarkedBookCommentCount()
     
-    self.mainView.collectionView.reloadData()
+    configureCollectionView()
+    configureCollectionViewDataSource()
+    configureCollectionViewDelegate()
+    
     self.mainView.activityIndicator.stopAnimating()
   }
   
@@ -154,6 +146,61 @@ class MainVC: UIViewController {
       .disposed(by: dispoeBag)
   }
   
+  func configureCollectionView() {
+    mainView.collectionView.backgroundColor = .white
+    mainView.collectionView.allowsMultipleSelection = false
+    
+    mainView.collectionView.rx.setDelegate(self)
+      .disposed(by: dispoeBag)
+    
+    mainView.collectionView.register(CollecionViewCustomCell.self,
+                            forCellWithReuseIdentifier: CollecionViewCustomCell.identifier)
+  }
+  
+  private func configureCollectionViewDataSource() {
+    allcase
+      .do( onNext: { model in
+        self.userSelectedBookIndex = IndexPath(row: 0, section: 0)
+      })
+      .bind(to: mainView.collectionView.rx
+              .items(cellIdentifier: CollecionViewCustomCell.identifier,
+                     cellType: CollecionViewCustomCell.self)) { index, book, cell in
+        cell.bookThumbnailImageView.loadImage(urlString: book.book.thumbnail)
+      }.disposed(by: dispoeBag)
+  }
+  
+  private func configureCollectionViewDelegate() {
+    mainView.collectionView.rx
+      .itemSelected
+      .subscribe(onNext: { [weak self] indexPath in
+        guard let cell = self?.mainView.collectionView.cellForItem(at: indexPath) as? CollecionViewCustomCell else { fatalError() }
+        if cell.selectedimageView.isHidden == true {
+          cell.selectedimageView.isHidden.toggle()
+          self?.userSelectedBookIndex = indexPath
+        }
+      }).disposed(by: dispoeBag)
+    
+    mainView.collectionView.rx
+      .itemDeselected
+      .subscribe(onNext: { [weak self] indexPath in
+        guard let cell = self?.mainView.collectionView.cellForItem(at: indexPath) as? CollecionViewCustomCell else { return }
+        cell.selectedimageView.isHidden = true
+      }).disposed(by: dispoeBag)
+    
+    mainView.collectionView.rx
+      .willDisplayCell
+      .subscribe(onNext: { event in
+        guard let cell = event.cell as? CollecionViewCustomCell else { return }
+        if event.at == self.userSelectedBookIndex || cell.isSelected {
+          cell.selectedimageView.isHidden = false
+          cell.isSelected = true
+        } else {
+          cell.selectedimageView.isHidden = true
+          cell.isSelected = false
+        }
+      }).disposed(by: dispoeBag)
+  }
+
   // MARK: - Button Handler
   @objc private func tabProfileImageButton() {
     presentUserProfileVC()
@@ -203,8 +250,6 @@ class MainVC: UIViewController {
         
         // 북마크 북 제거
         self?.markedBookList.remove(at: deleteBookIndex)
-        // TableView reload
-        self?.mainView.collectionView.reloadData()
         
         // myBook 재설정
         guard let window = UIApplication.shared.delegate?.window,
@@ -226,16 +271,15 @@ class MainVC: UIViewController {
   @objc private func tabBookMarkLabel() {
     guard (markedBookList.first?.title) != nil else {popErrorAlertController(); return} // 책 정보 체크
    
-    let index = userSelectedBookIndex.item
-    let bookInfo = markedBookList[index]
+    let bookInfo = userBookListVM.bookAt(userSelectedBookIndex.row).book
     if let bookTitle = bookInfo.title,
       let bookIsbnCode = bookInfo.isbn {
       
       let okAction = UIAlertAction(title: "북마크 제거", style: .destructive) { [weak self] (_) in
         guard let uid = Auth.auth().currentUser?.uid else { return }
         DB_REF_MARKBOOKS.child(uid).child(bookIsbnCode).removeValue()
-        self?.markedBookList.remove(at: index)
-        self?.mainView.collectionView.reloadData()
+        self?.userBookListVM.removeBook(bookInfo)
+        self?.allcase.accept((self?.userBookListVM.books)!)
       }
       
       let alert = UIAlertController.okCancelSetting(title: "북마크 제거", message: "\(bookTitle) 책을 북마크에서 제거 합니다.", okAction: okAction)
@@ -246,7 +290,7 @@ class MainVC: UIViewController {
   @objc private func tabCommentLabel() {
     guard (markedBookList.first?.title) != nil else {popErrorAlertController(); return} // 책 정보 체크
     let commentListVC = CommentListVC(style: .plain)
-    commentListVC.markedBookInfo = markedBookList[userSelectedBookIndex.item]
+    commentListVC.markedBookInfo = userBookListVM.bookAt(userSelectedBookIndex.row).book
     navigationController?.pushViewController(commentListVC, animated: true)
   }
   
@@ -257,67 +301,8 @@ class MainVC: UIViewController {
   }
 }
 
-// MARK: - UICollectionViewDelegate
-extension MainVC: UICollectionViewDelegate {
-  
-  func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-    guard let cell = collectionView.cellForItem(at: indexPath) as? CollecionViewCustomCell else { return }
-    // 책 선택시 체크 표시, 무조건 하나는 선택해야 하기 때문에 동일한 책 선택시 선택 해제 불가능
-    if cell.selectedimageView.isHidden == true {
-      cell.selectedimageView.isHidden.toggle()
-      userSelectedBookIndex = indexPath
-    }
-  }
-  
-  func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
-    guard let cell = collectionView.cellForItem(at: indexPath) as? CollecionViewCustomCell else { return }
-    cell.selectedimageView.isHidden = true
-  }
-  
-  func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
-    // Cell 재사용에 따른 체크 표시 수정
-    guard let cell = cell as? CollecionViewCustomCell else { return }
-    if indexPath == userSelectedBookIndex || cell.isSelected {
-      cell.selectedimageView.isHidden = false
-      cell.isSelected = true
-    } else {
-      cell.selectedimageView.isHidden = true
-      cell.isSelected = false
-    }
-  }
-}
-
-// MARK: - UICollectionViewDataSource
-extension MainVC: UICollectionViewDataSource {
-  func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-    return userBookListVM == nil ? 1 : userBookListVM.books.count
-  }
-  
-  func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-    
-    if userBookListVM == nil {
-      guard let myCell = collectionView.dequeueReusableCell(
-        withReuseIdentifier: CollectionViewNoDataCell.identifier,
-        for: indexPath) as? CollectionViewNoDataCell else { fatalError() }
-      return myCell
-      
-    } else {
-      guard let myCell = collectionView.dequeueReusableCell(
-              withReuseIdentifier: CollecionViewCustomCell.identifier,
-              for: indexPath) as? CollecionViewCustomCell else { fatalError() }
-      
-      if let imageURL = userBookListVM.bookAt(indexPath.row).book.thumbnail {
-        myCell.configureCell(imageURL: imageURL)
-      }
-      
-      return myCell
-    }
-  }
-}
-
 // MARK: - UICollectionViewDelegateFlowLayout
 extension MainVC: UICollectionViewDelegateFlowLayout {
- 
   func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAt section: Int) -> CGFloat {
     return 10
   }
@@ -331,20 +316,6 @@ extension MainVC: UICollectionViewDelegateFlowLayout {
   }
   
   func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-    
-    var mySize = CGSize(width: 0, height: 0)
-    
-    if markedBookList.count == 0 {
-      
-      let width: CGFloat = UIScreen.main.bounds.width - 10 - 10
-      let height: CGFloat = 200
-      
-      mySize = CGSize(width: width, height: height)
-      
-    } else {
-      mySize = CGSize(width: 138, height: 200)
-    }
-    
-    return mySize
+    return CGSize(width: 138, height: 200)
   }
 }
