@@ -73,19 +73,4 @@ extension MarkedBookModel {
   var thumbnail: Observable<String> {
     return Observable<String>.just(self.book.thumbnail)
   }
-  
-//  var authors: [String]!
-//  var contents: String!
-//  var datetime: String!
-//  var isbn: String!
-//  var price: Int!
-//  var publisher: String!
-//  var sale_price: Int!
-//  var status: String!
-//  var thumbnail: String!
-//  var title: String!
-//  var translators: [String]?
-//  var url: String!
-//  var creationDate: Int!
-  
 }

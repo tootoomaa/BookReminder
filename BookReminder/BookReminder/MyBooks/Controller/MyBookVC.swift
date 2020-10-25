@@ -14,11 +14,9 @@ class MyBookVC: UIViewController {
   
   // MARK: - Properties
   
-  var multibuttomActive: Bool = false
-  let multiButtonSize: CGFloat = 70
+  let myBookView = MyBookView()
   
-  let featureButtonSize: CGFloat = 50
-  let bounceDistance: CGFloat = 25
+  var multibuttomActive: Bool = false
   
   var bookScanedCode: String = ""
   var bookDetailInfoArray: [Book] = []
@@ -34,83 +32,6 @@ class MyBookVC: UIViewController {
     case info = "info"
   }
   
-  lazy var searchBar: UISearchBar = {
-    let sBar = UISearchBar(frame: .zero)
-    sBar.placeholder = "  책 검색.."
-    sBar.backgroundColor = .white
-    //    sBar.layer.borderColor = UIColor.gray.cgColor
-    //    sBar.layer.borderWidth = 2
-    sBar.barStyle = .default
-    sBar.barTintColor = .none
-    sBar.searchBarStyle = .minimal
-    sBar.delegate = self
-    sBar.showsCancelButton = false
-    return sBar
-  }()
-  
-  let collectionView: UICollectionView = {
-    let layout = UICollectionViewFlowLayout()
-    layout.scrollDirection = .vertical
-    return UICollectionView(frame: .zero, collectionViewLayout: layout)
-  }()
-  
-  lazy var multiButton: UIButton = {
-    let button = UIButton()
-    let imageConfigure = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium, scale: .large)
-    let buttonImage = UIImage(systemName: "plus", withConfiguration: imageConfigure)
-    
-    button.imageView?.tintColor = .white
-    button.backgroundColor = CommonUI.mainBackgroudColor
-    button.setImage(buttonImage, for: .normal)
-    button.layer.cornerRadius = multiButtonSize/2
-    button.clipsToBounds = true
-    button.addTarget(self, action: #selector(tabMultiButton), for: .touchUpInside)
-    return button
-  }()
-  
-  lazy var barcodeButton: UIButton = {
-    let button = UIButton()
-    let imageConfigure = UIImage.SymbolConfiguration(pointSize: 20, weight: .heavy, scale: .medium)
-    let buttonImage = UIImage(systemName: "barcode", withConfiguration: imageConfigure)
-    
-    button.imageView?.tintColor = .white
-    button.backgroundColor = #colorLiteral(red: 0.999982059, green: 0.6622204781, blue: 0.1913976967, alpha: 1)
-    button.setImage(buttonImage, for: .normal)
-    button.layer.cornerRadius = featureButtonSize/2
-    button.clipsToBounds = true
-    button.addTarget(self, action: #selector(tabBarcodeButton(_:)), for: .touchUpInside)
-    return button
-  }()
-  
-  lazy var bookSearchButton: UIButton = {
-    let button = UIButton()
-    let imageConfigure = UIImage.SymbolConfiguration(pointSize: 20, weight: .heavy, scale: .medium)
-    let buttonImage = UIImage(systemName: "magnifyingglass", withConfiguration: imageConfigure)
-    
-    button.imageView?.tintColor = .white
-    button.backgroundColor = #colorLiteral(red: 0.8973528743, green: 0.9285049438, blue: 0.7169274688, alpha: 1)
-    button.setImage(buttonImage, for: .normal)
-    button.layer.cornerRadius = featureButtonSize/2
-    button.clipsToBounds = true
-    button.addTarget(self, action: #selector(tabSearchButton(_:)), for: .touchUpInside)
-    return button
-  }()
-  
-  
-  lazy var deleteBookButton: UIButton = {
-    let button = UIButton()
-    let imageConfigure = UIImage.SymbolConfiguration(pointSize: 20, weight: .heavy, scale: .medium)
-    let buttonImage = UIImage(systemName: "delete.right", withConfiguration: imageConfigure)
-    
-    button.imageView?.tintColor = .white
-    button.backgroundColor = #colorLiteral(red: 0.5455855727, green: 0.8030222058, blue: 0.8028761148, alpha: 1)
-    button.setImage(buttonImage, for: .normal)
-    button.layer.cornerRadius = featureButtonSize/2
-    button.clipsToBounds = true
-    button.addTarget(self, action: #selector(tabDeleteButton(_:)), for: .touchUpInside)
-    return button
-  }()
-  
   struct Standard {
     static let myEdgeInset = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 10)
     static let lineSpacing: CGFloat = 20
@@ -122,16 +43,23 @@ class MyBookVC: UIViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
     
+    myBookView.searchBar.delegate = self
+    
     fetchUserBookIndex()
     
     configureUI()
     
-    configureLayout()
+    configureButtonAction()
+  }
+  
+  override func loadView() {
+    view = myBookView
   }
   
   override func viewWillAppear(_ animated: Bool) {
+    let view = self.myBookView
     UIView.animate(withDuration: 0.5) {
-      [self.barcodeButton, self.bookSearchButton, self.deleteBookButton, self.multiButton].forEach{
+      [view.barcodeButton, view.bookSearchButton, view.deleteBookButton, view.multiButton].forEach{
         $0.center.x = $0.center.x - 100
       }
     }
@@ -139,8 +67,9 @@ class MyBookVC: UIViewController {
   
   override func viewDidDisappear(_ animated: Bool) {
     initializationMultiButton()
+    let view = self.myBookView
     UIView.animate(withDuration: 0.5) {
-      [self.barcodeButton, self.bookSearchButton, self.deleteBookButton, self.multiButton].forEach{
+      [view.barcodeButton, view.bookSearchButton, view.deleteBookButton, view.multiButton].forEach{
         $0.center.x = $0.center.x + 100
       }
     }
@@ -152,45 +81,18 @@ class MyBookVC: UIViewController {
     
     view.backgroundColor = .white
     
-    collectionView.backgroundColor = .white
-    collectionView.delegate = self
-    collectionView.dataSource = self
-    collectionView.isMultipleTouchEnabled = false
-    collectionView.register(MyBookCustomCell.self, forCellWithReuseIdentifier: MyBookCustomCell.identifier)
+    myBookView.collectionView.backgroundColor = .white
+    myBookView.collectionView.delegate = self
+    myBookView.collectionView.dataSource = self
+    myBookView.collectionView.isMultipleTouchEnabled = false
+    myBookView.collectionView.register(MyBookCustomCell.self, forCellWithReuseIdentifier: MyBookCustomCell.identifier)
   }
   
-  private func configureLayout() {
-    let safeGuide = view.safeAreaLayoutGuide
-    
-    [searchBar, collectionView, barcodeButton, bookSearchButton, deleteBookButton, multiButton].forEach{
-      view.addSubview($0)
-    }
-    
-    searchBar.snp.makeConstraints{
-      $0.top.equalTo(safeGuide.snp.top).offset(20)
-      $0.leading.equalTo(safeGuide.snp.leading).offset(10)
-      $0.trailing.equalTo(safeGuide.snp.trailing).offset(-10)
-      $0.height.equalTo(40)
-    }
-    
-    collectionView.snp.makeConstraints{
-      $0.top.equalTo(searchBar.snp.bottom).offset(20)
-      $0.leading.trailing.bottom.equalTo(safeGuide)
-    }
-    
-    multiButton.snp.makeConstraints{
-      $0.trailing.equalTo(safeGuide.snp.trailing).offset(-20)
-      $0.bottom.equalTo(safeGuide.snp.bottom).offset(-20)
-      $0.width.height.equalTo(multiButtonSize)
-    }
-    
-    [barcodeButton, bookSearchButton, deleteBookButton].forEach{
-      $0.snp.makeConstraints{
-        $0.centerX.equalTo(multiButton.snp.centerX)
-        $0.centerY.equalTo(multiButton.snp.centerY)
-        $0.width.height.equalTo(featureButtonSize)
-      }
-    }
+  private func configureButtonAction() {
+    myBookView.multiButton.addTarget(self, action: #selector(tabMultiButton), for: .touchUpInside)
+    myBookView.barcodeButton.addTarget(self, action: #selector(tabBarcodeButton(_:)), for: .touchUpInside)
+    myBookView.bookSearchButton.addTarget(self, action: #selector(tabSearchButton(_:)), for: .touchUpInside)
+    myBookView.deleteBookButton.addTarget(self, action: #selector(tabDeleteButton(_:)), for: .touchUpInside)
   }
   
   override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -203,63 +105,62 @@ class MyBookVC: UIViewController {
   
   // MARK: - Button Handler
   @objc func tabMultiButton() {
-    
+    let view = self.myBookView
     if !multibuttomActive {
       UIView.animate(withDuration: 0.5) {
-        self.multiButton.transform = self.multiButton.transform.rotated(by: -(.pi/4*3))
+        view.multiButton.transform = view.multiButton.transform.rotated(by: -(.pi/4*3))
       }
       //barcode -> bookSearch -> delete
       UIView.animateKeyframes(withDuration: 0.7, delay: 0, options: [], animations: {
         UIView.addKeyframe(withRelativeStartTime: 0, relativeDuration: 0.3) {
-          self.barcodeButton.center.y -= self.featureButtonSize*2
+          view.barcodeButton.center.y -= view.featureButtonSize*2
         }
         UIView.addKeyframe(withRelativeStartTime: 0.1, relativeDuration: 0.3) {
-          self.bookSearchButton.center.y -= self.featureButtonSize*1.5
-          self.bookSearchButton.center.x -= self.featureButtonSize*1.5
-          //          self.bookSearchButton.transform = .init(scaleX: 2, y: 2)
+          view.bookSearchButton.center.y -= view.featureButtonSize*1.5
+          view.bookSearchButton.center.x -= view.featureButtonSize*1.5
         }
         UIView.addKeyframe(withRelativeStartTime: 0.2, relativeDuration: 0.3) {
-          self.deleteBookButton.center.x -= self.featureButtonSize*2
+          view.deleteBookButton.center.x -= view.featureButtonSize*2
         }
         UIView.addKeyframe(withRelativeStartTime: 0.3, relativeDuration: 0.1) {
-          self.barcodeButton.center.y += self.bounceDistance
+          view.barcodeButton.center.y += view.bounceDistance
         }
         UIView.addKeyframe(withRelativeStartTime: 0.4, relativeDuration: 0.1) {
-          self.bookSearchButton.center.y += self.bounceDistance
-          self.bookSearchButton.center.x += self.bounceDistance
+          view.bookSearchButton.center.y += view.bounceDistance
+          view.bookSearchButton.center.x += view.bounceDistance
         }
         UIView.addKeyframe(withRelativeStartTime: 0.5, relativeDuration: 0.1) {
-          self.deleteBookButton.center.x += self.bounceDistance
+          view.deleteBookButton.center.x += view.bounceDistance
         }
       })
       
     } else {
       UIView.animate(withDuration: 0.5) {
-        self.multiButton.transform = self.multiButton.transform.rotated(by: .pi/4*3)
+        view.multiButton.transform = view.multiButton.transform.rotated(by: .pi/4*3)
       }
       // delete -> bookSearch -> barcode
       UIView.animateKeyframes(withDuration: 0.7, delay: 0, options: [], animations: {
         // 바운드
         UIView.addKeyframe(withRelativeStartTime: 0, relativeDuration: 0.1) {
-          self.deleteBookButton.center.x -= self.bounceDistance
+          view.deleteBookButton.center.x -= view.bounceDistance
         }
         UIView.addKeyframe(withRelativeStartTime: 0.1, relativeDuration: 0.1) {
-          self.bookSearchButton.center.y -= self.bounceDistance
-          self.bookSearchButton.center.x -= self.bounceDistance
+          view.bookSearchButton.center.y -= view.bounceDistance
+          view.bookSearchButton.center.x -= view.bounceDistance
         }
         UIView.addKeyframe(withRelativeStartTime: 0.2, relativeDuration: 0.1) {
-          self.barcodeButton.center.y -= self.bounceDistance
+          view.barcodeButton.center.y -= view.bounceDistance
         }
         // 사라짐
         UIView.addKeyframe(withRelativeStartTime: 0.3, relativeDuration: 0.3) {
-          self.deleteBookButton.center.x += self.featureButtonSize*2
+          view.deleteBookButton.center.x += view.featureButtonSize*2
         }
         UIView.addKeyframe(withRelativeStartTime: 0.4, relativeDuration: 0.3) {
-          self.bookSearchButton.center.y += self.featureButtonSize*1.5
-          self.bookSearchButton.center.x += self.featureButtonSize*1.5
+          view.bookSearchButton.center.y += view.featureButtonSize*1.5
+          view.bookSearchButton.center.x += view.featureButtonSize*1.5
         }
         UIView.addKeyframe(withRelativeStartTime: 0.5, relativeDuration: 0.3) {
-          self.barcodeButton.center.y += self.featureButtonSize*2
+          view.barcodeButton.center.y += view.featureButtonSize*2
         }
         
       })
@@ -300,7 +201,7 @@ class MyBookVC: UIViewController {
           book1.creationDate > book2.creationDate
         }
         
-        self.collectionView.reloadData()
+        self.myBookView.collectionView.reloadData()
         self.initializationMultiButton()
       }
     }
@@ -343,7 +244,7 @@ class MyBookVC: UIViewController {
           book1.creationDate > book2.creationDate
         }
         
-        self.collectionView.reloadData()
+        self.myBookView.collectionView.reloadData()
         self.initializationMultiButton()
       }
     }
@@ -370,7 +271,7 @@ class MyBookVC: UIViewController {
     let cancelAction = UIAlertAction(title: "삭제", style: .destructive) { (_) in
       guard let uid = Auth.auth().currentUser?.uid else { return }
       //화면에서 삭제
-      self.collectionView.deleteItems(at: [deleteBookIndex])
+      self.myBookView.collectionView.deleteItems(at: [deleteBookIndex])
       self.bookDetailInfoArray.remove(at: deleteBookIndex.item)
       self.userSelectedCellForDelete = nil
       
@@ -393,7 +294,7 @@ class MyBookVC: UIViewController {
     
     let imageView = UIImageView(frame: CGRect(x: 80, y: 110, width: 140, height: 200))
     // alert 버튼 및 이미지 설정
-    guard let deleteCell = collectionView.cellForItem(at: deleteBookIndex) as? MyBookCustomCell else { return }
+    guard let deleteCell = myBookView.collectionView.cellForItem(at: deleteBookIndex) as? MyBookCustomCell else { return }
     imageView.image = deleteCell.bookThumbnailImageView.image
     alert.view.addSubview(imageView)
     
@@ -413,12 +314,12 @@ class MyBookVC: UIViewController {
   // multiButton 에니메이션 초기화
   func initializationMultiButton() {
     multibuttomActive = false
-    
-    self.deleteBookButton.center.x += self.featureButtonSize*2 - self.bounceDistance
-    self.bookSearchButton.center.y += self.featureButtonSize*1.5 - self.bounceDistance
-    self.bookSearchButton.center.x += self.featureButtonSize*1.5 - self.bounceDistance
-    self.barcodeButton.center.y += self.featureButtonSize*2 - self.bounceDistance
-    self.multiButton.transform = .identity
+    let view = self.myBookView
+    view.deleteBookButton.center.x += view.featureButtonSize*2 - view.bounceDistance
+    view.bookSearchButton.center.y += view.featureButtonSize*1.5 - view.bounceDistance
+    view.bookSearchButton.center.x += view.featureButtonSize*1.5 - view.bounceDistance
+    view.barcodeButton.center.y += view.featureButtonSize*2 - view.bounceDistance
+    view.multiButton.transform = .identity
   }
   
   // cell 에서 리턴 받은 버튼에 종류에 따라서 처리
@@ -480,7 +381,7 @@ class MyBookVC: UIViewController {
             book1.creationDate > book2.creationDate
           }
           
-          self.collectionView.reloadData()
+          self.myBookView.collectionView.reloadData()
         }
       }
     }
@@ -493,7 +394,7 @@ extension MyBookVC: UISearchBarDelegate {
   func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
 
     filterdBookArray = []
-    collectionView.reloadData()
+    myBookView.collectionView.reloadData()
     
     searchBar.showsCancelButton = true
     filterOn = true
@@ -502,7 +403,7 @@ extension MyBookVC: UISearchBarDelegate {
     for book in bookDetailInfoArray {
       if book.title.contains(filteredSearchText) {
         filterdBookArray.append(book)
-        collectionView.reloadData()
+        myBookView.collectionView.reloadData()
       }
     }
     
@@ -516,7 +417,7 @@ extension MyBookVC: UISearchBarDelegate {
     searchBar.text = ""
     filterOn = false
     searchBar.showsCancelButton = false
-    collectionView.reloadData()
+    myBookView.collectionView.reloadData()
     hideKeyBoard()
   }
 }

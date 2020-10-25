@@ -258,7 +258,7 @@ class MainVC: UIViewController {
         guard let naviController = tabBarController.viewControllers?[1] as? UINavigationController,
           let myBookVC = naviController.visibleViewController as? MyBookVC else { return }
         
-        myBookVC.collectionView.reloadData()
+        myBookVC.myBookView.collectionView.reloadData()
       }
       
     }
