@@ -15,16 +15,13 @@ class MyBookCustomCell: UICollectionViewCell {
   static let identifier = "MyBoolCell"
   var bookDetailInfo: Book?
   var passButtonName: ((String, Book, Bool)->())?
-  var isbnCode: String?
   
-  let bookThumbnailImageView: UIImageView = {
-    let imageView = UIImageView()
+  let bookThumbnailImageView: CustomImageView = {
+    let imageView = CustomImageView()
     imageView.backgroundColor = .gray
     imageView.contentMode = .scaleAspectFit
-    
     imageView.layer.borderWidth = 1
     imageView.layer.borderColor = UIColor.systemGray3.cgColor
-    
     return imageView
   }()
   
@@ -128,28 +125,6 @@ class MyBookCustomCell: UICollectionViewCell {
     stackview.snp.makeConstraints{
       $0.centerY.centerX.equalTo(blurView)
     }
-  }
-  
-  func configure(bookDetailInfo: Book) {
-    
-    isbnCode = bookDetailInfo.isbn
-    self.bookDetailInfo = bookDetailInfo
-    guard let urlString = bookDetailInfo.thumbnail else { return }
-    guard let url = URL(string: urlString) else { return }
-    
-    URLSession.shared.dataTask(with: url) { (data, response, error) in
-      if let error = error {
-        print("error",error.localizedDescription)
-        return
-      }
-      
-      guard let data = data else { return }
-      
-      DispatchQueue.main.async {
-        self.bookThumbnailImageView.image = UIImage(data: data)
-      }
-      
-    }.resume()
   }
   
   required init?(coder: NSCoder) {

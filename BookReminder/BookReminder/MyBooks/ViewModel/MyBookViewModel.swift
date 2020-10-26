@@ -8,11 +8,15 @@
 
 import Foundation
 import RxSwift
+import RxCocoa
 import FirebaseAuth
 import Firebase
 
 struct MyBookListViewModel {
+  
   var myBooks: [MyBookViewModel]
+  
+  lazy var allcase = BehaviorRelay(value: myBooks)
   
   init(_ books: [Book]) {
     self.myBooks = books.compactMap(MyBookViewModel.init)

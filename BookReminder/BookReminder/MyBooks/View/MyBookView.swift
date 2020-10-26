@@ -117,6 +117,7 @@ class MyBookView: UIView {
   
   private func collectionViewSetting() {
     addSubview(collectionView)
+    collectionView.backgroundColor = .white
     collectionView.snp.makeConstraints{
       $0.top.equalTo(searchBar.snp.bottom).offset(20)
       $0.leading.trailing.bottom.equalTo(safeGuide)

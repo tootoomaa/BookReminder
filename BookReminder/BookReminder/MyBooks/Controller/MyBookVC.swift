@@ -19,6 +19,7 @@ class MyBookVC: UIViewController {
   let myBookView = MyBookView()
   
   let disposeBag = DisposeBag()
+  
   var myBookListViewModel: MyBookListViewModel!
   
   var bookScanedCode: String = ""
@@ -100,22 +101,6 @@ class MyBookVC: UIViewController {
     }
   }
   
-  private func configureUI() {
-    navigationItem.title = "My Books"
-    view.backgroundColor = .white
-    myBookView.collectionView.backgroundColor = .white
-    myBookView.collectionView.delegate = self
-    myBookView.collectionView.dataSource = self
-    myBookView.collectionView.isMultipleTouchEnabled = false
-    myBookView.collectionView.register(MyBookCustomCell.self, forCellWithReuseIdentifier: MyBookCustomCell.identifier)
-  }
-  
-  private func configureButtonAction() {
-    myBookView.barcodeButton.addTarget(self, action: #selector(tabBarcodeButton(_:)), for: .touchUpInside)
-    myBookView.bookSearchButton.addTarget(self, action: #selector(tabSearchButton(_:)), for: .touchUpInside)
-    myBookView.deleteBookButton.addTarget(self, action: #selector(tabDeleteButton(_:)), for: .touchUpInside)
-  }
-  
   override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
     hideKeyBoard()
   }
@@ -124,16 +109,57 @@ class MyBookVC: UIViewController {
     self.view.endEditing(true)
   }
   
+  private func configureUI() {
+    navigationItem.title = "My Books"
+    view.backgroundColor = .white
+  }
+  
+  private func configureButtonAction() {
+    myBookView.barcodeButton.addTarget(self, action: #selector(tabBarcodeButton(_:)), for: .touchUpInside)
+    myBookView.bookSearchButton.addTarget(self, action: #selector(tabSearchButton(_:)), for: .touchUpInside)
+    myBookView.deleteBookButton.addTarget(self, action: #selector(tabDeleteButton(_:)), for: .touchUpInside)
+  }
+  
+
+  
   // MARK: - Network
   private func fetchInitialData() {
-    
     Book.fetchUserBookList()
       .subscribeOn(MainScheduler.instance)
       .subscribe(onNext: { [weak self] value in
         self?.myBookListViewModel = MyBookListViewModel(value)
-        self?.myBookView.collectionView.reloadData()
+        self?.configureCollectionView()
     }).disposed(by: disposeBag)
+  }
+  
+  // MARK: - Configure CollectionView Binding
+  private func configureCollectionView() {
+    configureCollectionViewBasicSetting()
+    configureCollectionViewDataBinding()
+  }
+  
+  private func configureCollectionViewBasicSetting() {
+    myBookView.collectionView.backgroundColor = .white
+    myBookView.collectionView.isMultipleTouchEnabled = false
+    myBookView.collectionView.register(MyBookCustomCell.self, forCellWithReuseIdentifier: MyBookCustomCell.identifier)
+  }
+  
+  private func configureCollectionViewDataBinding() {
+    myBookView.collectionView.rx.setDelegate(self)
+      .disposed(by: disposeBag)
     
+    myBookListViewModel.allcase
+      .bind(to: myBookView.collectionView.rx
+              .items(cellIdentifier: MyBookCustomCell.identifier,
+                     cellType: MyBookCustomCell.self)) { index, myBook, cell in
+        
+        cell.bookThumbnailImageView.loadImage(urlString: myBook.book.thumbnail)
+        cell.bookDetailInfo = myBook.book
+        // cell 내에서 버튼 눌렸을 경우 리턴 받아옴
+        cell.passButtonName = { buttonName, bookDetailInfo, isMarked in
+          self.tabBookDetailButton(buttonName: buttonName, bookDetailInfo: bookDetailInfo, isMarked: isMarked)
+        }
+      }.disposed(by: disposeBag)
   }
   
   // MARK: - Button Handler  
@@ -254,35 +280,34 @@ class MyBookVC: UIViewController {
 // MARK: - UISearchBarDelegate
 extension MyBookVC: UISearchBarDelegate {
   
-  func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-
-    filterdBookArray = []
-    myBookView.collectionView.reloadData()
-    
-    searchBar.showsCancelButton = true
-    filterOn = true
-    guard let searchText = searchBar.searchTextField.text else { return }
-    let filteredSearchText = searchText.trimmingCharacters(in: .whitespaces)
-    for book in bookDetailInfoArray {
-      if book.title.contains(filteredSearchText) {
-        filterdBookArray.append(book)
-        myBookView.collectionView.reloadData()
-      }
-    }
-    
-  }
-  
-  func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
-    hideKeyBoard()
-  }
-
-  func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
-    searchBar.text = ""
-    filterOn = false
-    searchBar.showsCancelButton = false
-    myBookView.collectionView.reloadData()
-    hideKeyBoard()
-  }
+//  func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+//
+//    filterdBookArray = []
+//    myBookView.collectionView.reloadData()
+//    
+//    searchBar.showsCancelButton = true
+//    filterOn = true
+//    guard let searchText = searchBar.searchTextField.text else { return }
+//    let filteredSearchText = searchText.trimmingCharacters(in: .whitespaces)
+//    for book in bookDetailInfoArray {
+//      if book.title.contains(filteredSearchText) {
+//        filterdBookArray.append(book)
+//        myBookView.collectionView.reloadData()
+//      }
+//    }
+//  }
+//  
+//  func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+//    hideKeyBoard()
+//  }
+//
+//  func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
+//    searchBar.text = ""
+//    filterOn = false
+//    searchBar.showsCancelButton = false
+//    myBookView.collectionView.reloadData()
+//    hideKeyBoard()
+//  }
 }
 
 // MARK: - UICollectionViewDelegate
@@ -304,7 +329,7 @@ extension MyBookVC: UICollectionViewDelegate {
     
     guard let uid = Auth.auth().currentUser?.uid else { return }
     guard let cell = cell as? MyBookCustomCell else { return }
-    guard let isbnCode = cell.isbnCode else { return }
+    guard let isbnCode = cell.bookDetailInfo?.isbn else { return }
     
     cell.blurView.alpha = 0
     
@@ -327,35 +352,8 @@ extension MyBookVC: UICollectionViewDelegate {
         cell.compliteImage.isHidden = true
       }
     }
-    
   }
 }
-
-
-// MARK: - UIcollecionViewDataSource
-extension MyBookVC: UICollectionViewDataSource {
-  
-  func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-    // filterOn ? filterdBookArray.count :
-    return myBookListViewModel == nil ? 0 : myBookListViewModel.myBooks.count
-  }
-  
-  func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-    guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: MyBookCustomCell.identifier, for: indexPath) as? MyBookCustomCell else { fatalError() }
-    
-    let array = filterOn ? filterdBookArray : bookDetailInfoArray
-    
-    let book = myBookListViewModel.myBooks[indexPath.item].book
-    
-    cell.configure(bookDetailInfo: book)
-    // cell 내에서 버튼 눌렸을 경우 리턴 받아옴
-    cell.passButtonName = { buttonName, bookDetailInfo, isMarked in
-      self.tabBookDetailButton(buttonName: buttonName, bookDetailInfo: bookDetailInfo, isMarked: isMarked)
-    }
-    return cell
-  }
-}
-
 
 // MARK: - UICollecionViewDelegateFlowLayout
 extension MyBookVC: UICollectionViewDelegateFlowLayout {
