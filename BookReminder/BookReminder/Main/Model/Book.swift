@@ -152,6 +152,8 @@ extension Book {
         let newBookArray = bookDetailInfos.map { key, value -> Book in
           guard let newValue = value as? Dictionary<String, AnyObject> else { fatalError("Fail to change Book") }
           return Book(isbnCode: key, dictionary: newValue)
+        }.sorted { (book1, book2) -> Bool in
+          book1.creationDate > book2.creationDate
         }
         observer.onNext(newBookArray)
       }

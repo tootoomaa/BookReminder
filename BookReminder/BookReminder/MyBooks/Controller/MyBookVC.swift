@@ -42,6 +42,28 @@ class MyBookVC: UIViewController {
     static let rowCount: Int = 3
   }
   
+  lazy var saveNewBookClosure:((String, [String: AnyObject]) -> ())? = { [weak self] isbnCode, bookDicValue in
+    
+    if let isSameBookExsist = self?.myBookListViewModel.checkSameBook(isbnCode) {
+      print(isSameBookExsist)
+      if isSameBookExsist {
+        self?.present(UIAlertController.defaultSetting(
+                        title: "중복 등록",
+                        message: "해당 도서는 이미 등록된 도서입니다."),
+                      animated: true,
+                      completion: nil)
+      } else {
+        self?.myBookListViewModel.addBook(Book(isbnCode: isbnCode, dictionary: bookDicValue),
+                                          value: bookDicValue)
+        
+        DispatchQueue.main.async {
+          self?.myBookView.collectionView.reloadData()
+          self?.myBookView.initializationMultiButton()
+        }
+      }
+    }
+  }
+  
   // MARK: - Init
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -118,84 +140,17 @@ class MyBookVC: UIViewController {
   //search handler
   @objc private func tabSearchButton(_ sender: UIButton) {
     
-    guard let uid = Auth.auth().currentUser?.uid else { return }
     let searchBookVC = SearchBookVC()
-    searchBookVC.passBookInfoClosure = { isbnCode, bookDicValue in
-      
-      for bookInfo in self.bookDetailInfoArray {
-        if bookInfo.isbn == isbnCode {
-          let alertController = UIAlertController.defaultSetting(
-            title: "중복 등록",
-            message: "\(bookInfo.title ?? "제목을 알수없는 도서")\n해당 도서는 이미 등록된 도서입니다.")
-          self.present(alertController, animated: true, completion: nil)
-          return
-        }
-      }
-      
-      DispatchQueue.main.async {
-        // DB 업데이트
-        DB_REF_COMMENT_STATICS.child(uid).updateChildValues([isbnCode:0])
-        DB_REF_USERBOOKS.child(uid).updateChildValues([isbnCode: bookDicValue])
-        Database.userProfileStaticsHanlder(uid: uid,
-                                           plusMinus: .plus,
-                                           updateCategory: .enrollBookCount,
-                                           amount: 1)
-        // book model 생성
-        let bookDetailInfo = Book(isbnCode: isbnCode, dictionary: bookDicValue)
-        self.bookDetailInfoArray.append(bookDetailInfo)
-        
-        self.bookDetailInfoArray.sort { (book1, book2) -> Bool in
-          book1.creationDate > book2.creationDate
-        }
-        
-        self.myBookView.collectionView.reloadData()
-        self.myBookView.initializationMultiButton()
-      }
-    }
+    searchBookVC.saveBookClosure = saveNewBookClosure
     navigationController?.pushViewController(searchBookVC, animated: true)
-    // 멀티 버튼 초기화
     myBookView.initializationMultiButton()
   }
   
   @objc private func tabBarcodeButton(_ sender: UIButton) {
     
-    guard let uid = Auth.auth().currentUser?.uid else { return }
     let scannerVC = ScannerVC()
     scannerVC.modalPresentationStyle = .popover
-    // 스켄을 통한 데이터 받기
-    scannerVC.passBookInfoClosure = { isbnCode, bookDicValue in
-      
-      for bookInfo in self.bookDetailInfoArray {
-        if bookInfo.isbn == isbnCode {
-          let alertController = UIAlertController.defaultSetting(
-            title: "중복 등록",
-            message: "\(bookInfo.title ?? "제목을 알수없는 도서")\n해당 도서는 이미 등록된 도서입니다.")
-          self.present(alertController, animated: true, completion: nil)
-          return
-        }
-      }
-      
-      DispatchQueue.main.async {
-        // DB 업데이트
-        DB_REF_COMMENT_STATICS.child(uid).updateChildValues([isbnCode:0])
-        DB_REF_USERBOOKS.child(uid).updateChildValues([isbnCode: bookDicValue])
-        Database.userProfileStaticsHanlder(uid: uid,
-                                           plusMinus: .plus,
-                                           updateCategory: .enrollBookCount,
-                                           amount: 1)
-        // book model 생성
-        let bookDetailInfo = Book(isbnCode: isbnCode, dictionary: bookDicValue)
-        self.bookDetailInfoArray.append(bookDetailInfo)
-        
-        self.bookDetailInfoArray.sort { (book1, book2) -> Bool in
-          book1.creationDate > book2.creationDate
-        }
-        
-        self.myBookView.collectionView.reloadData()
-        self.myBookView.initializationMultiButton()
-      }
-    }
-    // 바코드 스켄창 띄우기
+    scannerVC.saveBookClosure = saveNewBookClosure
     present(scannerVC, animated: true) {
       // 멀티 버튼 초기화
       self.myBookView.initializationMultiButton()
@@ -227,7 +182,7 @@ class MyBookVC: UIViewController {
       
       //
       guard let window = UIApplication.shared.delegate?.window,
-        let tabBarController = window?.rootViewController as? UITabBarController else { return }
+            let tabBarController = window?.rootViewController as? UITabBarController else { return }
       
       guard let naviController = tabBarController.viewControllers?.first as? UINavigationController,
         let mainVC = naviController.visibleViewController as? MainVC else { return }

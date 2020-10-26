@@ -9,13 +9,44 @@
 import Foundation
 import RxSwift
 import FirebaseAuth
+import Firebase
 
 struct MyBookListViewModel {
-  let myBooks: [MyBookViewModel]
+  var myBooks: [MyBookViewModel]
   
   init(_ books: [Book]) {
     self.myBooks = books.compactMap(MyBookViewModel.init)
   }
+}
+
+extension MyBookListViewModel {
+  
+  mutating func addBook(_ newbook: Book, value: Dictionary<String, AnyObject>) {
+    guard let uid = Auth.auth().currentUser?.uid else { return }
+    
+    self.myBooks.insert(MyBookViewModel(newbook), at: 0)
+    
+    guard let isbnCode = newbook.isbn else { return }
+    DB_REF_COMMENT_STATICS.child(uid).updateChildValues([isbnCode:0])
+    DB_REF_USERBOOKS.child(uid).updateChildValues([isbnCode: value])
+    Database.userProfileStaticsHanlder(uid: uid,
+                                       plusMinus: .plus,
+                                       updateCategory: .enrollBookCount,
+                                       amount: 1)
+  }
+  
+  mutating func removeBook(_ removeBookIndex: IndexPath) {
+    self.myBooks.remove(at: removeBookIndex.item)
+  }
+  
+  func checkSameBook(_ isbnCode: String) -> Bool {
+    var isSameBook = false
+    self.myBooks.forEach {
+      if $0.book.isbn == isbnCode { isSameBook = true }
+    }
+    return isSameBook
+  }
+  
 }
 
 struct MyBookViewModel {
