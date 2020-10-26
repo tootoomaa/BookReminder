@@ -133,8 +133,6 @@ class MainVC: UIViewController {
     setupSelectedMarkedBookCommentCount()
     
     configureCollectionView()
-    configureCollectionViewDataSource()
-    configureCollectionViewDelegate()
     
     self.mainView.activityIndicator.stopAnimating()
   }
@@ -146,7 +144,16 @@ class MainVC: UIViewController {
       .disposed(by: dispoeBag)
   }
   
-  func configureCollectionView() {
+  // MARK: - Configure CollectionView
+  
+  private func configureCollectionView() {
+    configureCollectionViewOptionSetting()
+    configureCollectionViewDataSource()
+    configureCollectionViewDelegate()
+    configureCollectionViewWillAppear()
+  }
+  
+  private func configureCollectionViewOptionSetting() {
     mainView.collectionView.backgroundColor = .white
     mainView.collectionView.allowsMultipleSelection = false
     
@@ -186,7 +193,9 @@ class MainVC: UIViewController {
         guard let cell = self?.mainView.collectionView.cellForItem(at: indexPath) as? CollecionViewCustomCell else { return }
         cell.selectedimageView.isHidden = true
       }).disposed(by: dispoeBag)
-    
+  }
+  
+  private func configureCollectionViewWillAppear() {
     mainView.collectionView.rx
       .willDisplayCell
       .subscribe(onNext: { event in

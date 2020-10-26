@@ -43,7 +43,7 @@ struct BookList: Decodable {
   }
 }
 
-class Book: Equatable {
+struct Book: Equatable {
   var authors: [String]!
   var contents: String!
   var datetime: String!
@@ -116,8 +116,8 @@ class Book: Equatable {
   }
   
   static func returnDictionaryValue(documents: Book) -> Dictionary<String, AnyObject> {
-//    guard let documents = documents else { fatalError() }
-      let bookDicValue = [
+    //    guard let documents = documents else { fatalError() }
+    let bookDicValue = [
       "authors": documents.authors!,
       "contents": documents.contents!,
       "datetime": documents.datetime!,
@@ -131,7 +131,7 @@ class Book: Equatable {
       "translators": documents.translators ?? [],
       "url": documents.url!,
       "creationDate": documents.creationDate ?? Int(NSDate().timeIntervalSince1970)
-      ] as Dictionary<String, AnyObject>
+    ] as Dictionary<String, AnyObject>
     return bookDicValue
   }
 }
@@ -140,6 +140,23 @@ extension Book {
   
   static func empty() -> Book {
     return Book(isbnCode: "aa", dictionary: Dictionary<String, AnyObject>())
+  }
+  
+  static func fetchUserBookList() -> Observable<[Book]> {
+    return Observable<[Book]>.create { (observer) -> Disposable in
+      guard let uid = Auth.auth().currentUser?.uid else { fatalError("Fail to get Uid") }
+      DB_REF_USERBOOKS.child(uid).observeSingleEvent(of: .value) { (snapshot) in
+
+        guard let bookDetailInfos = snapshot.value as? Dictionary<String, AnyObject> else { return }
+        
+        let newBookArray = bookDetailInfos.map { key, value -> Book in
+          guard let newValue = value as? Dictionary<String, AnyObject> else { fatalError("Fail to change Book") }
+          return Book(isbnCode: key, dictionary: newValue)
+        }
+        observer.onNext(newBookArray)
+      }
+      return Disposables.create()
+    }
   }
   
 }

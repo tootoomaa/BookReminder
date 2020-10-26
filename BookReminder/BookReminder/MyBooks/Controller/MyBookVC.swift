@@ -9,6 +9,8 @@
 import UIKit
 import SnapKit
 import Firebase
+import RxSwift
+import RxCocoa
 
 class MyBookVC: UIViewController {
   
@@ -16,7 +18,8 @@ class MyBookVC: UIViewController {
   
   let myBookView = MyBookView()
   
-  var multibuttomActive: Bool = false
+  let disposeBag = DisposeBag()
+  var myBookListViewModel: MyBookListViewModel!
   
   var bookScanedCode: String = ""
   var bookDetailInfoArray: [Book] = []
@@ -45,7 +48,7 @@ class MyBookVC: UIViewController {
     
     myBookView.searchBar.delegate = self
     
-    fetchUserBookIndex()
+    fetchInitialData()
     
     configureUI()
     
@@ -66,7 +69,7 @@ class MyBookVC: UIViewController {
   }
   
   override func viewDidDisappear(_ animated: Bool) {
-    initializationMultiButton()
+    myBookView.initializationMultiButton()
     let view = self.myBookView
     UIView.animate(withDuration: 0.5) {
       [view.barcodeButton, view.bookSearchButton, view.deleteBookButton, view.multiButton].forEach{
@@ -76,11 +79,8 @@ class MyBookVC: UIViewController {
   }
   
   private func configureUI() {
-    
     navigationItem.title = "My Books"
-    
     view.backgroundColor = .white
-    
     myBookView.collectionView.backgroundColor = .white
     myBookView.collectionView.delegate = self
     myBookView.collectionView.dataSource = self
@@ -89,7 +89,6 @@ class MyBookVC: UIViewController {
   }
   
   private func configureButtonAction() {
-    myBookView.multiButton.addTarget(self, action: #selector(tabMultiButton), for: .touchUpInside)
     myBookView.barcodeButton.addTarget(self, action: #selector(tabBarcodeButton(_:)), for: .touchUpInside)
     myBookView.bookSearchButton.addTarget(self, action: #selector(tabSearchButton(_:)), for: .touchUpInside)
     myBookView.deleteBookButton.addTarget(self, action: #selector(tabDeleteButton(_:)), for: .touchUpInside)
@@ -103,71 +102,19 @@ class MyBookVC: UIViewController {
     self.view.endEditing(true)
   }
   
-  // MARK: - Button Handler
-  @objc func tabMultiButton() {
-    let view = self.myBookView
-    if !multibuttomActive {
-      UIView.animate(withDuration: 0.5) {
-        view.multiButton.transform = view.multiButton.transform.rotated(by: -(.pi/4*3))
-      }
-      //barcode -> bookSearch -> delete
-      UIView.animateKeyframes(withDuration: 0.7, delay: 0, options: [], animations: {
-        UIView.addKeyframe(withRelativeStartTime: 0, relativeDuration: 0.3) {
-          view.barcodeButton.center.y -= view.featureButtonSize*2
-        }
-        UIView.addKeyframe(withRelativeStartTime: 0.1, relativeDuration: 0.3) {
-          view.bookSearchButton.center.y -= view.featureButtonSize*1.5
-          view.bookSearchButton.center.x -= view.featureButtonSize*1.5
-        }
-        UIView.addKeyframe(withRelativeStartTime: 0.2, relativeDuration: 0.3) {
-          view.deleteBookButton.center.x -= view.featureButtonSize*2
-        }
-        UIView.addKeyframe(withRelativeStartTime: 0.3, relativeDuration: 0.1) {
-          view.barcodeButton.center.y += view.bounceDistance
-        }
-        UIView.addKeyframe(withRelativeStartTime: 0.4, relativeDuration: 0.1) {
-          view.bookSearchButton.center.y += view.bounceDistance
-          view.bookSearchButton.center.x += view.bounceDistance
-        }
-        UIView.addKeyframe(withRelativeStartTime: 0.5, relativeDuration: 0.1) {
-          view.deleteBookButton.center.x += view.bounceDistance
-        }
-      })
-      
-    } else {
-      UIView.animate(withDuration: 0.5) {
-        view.multiButton.transform = view.multiButton.transform.rotated(by: .pi/4*3)
-      }
-      // delete -> bookSearch -> barcode
-      UIView.animateKeyframes(withDuration: 0.7, delay: 0, options: [], animations: {
-        // 바운드
-        UIView.addKeyframe(withRelativeStartTime: 0, relativeDuration: 0.1) {
-          view.deleteBookButton.center.x -= view.bounceDistance
-        }
-        UIView.addKeyframe(withRelativeStartTime: 0.1, relativeDuration: 0.1) {
-          view.bookSearchButton.center.y -= view.bounceDistance
-          view.bookSearchButton.center.x -= view.bounceDistance
-        }
-        UIView.addKeyframe(withRelativeStartTime: 0.2, relativeDuration: 0.1) {
-          view.barcodeButton.center.y -= view.bounceDistance
-        }
-        // 사라짐
-        UIView.addKeyframe(withRelativeStartTime: 0.3, relativeDuration: 0.3) {
-          view.deleteBookButton.center.x += view.featureButtonSize*2
-        }
-        UIView.addKeyframe(withRelativeStartTime: 0.4, relativeDuration: 0.3) {
-          view.bookSearchButton.center.y += view.featureButtonSize*1.5
-          view.bookSearchButton.center.x += view.featureButtonSize*1.5
-        }
-        UIView.addKeyframe(withRelativeStartTime: 0.5, relativeDuration: 0.3) {
-          view.barcodeButton.center.y += view.featureButtonSize*2
-        }
-        
-      })
-    }
-    multibuttomActive.toggle()
+  // MARK: - Network
+  private func fetchInitialData() {
+    
+    Book.fetchUserBookList()
+      .subscribeOn(MainScheduler.instance)
+      .subscribe(onNext: { [weak self] value in
+        self?.myBookListViewModel = MyBookListViewModel(value)
+        self?.myBookView.collectionView.reloadData()
+    }).disposed(by: disposeBag)
+    
   }
   
+  // MARK: - Button Handler  
   //search handler
   @objc private func tabSearchButton(_ sender: UIButton) {
     
@@ -202,12 +149,12 @@ class MyBookVC: UIViewController {
         }
         
         self.myBookView.collectionView.reloadData()
-        self.initializationMultiButton()
+        self.myBookView.initializationMultiButton()
       }
     }
     navigationController?.pushViewController(searchBookVC, animated: true)
     // 멀티 버튼 초기화
-    initializationMultiButton()
+    myBookView.initializationMultiButton()
   }
   
   @objc private func tabBarcodeButton(_ sender: UIButton) {
@@ -245,13 +192,13 @@ class MyBookVC: UIViewController {
         }
         
         self.myBookView.collectionView.reloadData()
-        self.initializationMultiButton()
+        self.myBookView.initializationMultiButton()
       }
     }
     // 바코드 스켄창 띄우기
     present(scannerVC, animated: true) {
       // 멀티 버튼 초기화
-      self.initializationMultiButton()
+      self.myBookView.initializationMultiButton()
     }
   }
   
@@ -310,17 +257,6 @@ class MyBookVC: UIViewController {
     present(alert, animated: true)
     
   }
-
-  // multiButton 에니메이션 초기화
-  func initializationMultiButton() {
-    multibuttomActive = false
-    let view = self.myBookView
-    view.deleteBookButton.center.x += view.featureButtonSize*2 - view.bounceDistance
-    view.bookSearchButton.center.y += view.featureButtonSize*1.5 - view.bounceDistance
-    view.bookSearchButton.center.x += view.featureButtonSize*1.5 - view.bounceDistance
-    view.barcodeButton.center.y += view.featureButtonSize*2 - view.bounceDistance
-    view.multiButton.transform = .identity
-  }
   
   // cell 에서 리턴 받은 버튼에 종류에 따라서 처리
   private func tabBookDetailButton(buttonName: String, bookDetailInfo: Book, isMarked: Bool) {
@@ -356,34 +292,6 @@ class MyBookVC: UIViewController {
       let detailBookInfoVC = DetailBookInfoVC()
       detailBookInfoVC.detailBookInfo = bookDetailInfo
       navigationController?.pushViewController(detailBookInfoVC, animated: true)
-    }
-  }
-  
-  // MARK: - Handler
-  // fetch User Book Data
-  private func fetchUserBookIndex() {
-    guard let uid = Auth.auth().currentUser?.uid else { return }
-    DB_REF_USERBOOKS.child(uid).observeSingleEvent(of: .value) { (snapshot) in
-      
-      guard let bookDetailInfos = snapshot.value as? Dictionary<String, AnyObject> else { return }
-      for bookInfo in bookDetailInfos {
-        
-        guard let value = bookInfo.value as? Dictionary<String, AnyObject> else {
-          return print("Fail to change detail Book info ")
-        }
-        
-        let bookDetailInfo = Book(isbnCode: bookInfo.key, dictionary: value)
-        
-        DispatchQueue.main.async {
-          self.bookDetailInfoArray.append(bookDetailInfo)
-          
-          self.bookDetailInfoArray.sort { (book1, book2) -> Bool in
-            book1.creationDate > book2.creationDate
-          }
-          
-          self.myBookView.collectionView.reloadData()
-        }
-      }
     }
   }
 }
@@ -473,8 +381,8 @@ extension MyBookVC: UICollectionViewDelegate {
 extension MyBookVC: UICollectionViewDataSource {
   
   func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-    
-    return filterOn ? filterdBookArray.count : bookDetailInfoArray.count
+    // filterOn ? filterdBookArray.count :
+    return myBookListViewModel == nil ? 0 : myBookListViewModel.myBooks.count
   }
   
   func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -482,7 +390,9 @@ extension MyBookVC: UICollectionViewDataSource {
     
     let array = filterOn ? filterdBookArray : bookDetailInfoArray
     
-    cell.configure(bookDetailInfo: array[indexPath.item])
+    let book = myBookListViewModel.myBooks[indexPath.item].book
+    
+    cell.configure(bookDetailInfo: book)
     // cell 내에서 버튼 눌렸을 경우 리턴 받아옴
     cell.passButtonName = { buttonName, bookDetailInfo, isMarked in
       self.tabBookDetailButton(buttonName: buttonName, bookDetailInfo: bookDetailInfo, isMarked: isMarked)

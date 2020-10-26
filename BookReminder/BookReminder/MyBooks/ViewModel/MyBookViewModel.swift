@@ -7,3 +7,21 @@
 //
 
 import Foundation
+import RxSwift
+import FirebaseAuth
+
+struct MyBookListViewModel {
+  let myBooks: [MyBookViewModel]
+  
+  init(_ books: [Book]) {
+    self.myBooks = books.compactMap(MyBookViewModel.init)
+  }
+}
+
+struct MyBookViewModel {
+  let book: Book
+  
+  init(_ book: Book) {
+    self.book = book
+  }
+}
