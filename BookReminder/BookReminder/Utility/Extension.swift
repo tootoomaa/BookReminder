@@ -39,34 +39,3 @@ extension NSAttributedString {
     return NSAttributedString.init(string: "nil")
   }
 }
-
-// MARK: - UIAlertExtension
-
-extension UIAlertController {
-  
-  static func defaultSetting(title: String, message: String) -> UIAlertController {
-    
-    let alertController = UIAlertController(title: title, message: message, preferredStyle: .alert)
-    let confirmAction = UIAlertAction(title: "확인", style: .default) { (_) in }
-    
-    alertController.addAction(confirmAction)
-    
-    return alertController
-  }
-  
-  static func okCancelSetting(title: String, message: String, okAction: UIAlertAction) -> UIAlertController {
-    let alertController = UIAlertController(title: title,
-                                            message: message,
-                                            preferredStyle: .alert)
-    
-    let okAction = okAction
-    let cancelAction = UIAlertAction(title: "취소", style: .cancel) { (_) in
-      
-    }
-    alertController.addAction(cancelAction)
-    alertController.addAction(okAction)
-    
-    return alertController
-  }
-  
-}

@@ -14,6 +14,9 @@ import FirebaseAuth
 struct MarkedBookListModel {
   var books: [MarkedBookModel]
   
+  lazy var allcase = BehaviorRelay(value: books.count == 0 ? [MarkedBookModel(Book.empty())] : books.sorted(by: { (markedbook1, markedbook2) -> Bool in return markedbook1.book.creationDate > markedbook2.book.creationDate
+  }))
+  
   init(_ books:[Book]) {
     self.books = books.compactMap(MarkedBookModel.init)
   }
@@ -21,18 +24,26 @@ struct MarkedBookListModel {
 
 extension MarkedBookListModel {
   
+  mutating func reloadData() {
+    allcase.accept(books.count == 0 ? [MarkedBookModel(Book.empty())] : books)
+  }
+  
   func bookAt(_ index: Int) -> MarkedBookModel {
     return books[index]
   }
   
-  mutating func addBook(_ addBook: Book) {
+  mutating func addMarkedBook(_ addBook: Book) {
     let addBookModel = MarkedBookModel(addBook)
     self.books.append(addBookModel)
   }
   
-  mutating func removeBook(_ removeBook: Book) {
+  mutating func removeMarkedBook(_ removeBook: Book) {
+    guard let uid = Auth.auth().currentUser?.uid else { return }
+    guard let isbnCode = removeBook.isbn else { return }
+    
     let removeBookModel = MarkedBookModel(removeBook)
     if let index = self.books.firstIndex(of: removeBookModel) {
+      DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue()
       self.books.remove(at: index)
     }
   }

@@ -24,8 +24,23 @@ struct MyBookListViewModel {
 }
 
 extension MyBookListViewModel {
+  func checkSameBook(_ isbnCode: String) -> Bool {
+    var isSameBook = false
+    self.myBooks.forEach {
+      if $0.book.isbn == isbnCode { isSameBook = true }
+    }
+    return isSameBook
+  }
   
-  mutating func addBook(_ newbook: Book, value: Dictionary<String, AnyObject>) {
+  func bookAt(_ index: Int) -> MyBookViewModel {
+    return myBooks[index]
+  }
+  
+  mutating func reloadData() {
+    allcase.accept(myBooks)
+  }
+  
+  mutating func addMyBook(_ newbook: Book, value: Dictionary<String, AnyObject>) {
     guard let uid = Auth.auth().currentUser?.uid else { return }
     
     self.myBooks.insert(MyBookViewModel(newbook), at: 0)
@@ -39,18 +54,14 @@ extension MyBookListViewModel {
                                        amount: 1)
   }
   
-  mutating func removeBook(_ removeBookIndex: IndexPath) {
+  mutating func removeMyBook(_ removeBookIndex: IndexPath) {
+    guard let uid = Auth.auth().currentUser?.uid else { return }
+    
+//    Database
+    Database.bookDeleteHandler(uid: uid, deleteBookData: myBooks[removeBookIndex.item].book)
+    
     self.myBooks.remove(at: removeBookIndex.item)
   }
-  
-  func checkSameBook(_ isbnCode: String) -> Bool {
-    var isSameBook = false
-    self.myBooks.forEach {
-      if $0.book.isbn == isbnCode { isSameBook = true }
-    }
-    return isSameBook
-  }
-  
 }
 
 struct MyBookViewModel {

@@ -209,11 +209,13 @@ class MyBookView: UIView {
   }
   
   func initializationMultiButton() {
-    multibuttomActive = false
-    deleteBookButton.center.x += featureButtonSize*2 - bounceDistance
-    bookSearchButton.center.y += featureButtonSize*1.5 - bounceDistance
-    bookSearchButton.center.x += featureButtonSize*1.5 - bounceDistance
-    barcodeButton.center.y += featureButtonSize*2 - bounceDistance
-    multiButton.transform = .identity
+    DispatchQueue.main.async {
+      self.multibuttomActive = false
+      self.deleteBookButton.center.x += self.featureButtonSize*2 - self.bounceDistance
+      self.bookSearchButton.center.y += self.featureButtonSize*1.5 - self.bounceDistance
+      self.bookSearchButton.center.x += self.featureButtonSize*1.5 - self.bounceDistance
+      self.barcodeButton.center.y += self.featureButtonSize*2 - self.bounceDistance
+      self.multiButton.transform = .identity
+    }
   }
 }

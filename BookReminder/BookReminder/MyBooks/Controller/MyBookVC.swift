@@ -20,7 +20,7 @@ class MyBookVC: UIViewController {
   
   let disposeBag = DisposeBag()
   
-  var myBookListViewModel: MyBookListViewModel!
+  var myBookListVM: MyBookListViewModel!
   
   var bookScanedCode: String = ""
   var bookDetailInfoArray: [Book] = []
@@ -44,9 +44,13 @@ class MyBookVC: UIViewController {
   }
   
   lazy var saveNewBookClosure:((String, [String: AnyObject]) -> ())? = { [weak self] isbnCode, bookDicValue in
+    if self?.myBookListVM == nil {
+      self?.myBookListVM = MyBookListViewModel([Book(isbnCode: isbnCode, dictionary: bookDicValue)])
+      self?.myBookListVM.reloadData()
+      return
+    }
     
-    if let isSameBookExsist = self?.myBookListViewModel.checkSameBook(isbnCode) {
-      print(isSameBookExsist)
+    if let isSameBookExsist = self?.myBookListVM.checkSameBook(isbnCode) {
       if isSameBookExsist {
         self?.present(UIAlertController.defaultSetting(
                         title: "중복 등록",
@@ -54,18 +58,15 @@ class MyBookVC: UIViewController {
                       animated: true,
                       completion: nil)
       } else {
-        self?.myBookListViewModel.addBook(Book(isbnCode: isbnCode, dictionary: bookDicValue),
+        self?.myBookListVM.addMyBook(Book(isbnCode: isbnCode, dictionary: bookDicValue),
                                           value: bookDicValue)
-        
-        DispatchQueue.main.async {
-          self?.myBookView.collectionView.reloadData()
-          self?.myBookView.initializationMultiButton()
-        }
+        self?.myBookListVM.reloadData()
+        self?.myBookView.initializationMultiButton()
       }
     }
   }
   
-  // MARK: - Init
+  // MARK: - Life Cycle
   override func viewDidLoad() {
     super.viewDidLoad()
     
@@ -83,6 +84,7 @@ class MyBookVC: UIViewController {
   }
   
   override func viewWillAppear(_ animated: Bool) {
+    
     let view = self.myBookView
     UIView.animate(withDuration: 0.5) {
       [view.barcodeButton, view.bookSearchButton, view.deleteBookButton, view.multiButton].forEach{
@@ -127,15 +129,20 @@ class MyBookVC: UIViewController {
     Book.fetchUserBookList()
       .subscribeOn(MainScheduler.instance)
       .subscribe(onNext: { [weak self] value in
-        self?.myBookListViewModel = MyBookListViewModel(value)
+        self?.myBookListVM = MyBookListViewModel(value)
         self?.configureCollectionView()
-    }).disposed(by: disposeBag)
+    },
+      onError: { (error) in
+        print("Error", error.localizedDescription)
+      }).disposed(by: disposeBag)
   }
   
   // MARK: - Configure CollectionView Binding
   private func configureCollectionView() {
     configureCollectionViewBasicSetting()
     configureCollectionViewDataBinding()
+    configureCollectionViewDelegate()
+    configureCollectionViewWillDisplayCell()
   }
   
   private func configureCollectionViewBasicSetting() {
@@ -148,7 +155,7 @@ class MyBookVC: UIViewController {
     myBookView.collectionView.rx.setDelegate(self)
       .disposed(by: disposeBag)
     
-    myBookListViewModel.allcase
+    myBookListVM.allcase
       .bind(to: myBookView.collectionView.rx
               .items(cellIdentifier: MyBookCustomCell.identifier,
                      cellType: MyBookCustomCell.self)) { index, myBook, cell in
@@ -160,6 +167,58 @@ class MyBookVC: UIViewController {
           self.tabBookDetailButton(buttonName: buttonName, bookDetailInfo: bookDetailInfo, isMarked: isMarked)
         }
       }.disposed(by: disposeBag)
+  }
+  
+  private func configureCollectionViewDelegate() {
+    
+    myBookView.collectionView.rx
+      .itemSelected
+      .subscribe(onNext: { [weak self] indexPath in
+        guard let cell = self?.myBookView.collectionView.cellForItem(at: indexPath) as? MyBookCustomCell else { return }
+        cell.blurView.alpha = cell.blurView.alpha == 1 ? 0 : 1
+        self?.userSelectedCellForDelete = indexPath
+      }).disposed(by: disposeBag)
+    
+    myBookView.collectionView.rx
+      .itemDeselected
+      .subscribe(onNext: { [weak self] indexPath in
+        guard let cell = self?.myBookView.collectionView.cellForItem(at: indexPath) as? MyBookCustomCell else { return }
+        cell.blurView.alpha = 0
+      }).disposed(by: disposeBag)
+  }
+  
+  private func configureCollectionViewWillDisplayCell() {
+    myBookView.collectionView.rx
+      .willDisplayCell
+      .subscribe(onNext: { cell, indexPath in
+        
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        guard let cell = cell as? MyBookCustomCell else { return }
+        guard let isbnCode = cell.bookDetailInfo?.isbn else { return }
+        
+        cell.blurView.alpha = 0
+        
+        DB_REF_MARKBOOKS.child(uid).child(isbnCode).observeSingleEvent(of: .value) { (snapshot) in
+          let value = snapshot.value as? Int
+          if value == 1 {
+            cell.markImage.isHidden = false
+            cell.markButton.isSelected = true
+          } else {
+            cell.markImage.isHidden = true
+            cell.markButton.isSelected = false
+          }
+        }
+        
+        DB_REF_COMPLITEBOOKS.child(uid).child(isbnCode).observeSingleEvent(of: .value) { (snapshot) in
+          let value = snapshot.value as? Int
+          if value == 1 {
+            cell.compliteImage.isHidden = false
+          } else {
+            cell.compliteImage.isHidden = true
+          }
+        }
+        
+      }).disposed(by: disposeBag)
   }
   
   // MARK: - Button Handler  
@@ -188,55 +247,28 @@ class MyBookVC: UIViewController {
       present(UIAlertController.defaultSetting(title: "삭제 오류", message: "삭제할 책을 선택해주세요"),
               animated: true,completion: nil); return }
     
-    let deleteBookInfo = bookDetailInfoArray[deleteBookIndex.item]
-    guard let bookName = deleteBookInfo.title else { return }
+    let deleteBookInfo = myBookListVM.bookAt(deleteBookIndex.item)
+    let bookInfo = deleteBookInfo.book
     
-    let message = """
-        이 책을 삭제하시겠습니까?\n이 책과 관련한 모든 내용이 삭제 됩니다\n 삭제된 데이터는 복원 불가능 합니다
-    """
-    let alert = UIAlertController(title: "\(bookName) 삭제", message: message, preferredStyle: .alert)
-    let addAction = UIAlertAction(title: "취소", style: .cancel) { (_) in }
-    let cancelAction = UIAlertAction(title: "삭제", style: .destructive) { (_) in
-      guard let uid = Auth.auth().currentUser?.uid else { return }
-      //화면에서 삭제
-      self.myBookView.collectionView.deleteItems(at: [deleteBookIndex])
-      self.bookDetailInfoArray.remove(at: deleteBookIndex.item)
-      self.userSelectedCellForDelete = nil
-      
-      // DB 삭제
-      Database.bookDeleteHandler(uid: uid, deleteBookData: deleteBookInfo)
-      
-      //
-      guard let window = UIApplication.shared.delegate?.window,
-            let tabBarController = window?.rootViewController as? UITabBarController else { return }
-      
-      guard let naviController = tabBarController.viewControllers?.first as? UINavigationController,
-        let mainVC = naviController.visibleViewController as? MainVC else { return }
-      
-      if let index = mainVC.markedBookList.firstIndex(of: deleteBookInfo) {
-        mainVC.markedBookList.remove(at: index)
-      }
-      
-      mainVC.mainView.collectionView.reloadData()
-    }
+    present(UIAlertController.deleteBookWarning(self, bookInfo, deleteBookIndex), animated: true)
+  }
+  
+  func deleteMyBook(_ deleteBookIndex: IndexPath) {
+    myBookListVM.removeMyBook(deleteBookIndex)
+    myBookListVM.reloadData()
+    userSelectedCellForDelete = nil
+  }
+  
+  func deleteBookAtBookMarkedList(_ deleteBookInfo: Book) {
+    // bookMarked Book Remove
+    guard let window = UIApplication.shared.delegate?.window,
+          let tabBarController = window?.rootViewController as? UITabBarController else { return }
     
-    let imageView = UIImageView(frame: CGRect(x: 80, y: 110, width: 140, height: 200))
-    // alert 버튼 및 이미지 설정
-    guard let deleteCell = myBookView.collectionView.cellForItem(at: deleteBookIndex) as? MyBookCustomCell else { return }
-    imageView.image = deleteCell.bookThumbnailImageView.image
-    alert.view.addSubview(imageView)
+    guard let naviController = tabBarController.viewControllers?.first as? UINavigationController,
+      let mainVC = naviController.visibleViewController as? MainVC else { return }
     
-    alert.addAction(addAction)
-    alert.addAction(cancelAction)
-
-    if let view = alert.view {
-      let height = NSLayoutConstraint(item: view, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 400)
-      let width = NSLayoutConstraint(item: view, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 300)
-      alert.view.addConstraints([ height, width])
-    }
-    
-    present(alert, animated: true)
-    
+    mainVC.markedBookListVM.removeMarkedBook(deleteBookInfo)
+    mainVC.markedBookListVM.reloadData()
   }
   
   // cell 에서 리턴 받은 버튼에 종류에 따라서 처리
@@ -256,12 +288,12 @@ class MyBookVC: UIViewController {
       
       if !isMarked  {
         DB_REF_MARKBOOKS.child(uid).updateChildValues([isbnCode:1])
-        mainVC.userBookListVM.addBook(bookDetailInfo)
+        mainVC.markedBookListVM.addMarkedBook(bookDetailInfo)
       } else {
         DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue()
-        mainVC.userBookListVM.removeBook(bookDetailInfo)
+        mainVC.markedBookListVM.removeMarkedBook(bookDetailInfo)
       }
-      mainVC.allcase.accept(mainVC.userBookListVM.books)
+      mainVC.markedBookListVM.allcase.accept(mainVC.markedBookListVM.books)
 
     } else if buttonName == MyBookCellButtonTitle.comment.rawValue {
       
@@ -308,51 +340,6 @@ extension MyBookVC: UISearchBarDelegate {
 //    myBookView.collectionView.reloadData()
 //    hideKeyBoard()
 //  }
-}
-
-// MARK: - UICollectionViewDelegate
-extension MyBookVC: UICollectionViewDelegate {
-  func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-    
-    // 선택한 cell의 블러효과 활성화
-    guard let cell = collectionView.cellForItem(at: indexPath) as? MyBookCustomCell else { return }
-    cell.blurView.alpha = cell.blurView.alpha == 1 ? 0 : 1
-    userSelectedCellForDelete = indexPath
-  }
-  
-  func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
-    guard let cell = collectionView.cellForItem(at: indexPath) as? MyBookCustomCell else { return }
-    cell.blurView.alpha = 0
-  }
-  
-  func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
-    
-    guard let uid = Auth.auth().currentUser?.uid else { return }
-    guard let cell = cell as? MyBookCustomCell else { return }
-    guard let isbnCode = cell.bookDetailInfo?.isbn else { return }
-    
-    cell.blurView.alpha = 0
-    
-    DB_REF_MARKBOOKS.child(uid).child(isbnCode).observeSingleEvent(of: .value) { (snapshot) in
-      let value = snapshot.value as? Int
-      if value == 1 {
-        cell.markImage.isHidden = false
-        cell.markButton.isSelected = true
-      } else {
-        cell.markImage.isHidden = true
-        cell.markButton.isSelected = false
-      }
-    }
-    
-    DB_REF_COMPLITEBOOKS.child(uid).child(isbnCode).observeSingleEvent(of: .value) { (snapshot) in
-      let value = snapshot.value as? Int
-      if value == 1 {
-        cell.compliteImage.isHidden = false
-      } else {
-        cell.compliteImage.isHidden = true
-      }
-    }
-  }
 }
 
 // MARK: - UICollecionViewDelegateFlowLayout
