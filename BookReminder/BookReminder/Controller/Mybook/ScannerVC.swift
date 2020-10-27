@@ -16,7 +16,7 @@ class ScannerVC: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
   var previewLayer: AVCaptureVideoPreviewLayer!
   
   let networkServices = NetworkServices()
-  var passBookInfoClosure:((String, [String: AnyObject]) -> ())? // handle Result return closure
+  var saveBookClosure:((String, [String: AnyObject]) -> ())? // handle Result return closure
   
   let activiyIndicator = UIActivityIndicatorView(style: .large)
   
@@ -117,7 +117,7 @@ class ScannerVC: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
   func found(code: String) {
     activiyIndicator.startAnimating()
     networkServices.fetchBookInfomationFromKakao(type: .isbn, forSearch: code) { (isbnCode, bookDetailInfo) in
-      guard let passBookInfoClosure = self.passBookInfoClosure else {
+      guard let passBookInfoClosure = self.saveBookClosure else {
         return print("fail to get Closure")
       }
       passBookInfoClosure(isbnCode, bookDetailInfo)

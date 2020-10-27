@@ -13,21 +13,18 @@ import RxSwift
 import RxCocoa
 import RxDataSources
 
-class MainVC: UIViewController {
-  
+class MainVC: UIViewController, ViewModelBindableType {
   // MARK: - Properties
   let mainView = MainView()
   
   var userVM: UserViewModel!
-  var userBookListVM: MarkedBookListModel!
+  var markedBookListVM: MarkedBookListModel!
+  
+  var viewModel: MarkedBookListModel!
   
   let dispoeBag = DisposeBag()
   
-  lazy var allcase = BehaviorRelay(value: self.userBookListVM.books.sorted(by: { (markedbook1, markedbook2) -> Bool in
-    return markedbook1.book.creationDate > markedbook2.book.creationDate
-  }))
-  
-  var markedBookList: [Book] = []
+  var tempMarkedBookList: [Book] = []
   
   var userSelectedBookIndex: IndexPath = IndexPath(row: 0, section: 0) {
     didSet {
@@ -54,9 +51,14 @@ class MainVC: UIViewController {
 //        print ("Error signing out: %@", signOutError)
 //      }
 //    }
+    
     getInitalData()
 
     configureViewGesture()
+  }
+  
+  func bindViewModel() {
+    
   }
   
   override func loadView() {
@@ -74,8 +76,8 @@ class MainVC: UIViewController {
     mainView.nameLabel.addGestureRecognizer(nameLabelGesture)
     mainView.detailProfileButton.addTarget(self, action: #selector(tabDetailProfileButton), for: .touchUpInside)
     
-    let tabBookMarkLabelGuesture = UITapGestureRecognizer(target: self, action: #selector(tabBookMarkLabel))
-    let tabCommentLabelGuesture = UITapGestureRecognizer(target: self, action: #selector(tabCommentLabel))
+    let tabBookMarkLabelGuesture = UITapGestureRecognizer(target: self, action: #selector(tapBookMarkLabel))
+    let tabCommentLabelGuesture = UITapGestureRecognizer(target: self, action: #selector(tapCommentLabel))
     
     mainView.mainConrtollMenu.bookMarkLabel.addGestureRecognizer(tabBookMarkLabelGuesture)
     mainView.mainConrtollMenu.commentLabel.addGestureRecognizer(tabCommentLabelGuesture)
@@ -105,8 +107,8 @@ class MainVC: UIViewController {
         value.keys.forEach{
           fetchGroup.enter()
           Database.fetchBookDetailData(uid: uid, isbnCode: $0) { [weak self] (bookDetailInfo) in
-            self?.markedBookList.append(bookDetailInfo)
-            self?.markedBookList.sort { (book1, book2) -> Bool in
+            self?.tempMarkedBookList.append(bookDetailInfo)
+            self?.tempMarkedBookList.sort { (book1, book2) -> Bool in
               book1.creationDate > book2.creationDate
             }
             fetchGroup.leave()
@@ -116,12 +118,14 @@ class MainVC: UIViewController {
     }
    
     fetchGroup.notify(queue: .main) {
-      self.updateInitialUserDataAtUI()
+      self.initialUserDataBinding()
+      self.colletionViewBinding()
     }
   }
   
-  private func updateInitialUserDataAtUI() {
-    self.userBookListVM = MarkedBookListModel(markedBookList)
+  // MARK: - UserData Binding
+  private func initialUserDataBinding() {
+    self.markedBookListVM = MarkedBookListModel(tempMarkedBookList)
     
     userVM.nickName.asDriver(onErrorJustReturn: "NickName")
       .drive(mainView.nameLabel.rx.text)
@@ -132,21 +136,26 @@ class MainVC: UIViewController {
     
     setupSelectedMarkedBookCommentCount()
     
-    configureCollectionView()
-    configureCollectionViewDataSource()
-    configureCollectionViewDelegate()
-    
     self.mainView.activityIndicator.stopAnimating()
   }
   
   private func setupSelectedMarkedBookCommentCount() {
-    userBookListVM.fetchMarkedBookCommentCountAt(userSelectedBookIndex)?
+    markedBookListVM.fetchMarkedBookCommentCountAt(userSelectedBookIndex)?
       .asDriver(onErrorJustReturn: NSAttributedString(string: ""))
       .drive(mainView.mainConrtollMenu.commentLabel.rx.attributedText)
       .disposed(by: dispoeBag)
   }
   
-  func configureCollectionView() {
+  // MARK: - CollectionView Binding
+  
+  private func colletionViewBinding() {
+    configureCollectionViewOptionSetting()
+    configureCollectionViewDataSource()
+    configureCollectionViewDelegate()
+    configureCollectionViewWillAppear()
+  }
+  
+  private func configureCollectionViewOptionSetting() {
     mainView.collectionView.backgroundColor = .white
     mainView.collectionView.allowsMultipleSelection = false
     
@@ -155,17 +164,26 @@ class MainVC: UIViewController {
     
     mainView.collectionView.register(CollecionViewCustomCell.self,
                             forCellWithReuseIdentifier: CollecionViewCustomCell.identifier)
+    
+    mainView.collectionView.register(CollectionViewNoDataCell.self,
+                                     forCellWithReuseIdentifier: CollectionViewNoDataCell.identifier)
   }
   
   private func configureCollectionViewDataSource() {
-    allcase
-      .do( onNext: { model in
-        self.userSelectedBookIndex = IndexPath(row: 0, section: 0)
-      })
-      .bind(to: mainView.collectionView.rx
-              .items(cellIdentifier: CollecionViewCustomCell.identifier,
-                     cellType: CollecionViewCustomCell.self)) { index, book, cell in
-        cell.bookThumbnailImageView.loadImage(urlString: book.book.thumbnail)
+    markedBookListVM.allcase
+      .bind(to: mainView.collectionView.rx.items) { [weak self] (collectionView, item, markedBook) -> UICollectionViewCell in
+        let indexPath = IndexPath(item: item, section: 0)
+
+        if self?.markedBookListVM.allcase.value.first?.book == Book.empty() {
+          let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CollectionViewNoDataCell.identifier,
+                                                        for: indexPath) as! CollectionViewNoDataCell
+          return cell
+        } else {
+          let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CollecionViewCustomCell.identifier,
+                                                        for: indexPath) as! CollecionViewCustomCell
+          cell.bookThumbnailImageView.loadImage(urlString: markedBook.book.thumbnail)
+          return cell
+        }
       }.disposed(by: dispoeBag)
   }
   
@@ -173,7 +191,7 @@ class MainVC: UIViewController {
     mainView.collectionView.rx
       .itemSelected
       .subscribe(onNext: { [weak self] indexPath in
-        guard let cell = self?.mainView.collectionView.cellForItem(at: indexPath) as? CollecionViewCustomCell else { fatalError() }
+        guard let cell = self?.mainView.collectionView.cellForItem(at: indexPath) as? CollecionViewCustomCell else { return }
         if cell.selectedimageView.isHidden == true {
           cell.selectedimageView.isHidden.toggle()
           self?.userSelectedBookIndex = indexPath
@@ -186,7 +204,9 @@ class MainVC: UIViewController {
         guard let cell = self?.mainView.collectionView.cellForItem(at: indexPath) as? CollecionViewCustomCell else { return }
         cell.selectedimageView.isHidden = true
       }).disposed(by: dispoeBag)
-    
+  }
+  
+  private func configureCollectionViewWillAppear() {
     mainView.collectionView.rx
       .willDisplayCell
       .subscribe(onNext: { event in
@@ -216,26 +236,29 @@ class MainVC: UIViewController {
   }
   
   @objc private func tabAddCommentButton() {
-    guard (markedBookList.first?.title) != nil else {popErrorAlertController(); return} // 책 정보 체크
+    guard (markedBookListVM.books.first?.book.title) != nil else { popErrorAlertController(); return }
+    
     let addCommentVC = AddCommentVC()
-    addCommentVC.markedBookInfo = markedBookList[userSelectedBookIndex.item]
+    addCommentVC.markedBookInfo = markedBookListVM.bookAt(userSelectedBookIndex.row).book
     navigationController?.pushViewController(addCommentVC, animated: true)
   }
   
   @objc private func tabCommentListEditButton() {
-    guard (markedBookList.first?.title) != nil else {popErrorAlertController(); return} // 책 정보 체크
+    guard (markedBookListVM.books.first?.book.title) != nil else { popErrorAlertController(); return }
+    
     let commentListVC = CommentListVC(style: .plain)
-    commentListVC.markedBookInfo = markedBookList[userSelectedBookIndex.item]
+    commentListVC.markedBookInfo = markedBookListVM.bookAt(userSelectedBookIndex.row).book
     navigationController?.pushViewController(commentListVC, animated: true)
   }
   
   @objc private func tabCompliteButton() {
-    guard (markedBookList.first?.title) != nil else {popErrorAlertController(); return} // 책 정보 체크
+    guard (markedBookListVM.books.first?.book.title) != nil else { popErrorAlertController(); return }
     
-    let okAction = UIAlertAction(title: "완독 처리", style: .destructive) { (_) in
-      let deleteBookIndex = self.userSelectedBookIndex.item
-      guard let uid = Auth.auth().currentUser?.uid,
-            let isbnCode = self.markedBookList[deleteBookIndex].isbn else { return }
+    let okAction = UIAlertAction(title: "완독 처리", style: .destructive) { [weak self] (_) in
+      guard let deleteBookIndex = self?.userSelectedBookIndex.item,
+            let uid = Auth.auth().currentUser?.uid,
+            let deleteBook = self?.markedBookListVM.bookAt(deleteBookIndex),
+            let isbnCode = deleteBook.book.isbn else { return }
       
       DB_REF_COMPLITEBOOKS.child(uid).observeSingleEvent(of: .value) { [weak self] (snapshot) in
         guard (snapshot.value as? Dictionary<String, AnyObject>) == nil else {
@@ -249,48 +272,47 @@ class MainVC: UIViewController {
         Database.userProfileStaticsHanlder(uid: uid, plusMinus: .plus, updateCategory: .compliteBookCount, amount: 1) // 완료 통계 증가
         
         // 북마크 북 제거
-        self?.markedBookList.remove(at: deleteBookIndex)
+        guard let deleteBook = self?.markedBookListVM.bookAt(deleteBookIndex) else { return }
+        self?.markedBookListVM.removeMarkedBook(deleteBook.book)
         
         // myBook 재설정
-        guard let window = UIApplication.shared.delegate?.window,
-          let tabBarController = window?.rootViewController as? UITabBarController else { return }
-        
-        guard let naviController = tabBarController.viewControllers?[1] as? UINavigationController,
-          let myBookVC = naviController.visibleViewController as? MyBookVC else { return }
-        
-        myBookVC.collectionView.reloadData()
+        self?.reloadMyBookCollectionView()
       }
       
     }
     let message = "해당 책을 완독 처리하시겠습니까?\n 완독한 책은 Main메뉴에서 삭제됩니다."
-    guard let title = markedBookList[userSelectedBookIndex.row].title else { return }
+    guard let title = markedBookListVM.books[userSelectedBookIndex.row].book.title else { return }
     let alertController = UIAlertController.okCancelSetting(title: "\(title) 완독", message: message, okAction: okAction)
     present(alertController, animated: true, completion: nil)
   }
   
-  @objc private func tabBookMarkLabel() {
-    guard (markedBookList.first?.title) != nil else {popErrorAlertController(); return} // 책 정보 체크
-   
-    let bookInfo = userBookListVM.bookAt(userSelectedBookIndex.row).book
-    if let bookTitle = bookInfo.title,
-      let bookIsbnCode = bookInfo.isbn {
-      
-      let okAction = UIAlertAction(title: "북마크 제거", style: .destructive) { [weak self] (_) in
-        guard let uid = Auth.auth().currentUser?.uid else { return }
-        DB_REF_MARKBOOKS.child(uid).child(bookIsbnCode).removeValue()
-        self?.userBookListVM.removeBook(bookInfo)
-        self?.allcase.accept((self?.userBookListVM.books)!)
-      }
-      
-      let alert = UIAlertController.okCancelSetting(title: "북마크 제거", message: "\(bookTitle) 책을 북마크에서 제거 합니다.", okAction: okAction)
-      present(alert, animated: true, completion: nil)
-    }
+  private func reloadMyBookCollectionView() {
+    guard let window = UIApplication.shared.delegate?.window,
+      let tabBarController = window?.rootViewController as? UITabBarController else { return }
+    
+    guard let naviController = tabBarController.viewControllers?[1] as? UINavigationController,
+      let myBookVC = naviController.visibleViewController as? MyBookVC else { return }
+    
+    myBookVC.myBookListVM.reloadData()
   }
   
-  @objc private func tabCommentLabel() {
-    guard (markedBookList.first?.title) != nil else {popErrorAlertController(); return} // 책 정보 체크
+  @objc private func tapBookMarkLabel() {
+    guard (markedBookListVM.books.first?.book.title) != nil else { popErrorAlertController(); return }
+    
+    let bookInfo = markedBookListVM.bookAt(userSelectedBookIndex.row).book
+    let okAction = UIAlertAction(title: "북마크 제거", style: .destructive) { [weak self] (_) in
+      self?.markedBookListVM.removeMarkedBook(bookInfo)
+      self?.markedBookListVM.reloadData()
+    }
+    
+    let alert = UIAlertController.okCancelSetting(title: "북마크 제거", message: "\(bookInfo.title ?? "") 책을 북마크에서 제거 합니다.", okAction: okAction)
+    present(alert, animated: true, completion: nil)
+  }
+  
+  @objc private func tapCommentLabel() {
+    guard (markedBookListVM.books.first?.book.title) != nil else { popErrorAlertController(); return }
     let commentListVC = CommentListVC(style: .plain)
-    commentListVC.markedBookInfo = userBookListVM.bookAt(userSelectedBookIndex.row).book
+    commentListVC.markedBookInfo = markedBookListVM.bookAt(userSelectedBookIndex.row).book
     navigationController?.pushViewController(commentListVC, animated: true)
   }
   
@@ -316,6 +338,20 @@ extension MainVC: UICollectionViewDelegateFlowLayout {
   }
   
   func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-    return CGSize(width: 138, height: 200)
+    
+    var mySize = CGSize(width: 0, height: 0)
+    
+    if markedBookListVM.allcase.value.first?.book == Book.empty() {
+      
+      let width: CGFloat = UIScreen.main.bounds.width - 10 - 10
+      let height: CGFloat = 200
+      
+      mySize = CGSize(width: width, height: height)
+      
+    } else {
+      mySize = CGSize(width: 138, height: 200)
+    }
+    
+    return mySize
   }
 }

@@ -93,7 +93,6 @@ extension Database {
                                 amount: deleteBookCommentCount)
       
       DB_REF_COMPLITEBOOKS.child(uid).child(isbnCode).observeSingleEvent(of: .value) { (snapshot) in
-        print(snapshot)
         if (snapshot.value as? Int) != nil {
           userProfileStaticsHanlder(uid: uid, plusMinus: .down, updateCategory: .compliteBookCount, amount: 1)
         }

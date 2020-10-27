@@ -19,7 +19,7 @@ class SearchBookVC: UIViewController {
   let networkServices = NetworkServices()
   var searchedBookList: [Book] = []
   
-  var passBookInfoClosure:((String, [String: AnyObject]) -> ())? // handle Result return closure
+  var saveBookClosure:((String, [String: AnyObject]) -> ())? // handle Result return closure
   
   var bookInfoLargeOn: Bool = false
   
@@ -202,7 +202,7 @@ extension SearchBookVC: UICollectionViewDelegate {
     let addAction = UIAlertAction(title: "등록", style: .default) { (_) in
       
       guard let isbnCode = self.searchedBookList[indexPath.item].isbn else { return }
-      guard let passBookInfoClosure = self.passBookInfoClosure else { return }
+      guard let passBookInfoClosure = self.saveBookClosure else { return }
       
       let documents = self.searchedBookList[indexPath.item]
       let creationDate = Int(NSDate().timeIntervalSince1970)
