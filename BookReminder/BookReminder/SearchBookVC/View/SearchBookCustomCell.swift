@@ -15,14 +15,13 @@ class SearchBookCustomCell: UICollectionViewCell {
   
   let textDistance: CGFloat = 20
   
-  let bookThumbnailImageView: UIImageView = {
-    let imageView = UIImageView()
+  let bookThumbnailImageView: CustomImageView = {
+    let imageView = CustomImageView()
     imageView.backgroundColor = .gray
     imageView.contentMode = .scaleAspectFit
-    
     imageView.layer.borderWidth = 1
     imageView.layer.borderColor = UIColor.systemGray3.cgColor
-    
+    imageView.backgroundColor = .systemGray6
     return imageView
   }()
   
@@ -81,6 +80,10 @@ class SearchBookCustomCell: UICollectionViewCell {
     backgroundColor = #colorLiteral(red: 1, green: 0.8854463696, blue: 0.9086633325, alpha: 1)
     
     configureLayout()
+  }
+  
+  required init?(coder: NSCoder) {
+    fatalError("init(coder:) has not been implemented")
   }
   
   private func configureLayout() {
@@ -142,41 +145,5 @@ class SearchBookCustomCell: UICollectionViewCell {
       $0.trailing.equalTo(self.snp.trailing).offset(-10)
       $0.centerY.equalTo(publisherDateLabel)
     }
-  }
-  
-  // MARK: - Handler
-  
-  func configure(bookDetailInfo : Book) {
-    
-    guard let url = URL(string: bookDetailInfo.thumbnail) else { return }
-    
-    URLSession.shared.dataTask(with: url, completionHandler: { (data, response, error) in
-      if let error = error {
-        print("Error", error.localizedDescription)
-      }
-      
-      guard let data = data else { return print("Fail to get image data") }
-      DispatchQueue.main.async {
-        self.bookThumbnailImageView.image = UIImage(data: data)
-      }
-    }).resume()
-    
-    nameValueLable.text = bookDetailInfo.title
-    publishurValueLable.text = bookDetailInfo.publisher
-    
-    for authorName in bookDetailInfo.authors {
-      if authorsValueLable.text == nil {
-        authorsValueLable.text = authorName
-      } else {
-        authorsValueLable.text! += ",\(authorName)"
-      }
-    }
-    let date = bookDetailInfo.datetime.split(separator: "T")
-    publisherDateValueLable.text = String(date[0])
-    
-  }
-  
-  required init?(coder: NSCoder) {
-    fatalError("init(coder:) has not been implemented")
   }
 }

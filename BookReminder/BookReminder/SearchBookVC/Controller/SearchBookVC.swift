@@ -9,6 +9,8 @@
 import UIKit
 import SnapKit
 import Firebase
+import RxSwift
+import RxCocoa
 
 class SearchBookVC: UIViewController {
   
@@ -16,61 +18,15 @@ class SearchBookVC: UIViewController {
   
   var menuActive: Bool = false
   var userSelectSearchCategory: String = "책이름"
-  let networkServices = NetworkServices()
   var searchedBookList: [Book] = []
   
   var saveBookClosure:((String, [String: AnyObject]) -> ())? // handle Result return closure
   
   var bookInfoLargeOn: Bool = false
   
-  lazy var mainCategoryButton: UIButton = {
-    let button = UIButton()
-    let attributedString = NSAttributedString.configureAttributedString(
-      systemName: "arrowtriangle.down.fill",
-      setText: "책이름"
-    )
-    button.setAttributedTitle(attributedString, for: .normal)
-    button.backgroundColor = .white
-    return button
-  }()
-  
-  let bookNameCategoryButton: UIButton = {
-    let button = UIButton()
-    button.setTitle("책이름", for: .normal)
-    button.setTitleColor(.black, for: .normal)
-    button.titleLabel?.textAlignment = .right
-    button.backgroundColor = .systemGray5
-    button.addTarget(self, action: #selector(tabEtcCategoryButton(_:)), for: .touchUpInside)
-    return button
-  }()
-  
-  let resultResearchButton: UIButton = {
-    let button = UIButton()
-    button.setTitle("결과내검색", for: .normal)
-    button.setTitleColor(.black, for: .normal)
-    button.backgroundColor = .systemGray5
-    button.addTarget(self, action: #selector(tabEtcCategoryButton(_:)), for: .touchUpInside)
-    return button
-  }()
-  
-  lazy var searchBar: UISearchBar = {
-    let sBar = UISearchBar(frame: .zero)
-    sBar.placeholder = " 검색.."
-    sBar.backgroundColor = .white
-    sBar.barStyle = .default
-    sBar.barTintColor = .none
-    sBar.searchBarStyle = .minimal
-    sBar.autocorrectionType = .no
-    sBar.autocapitalizationType = .none
-    sBar.delegate = self
-    return sBar
-  }()
-  
-  let collectionView: UICollectionView = {
-    let layout = UICollectionViewFlowLayout()
-    layout.scrollDirection = .vertical
-    return UICollectionView(frame: .zero, collectionViewLayout: layout)
-  }()
+  let disposeBag = DisposeBag()
+  let searchBookView = SearchBookView()
+  var searchBookListVM: SearchBookListViewModel!
   
   struct Standard {
     static let myEdgeInset = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 10)
@@ -83,14 +39,19 @@ class SearchBookVC: UIViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
     
+    searchBookView.searchBar.delegate = self
+    
     configuerUI()
     
-    configureLayout()
-    
+    configureButtonAction()
+  }
+  
+  override func loadView() {
+    view = searchBookView
   }
   
   override func viewWillAppear(_ animated: Bool) {
-    self.searchBar.becomeFirstResponder()
+    searchBookView.searchBar.becomeFirstResponder()
   }
   
   override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -103,43 +64,16 @@ class SearchBookVC: UIViewController {
     
     view.backgroundColor = .white
     
-    collectionView.backgroundColor = .white
-    collectionView.dataSource = self
-    collectionView.delegate = self
-    collectionView.register(SearchBookCustomCell.self,
+    searchBookView.collectionView.backgroundColor = .white
+    searchBookView.collectionView.dataSource = self
+    searchBookView.collectionView.delegate = self
+    searchBookView.collectionView.register(SearchBookCustomCell.self,
                             forCellWithReuseIdentifier: SearchBookCustomCell.identifier)
     
   }
   
-  private func configureLayout() {
-    let safeGuide = view.safeAreaLayoutGuide
-    
-    [mainCategoryButton, searchBar, collectionView].forEach{
-      view.addSubview($0)
-    }
-    
-    mainCategoryButton.snp.makeConstraints{
-      $0.top.equalTo(safeGuide.snp.top).offset(20)
-      $0.leading.equalTo(safeGuide.snp.leading).offset(5)
-      $0.height.equalTo(40)
-      $0.width.equalTo(110)
-    }
-    
-    searchBar.snp.makeConstraints{
-      $0.centerY.equalTo(mainCategoryButton.snp.centerY)
-      $0.leading.equalTo(mainCategoryButton.snp.trailing).offset(5)
-      $0.trailing.equalTo(safeGuide.snp.trailing).offset(-10)
-      $0.height.equalTo(40)
-    }
-    
-    collectionView.snp.makeConstraints{
-      $0.top.equalTo(searchBar.snp.bottom).offset(20)
-      $0.leading.equalTo(safeGuide).offset(20)
-      $0.trailing.equalTo(safeGuide).offset(-20)
-      $0.bottom.equalTo(safeGuide)
-    }
-    
-    self.view.bringSubviewToFront(self.mainCategoryButton)
+  private func configureButtonAction() {
+    searchBookView.resultResearchButton.addTarget(self, action: #selector(tabEtcCategoryButton(_:)), for: .touchUpInside)
   }
   
   // MARK: - Handler
@@ -157,7 +91,7 @@ class SearchBookVC: UIViewController {
       systemName: "arrowtriangle.down.fill",
       setText: buttonTitle
     )
-    mainCategoryButton.setAttributedTitle(attributedString, for: .normal)
+    searchBookView.mainCategoryButton.setAttributedTitle(attributedString, for: .normal)
     menuActive = false
   }
   
@@ -171,22 +105,14 @@ extension SearchBookVC: UISearchBarDelegate {
   
   func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
     hideKeyBoard()
-    searchedBookList = []
     
     guard let searchString = searchBar.searchTextField.text?.trimmingCharacters(in: .whitespaces) else { return }
-    networkServices.fetchBookInfomationFromKakao(type: .bookName, forSearch: searchString) { (isbnCode, bookDicValue) in
-      DispatchQueue.main.async {
-        // book model 생성
-        let bookDetailInfo = Book(isbnCode: isbnCode, dictionary: bookDicValue)
-        self.searchedBookList.append(bookDetailInfo)
-        
-        self.searchedBookList.sort { (book1, book2) -> Bool in
-          book1.datetime > book2.datetime
-        }
-        
-        self.collectionView.reloadData()
-      }
-    } 
+    
+    SearchBookList.getSearchBookList(searchString)
+      .subscribe(onNext: {
+        self.searchBookListVM = SearchBookListViewModel($0)
+        self.searchBookView.collectionView.reloadData()
+      }).disposed(by: disposeBag)
   }
 }
 
@@ -254,13 +180,38 @@ extension SearchBookVC: UICollectionViewDelegate {
 extension SearchBookVC: UICollectionViewDataSource {
   
   func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-    return searchedBookList.count
+    return searchBookListVM == nil ? 0 : searchBookListVM.searchBooks.count
   }
   
   func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
     guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: SearchBookCustomCell.identifier, for: indexPath) as? SearchBookCustomCell else { fatalError() }
     
-    cell.configure(bookDetailInfo: searchedBookList[indexPath.item])
+    searchBookListVM.searchBooks[indexPath.item].author
+      .asDriver(onErrorJustReturn: "Loading..")
+      .drive(cell.authorsValueLable.rx.text)
+      .disposed(by: disposeBag)
+    
+    searchBookListVM.searchBooks[indexPath.item].bookName
+      .asDriver(onErrorJustReturn: "Loading..")
+      .drive(cell.nameValueLable.rx.text)
+      .disposed(by: disposeBag)
+    
+    searchBookListVM.searchBooks[indexPath.item].publish
+      .asDriver(onErrorJustReturn: "Loading..")
+      .drive(cell.publishurValueLable.rx.text)
+      .disposed(by: disposeBag)
+    
+    searchBookListVM.searchBooks[indexPath.item].datetime
+      .asDriver(onErrorJustReturn: "Loading..")
+      .drive(cell.publisherDateValueLable.rx.text)
+      .disposed(by: disposeBag)
+    
+    let imgUrl = searchBookListVM.searchBooks[indexPath.item].searchBook.thumbnail
+    if imgUrl == "" {
+      cell.bookThumbnailImageView.image = UIImage(systemName: "xmark.octagon")
+    } else {
+      cell.bookThumbnailImageView.loadImage(urlString: imgUrl)
+    }
     
     return cell
   }

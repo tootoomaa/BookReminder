@@ -8,12 +8,6 @@
 
 import Foundation
 
-enum SearchType: String {
-  case isbn = "isbn"
-  case bookName = "title"
-}
-
-
 class NetworkServices {
   
   func fetchBookInfomationFromKakao(type: SearchType,
@@ -56,7 +50,7 @@ class NetworkServices {
         
         do {
           
-          let bookInfo = try JSONDecoder().decode(BookList.self, from: data)
+          let bookInfo = try JSONDecoder().decode(SearchBookList.self, from: data)
           
           if type == .isbn {
             let creationDate = Int(NSDate().timeIntervalSince1970)
