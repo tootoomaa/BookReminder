@@ -15,6 +15,7 @@ import Firebase
 struct MyBookListViewModel {
   
   var myBooks: [MyBookViewModel]
+  var filteredMyBooks: [MyBookViewModel] = []
   
   lazy var allcase = BehaviorRelay(value: myBooks)
   

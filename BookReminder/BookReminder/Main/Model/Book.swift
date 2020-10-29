@@ -115,14 +115,13 @@ extension Book {
       guard let uid = Auth.auth().currentUser?.uid else { fatalError("Fail to get Uid") }
       DB_REF_USERBOOKS.child(uid).observeSingleEvent(of: .value) { (snapshot, uid) in
         
-        /*
+          /*
          case 1 첫 사용자 값, nil
          case 2 인터넷 에러, nil
          */
         
         guard let bookDetailInfos = snapshot.value as? Dictionary<String, AnyObject> else {
           observer.onNext([])
-          print("Fail to fetch", snapshot.value)
           return
         }
         

@@ -52,11 +52,7 @@ class MyBookVC: UIViewController {
     
     if let isSameBookExsist = self?.myBookListVM.checkSameBook(isbnCode) {
       if isSameBookExsist {
-        self?.present(UIAlertController.defaultSetting(
-                        title: "중복 등록",
-                        message: "해당 도서는 이미 등록된 도서입니다."),
-                      animated: true,
-                      completion: nil)
+        self?.presentDefaultAlertC("중복 등록", "해당 도서는 이미 등록된 도서입니다.")
       } else {
         self?.myBookListVM.addMyBook(Book(isbnCode: isbnCode, dictionary: bookDicValue),
                                           value: bookDicValue)
@@ -68,14 +64,10 @@ class MyBookVC: UIViewController {
   // MARK: - Life Cycle
   override func viewDidLoad() {
     super.viewDidLoad()
-    
-    myBookView.searchBar.delegate = self
-    
     fetchInitialData()
-    
     configureUI()
-    
-    configureButtonAction()
+    configureMultiButtonAction()
+    settingSearchBar()
   }
   
   override func loadView() {
@@ -115,12 +107,6 @@ class MyBookVC: UIViewController {
     view.backgroundColor = .white
   }
   
-  private func configureButtonAction() {
-    myBookView.barcodeButton.addTarget(self, action: #selector(tabBarcodeButton(_:)), for: .touchUpInside)
-    myBookView.bookSearchButton.addTarget(self, action: #selector(tabSearchButton(_:)), for: .touchUpInside)
-    myBookView.deleteBookButton.addTarget(self, action: #selector(tabDeleteButton(_:)), for: .touchUpInside)
-  }
-  
   // MARK: - Network
   private func fetchInitialData() {
     Book.fetchUserBookList()
@@ -157,8 +143,8 @@ class MyBookVC: UIViewController {
         cell.bookThumbnailImageView.loadImage(urlString: myBook.book.thumbnail)
         cell.bookDetailInfo = myBook.book
         // cell 내에서 버튼 눌렸을 경우 리턴 받아옴
-        cell.passButtonName = { buttonName, bookDetailInfo, isMarked in
-          self.tabBookDetailButton(buttonName: buttonName, bookDetailInfo: bookDetailInfo, isMarked: isMarked)
+        cell.passButtonName = { [weak self] buttonName, bookDetailInfo, isMarked in
+          self?.tabBookDetailButton(buttonName, bookDetailInfo, isMarked)
         }
       }.disposed(by: disposeBag)
   }
@@ -214,37 +200,81 @@ class MyBookVC: UIViewController {
         
       }).disposed(by: disposeBag)
   }
-  
-  // MARK: - Button Handler  
-  //search handler
-  @objc private func tabSearchButton(_ sender: UIButton) {
+  // MARK: - Setting SearchBar
+  private func settingSearchBar() {
     
-    let searchBookVC = SearchBookVC()
-    searchBookVC.saveBookClosure = saveNewBookClosure
-    navigationController?.pushViewController(searchBookVC, animated: true)
-    myBookView.initializationMultiButton()
+    myBookView.searchBar.rx.value.changed
+      .bind { [weak self] in
+        guard let searchText = $0 else { return }
+        
+        if let filteredBooks = searchText == "" ?
+          self?.myBookListVM.myBooks :
+            self?.myBookListVM.myBooks.filter { ($0.book.title).contains(searchText) } {
+        
+          self?.myBookListVM.filteredMyBooks = filteredBooks
+          self?.myBookListVM.allcase.accept(filteredBooks)
+        }
+        
+      }.disposed(by: disposeBag)
+      
+    myBookView.searchBar.rx.cancelButtonClicked
+      .bind { [weak self] in
+        self?.myBookView.searchBar.text = ""
+        self?.hideKeyBoard()
+      }.disposed(by: disposeBag)
   }
   
-  @objc private func tabBarcodeButton(_ sender: UIButton) {
-    
-    let scannerVC = ScannerVC()
-    scannerVC.modalPresentationStyle = .popover
-    scannerVC.saveBookClosure = saveNewBookClosure
-    present(scannerVC, animated: true) {
-      // 멀티 버튼 초기화
-      self.myBookView.initializationMultiButton()
-    }
+  // MARK: - MultiButton Binding
+  private func configureMultiButtonAction() {
+    configureMultiSearchBookButtonAction()
+    configureMultiBarCodeScanButtonAction()
+    configureMultiDeleteButtonAction()
   }
   
-  @objc private func tabDeleteButton(_ sender: UIButton) {
-    guard let deleteBookIndex = userSelectedCellForDelete else {
-      present(UIAlertController.defaultSetting(title: "삭제 오류", message: "삭제할 책을 선택해주세요"),
-              animated: true,completion: nil); return }
-    
-    let deleteBookInfo = myBookListVM.bookAt(deleteBookIndex.item)
-    let bookInfo = deleteBookInfo.book
-    
-    present(UIAlertController.deleteBookWarning(self, bookInfo, deleteBookIndex), animated: true)
+  private func configureMultiSearchBookButtonAction() {
+    myBookView.bookSearchButton.rx.tap
+      .bind { [weak self] in
+        let searchBookVC = SearchBookVC()
+        searchBookVC.saveBookClosure = self?.saveNewBookClosure
+        self?.navigationController?.pushViewController(searchBookVC, animated: true)
+        self?.myBookView.initializationMultiButton()
+      }.disposed(by: disposeBag)
+  }
+  
+  private func configureMultiBarCodeScanButtonAction() {
+    myBookView.barcodeButton.rx.tap
+      .bind { [weak self] in
+        let scannerVC = ScannerVC()
+        scannerVC.modalPresentationStyle = .popover
+        scannerVC.saveBookClosure = self?.saveNewBookClosure
+        self?.present(scannerVC, animated: true) {
+          // 멀티 버튼 초기화
+          self?.myBookView.initializationMultiButton()
+        }
+      }.disposed(by: disposeBag)
+  }
+  
+  private func configureMultiDeleteButtonAction() {
+    myBookView.deleteBookButton.rx.tap
+      .bind { [weak self] in
+        guard let deleteBookIndex = self?.userSelectedCellForDelete else {
+          self?.presentDefaultAlertC("삭제 오류", "삭제 할 책을 선택해주세요")
+          return
+        }
+        
+        if let self = self {
+          let deleteBookInfo = self.myBookListVM.bookAt(deleteBookIndex.item)
+          let bookInfo = deleteBookInfo.book
+          
+          self.present(UIAlertController.deleteBookWarning(self, bookInfo, deleteBookIndex), animated: true)
+        }
+      }.disposed(by: disposeBag)
+  }
+  
+  // MARK: - Hander
+  private func presentDefaultAlertC(_ title: String, _ message: String) {
+    present(UIAlertController.defaultSetting(title: title, message: message),
+            animated: true)
   }
   
   func deleteMyBook(_ deleteBookIndex: IndexPath) {
@@ -264,10 +294,9 @@ class MyBookVC: UIViewController {
     mainVC.markedBookListVM.reloadData()
   }
   
-  // cell 에서 리턴 받은 버튼에 종류에 따라서 처리
-  private func tabBookDetailButton(buttonName: String, bookDetailInfo: Book, isMarked: Bool) {
+  // MARK: - Cell Button handelr
+  private func tabBookDetailButton(_ buttonName: String, _ bookDetailInfo: Book, _ isMarked: Bool) {
     // mark: 즐겨찾기, comment: 코멘트, info: 자세한 설명 화면
-    
     if buttonName == MyBookCellButtonTitle.bookMark.rawValue {
       
       guard let window = UIApplication.shared.delegate?.window,
@@ -295,44 +324,13 @@ class MyBookVC: UIViewController {
       navigationController?.pushViewController(commentList, animated: true)
       
     } else if buttonName == MyBookCellButtonTitle.info.rawValue {
+      
       let detailBookInfoVC = DetailBookInfoVC()
       detailBookInfoVC.detailBookInfo = bookDetailInfo
       navigationController?.pushViewController(detailBookInfoVC, animated: true)
+      
     }
   }
-}
-
-// MARK: - UISearchBarDelegate
-extension MyBookVC: UISearchBarDelegate {
-  
-//  func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-//
-//    filterdBookArray = []
-//    myBookView.collectionView.reloadData()
-//    
-//    searchBar.showsCancelButton = true
-//    filterOn = true
-//    guard let searchText = searchBar.searchTextField.text else { return }
-//    let filteredSearchText = searchText.trimmingCharacters(in: .whitespaces)
-//    for book in bookDetailInfoArray {
-//      if book.title.contains(filteredSearchText) {
-//        filterdBookArray.append(book)
-//        myBookView.collectionView.reloadData()
-//      }
-//    }
-//  }
-//  
-//  func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
-//    hideKeyBoard()
-//  }
-//
-//  func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
-//    searchBar.text = ""
-//    filterOn = false
-//    searchBar.showsCancelButton = false
-//    myBookView.collectionView.reloadData()
-//    hideKeyBoard()
-//  }
 }
 
 // MARK: - UICollecionViewDelegateFlowLayout
