@@ -52,15 +52,17 @@ extension MyBookListViewModel {
                                        plusMinus: .plus,
                                        updateCategory: .enrollBookCount,
                                        amount: 1)
+    allcase.accept(myBooks)
   }
   
   mutating func removeMyBook(_ removeBookIndex: IndexPath) {
     guard let uid = Auth.auth().currentUser?.uid else { return }
     
-//    Database
+    
     Database.bookDeleteHandler(uid: uid, deleteBookData: myBooks[removeBookIndex.item].book)
     
     self.myBooks.remove(at: removeBookIndex.item)
+    allcase.accept(myBooks)
   }
 }
 

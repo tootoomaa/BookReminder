@@ -73,8 +73,6 @@ final public class KakaoSDKCommon {
     
     /// 현재 SDK의 버전을 조회합니다.
     public func sdkVersion() -> String {
-//        //앱스토어 서밋버전스펙 에러때문에 plist 버전은 2.0.0으로, 실제버전은 베타버전을 하드코딩한다. (베타버전 동안 == 정식버전 전까지)
-//        return "2.0.0-beta.7"
         let bundle = Bundle(for: type(of: self))
         if let version = bundle.infoDictionary?["CFBundleShortVersionString"] as? String {
             SdkLog.d("sdk_version : \(version)")

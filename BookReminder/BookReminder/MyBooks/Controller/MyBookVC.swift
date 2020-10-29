@@ -60,7 +60,6 @@ class MyBookVC: UIViewController {
       } else {
         self?.myBookListVM.addMyBook(Book(isbnCode: isbnCode, dictionary: bookDicValue),
                                           value: bookDicValue)
-        self?.myBookListVM.reloadData()
         self?.myBookView.initializationMultiButton()
       }
     }
@@ -122,8 +121,6 @@ class MyBookVC: UIViewController {
     myBookView.deleteBookButton.addTarget(self, action: #selector(tabDeleteButton(_:)), for: .touchUpInside)
   }
   
-
-  
   // MARK: - Network
   private func fetchInitialData() {
     Book.fetchUserBookList()
@@ -131,27 +128,24 @@ class MyBookVC: UIViewController {
       .subscribe(onNext: { [weak self] value in
         self?.myBookListVM = MyBookListViewModel(value)
         self?.configureCollectionView()
-    },
-      onError: { (error) in
-        print("Error", error.localizedDescription)
-      }).disposed(by: disposeBag)
+    }).disposed(by: disposeBag)
   }
   
   // MARK: - Configure CollectionView Binding
   private func configureCollectionView() {
-    configureCollectionViewBasicSetting()
-    configureCollectionViewDataBinding()
-    configureCollectionViewDelegate()
-    configureCollectionViewWillDisplayCell()
+    collectionViewBasicSetting()
+    collectionViewDataBinding()
+    collectionViewDelegate()
+    collectionViewWillDisplayCell()
   }
   
-  private func configureCollectionViewBasicSetting() {
+  private func collectionViewBasicSetting() {
     myBookView.collectionView.backgroundColor = .white
     myBookView.collectionView.isMultipleTouchEnabled = false
     myBookView.collectionView.register(MyBookCustomCell.self, forCellWithReuseIdentifier: MyBookCustomCell.identifier)
   }
   
-  private func configureCollectionViewDataBinding() {
+  private func collectionViewDataBinding() {
     myBookView.collectionView.rx.setDelegate(self)
       .disposed(by: disposeBag)
     
@@ -169,7 +163,7 @@ class MyBookVC: UIViewController {
       }.disposed(by: disposeBag)
   }
   
-  private func configureCollectionViewDelegate() {
+  private func collectionViewDelegate() {
     
     myBookView.collectionView.rx
       .itemSelected
@@ -187,7 +181,7 @@ class MyBookVC: UIViewController {
       }).disposed(by: disposeBag)
   }
   
-  private func configureCollectionViewWillDisplayCell() {
+  private func collectionViewWillDisplayCell() {
     myBookView.collectionView.rx
       .willDisplayCell
       .subscribe(onNext: { cell, indexPath in
@@ -255,7 +249,6 @@ class MyBookVC: UIViewController {
   
   func deleteMyBook(_ deleteBookIndex: IndexPath) {
     myBookListVM.removeMyBook(deleteBookIndex)
-    myBookListVM.reloadData()
     userSelectedCellForDelete = nil
   }
   

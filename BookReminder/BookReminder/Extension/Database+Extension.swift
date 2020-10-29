@@ -80,6 +80,10 @@ extension Database {
   
   static func bookDeleteHandler(uid: String, deleteBookData: Book) {
     guard let isbnCode = deleteBookData.isbn else { return }
+    
+    DB_REF_USERBOOKS.child(uid).child(isbnCode).removeValue()
+    DB_REF_COMMENT_STATICS.child(uid).child(isbnCode).removeValue()
+    
     // enroll 책 count 감소
     userProfileStaticsHanlder(uid: uid, plusMinus: .down, updateCategory: .enrollBookCount, amount: 1)
     
@@ -96,6 +100,8 @@ extension Database {
         if (snapshot.value as? Int) != nil {
           userProfileStaticsHanlder(uid: uid, plusMinus: .down, updateCategory: .compliteBookCount, amount: 1)
         }
+        DB_REF_COMPLITEBOOKS.child(uid).child(isbnCode).removeValue()
+        DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue()
         
         DB_REF_COMMENT.child(uid).child(isbnCode).observeSingleEvent(of: .value) { (snapshot) in
           guard let dictionary = snapshot.value as? Dictionary<String, AnyObject> else { return }
@@ -108,12 +114,9 @@ extension Database {
             }
           }
           
-          DB_REF_USERBOOKS.child(uid).child(isbnCode).removeValue()
           DB_REF_COMMENT.child(uid).child(isbnCode).removeValue()
-          DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue()
-          DB_REF_COMPLITEBOOKS.child(uid).child(isbnCode).removeValue()
-          DB_REF_COMMENT_STATICS.child(uid).child(isbnCode).removeValue()
         }
+        
       }
     }
   }
