@@ -13,7 +13,7 @@
 //  limitations under the License.
 
 import Foundation
-import DynamicCodable
+import KakaoSDKCommon
 
 /// :nodoc: 템플릿 조회 결과 (SDK 내부용)
 public struct ValidationResult : Codable {

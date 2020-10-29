@@ -52,6 +52,7 @@ extension MyBookListViewModel {
                                        plusMinus: .plus,
                                        updateCategory: .enrollBookCount,
                                        amount: 1)
+    allcase.accept(myBooks)
   }
   
   mutating func removeMyBook(_ removeBookIndex: IndexPath) {
@@ -61,6 +62,7 @@ extension MyBookListViewModel {
     Database.bookDeleteHandler(uid: uid, deleteBookData: myBooks[removeBookIndex.item].book)
     
     self.myBooks.remove(at: removeBookIndex.item)
+    allcase.accept(myBooks)
   }
 }
 

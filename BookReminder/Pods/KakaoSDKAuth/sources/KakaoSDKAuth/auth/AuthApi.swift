@@ -94,8 +94,8 @@ final public class AuthApi {
     // MARK: Login with Kakao Account
     
     /// iOS 11 이상에서 제공되는 (SF/ASWeb)AuthenticationSession 을 이용하여 로그인 페이지를 띄우고 쿠키 기반 로그인을 수행합니다. 이미 사파리에에서 로그인하여 카카오계정의 쿠키가 있다면 이를 활용하여 ID/PW 입력 없이 간편하게 로그인할 수 있습니다.
-    public func loginWithKakaoAccount(completion: @escaping (OAuthToken?, Error?) -> Void) {
-        AuthController.shared.authorizeWithAuthenticationSession(completion:completion)
+    public func loginWithKakaoAccount(authType: AuthType? = nil, completion: @escaping (OAuthToken?, Error?) -> Void) {
+        AuthController.shared.authorizeWithAuthenticationSession(authType: authType, completion:completion)
     }
     
     // MARK: New Agreement
@@ -122,11 +122,13 @@ final public class AuthApi {
     }
     
     /// :nodoc: 카카오싱크 전용입니다. 자세한 내용은 카카오싱크 전용 개발가이드를 참고하시기 바랍니다.
-    public func loginWithKakaoAccount(channelPublicIds: [String]? = nil,
+    public func loginWithKakaoAccount(authType: AuthType? = nil,
+                                      channelPublicIds: [String]? = nil,
                                       serviceTerms: [String]? = nil,                                      
                                       completion: @escaping (OAuthToken?, Error?) -> Void) {
         
-        AuthController.shared.authorizeWithAuthenticationSession(channelPublicIds: channelPublicIds,
+        AuthController.shared.authorizeWithAuthenticationSession(authType: authType,
+                                                                 channelPublicIds: channelPublicIds,
                                                                  serviceTerms: serviceTerms,
                                                                  completion: completion)
     }
@@ -145,7 +147,7 @@ final public class AuthApi {
                                 Urls.compose(.Kauth, path:Paths.authAgt),
                                 parameters: ["client_id":try! KakaoSDKCommon.shared.appKey(), "access_token":AUTH.tokenManager.getToken()?.accessToken].filterNil(),
                                 sessionType:.Auth,
-                                apiType: .KApi) { (response, data, error) in
+                                apiType: .KAuth) { (response, data, error) in
                                     if let error = error {
                                         completion(nil, error)
                                         return
@@ -255,4 +257,11 @@ final public class AuthApi {
                                     completion(nil, SdkError())
                                 }
     }   
+}
+
+
+/// Kakao Account Authentication Type
+public enum AuthType : String {
+    /// 재로그인
+    case Reauthenticate = "reauthenticate"
 }

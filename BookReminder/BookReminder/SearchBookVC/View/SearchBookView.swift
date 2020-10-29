@@ -49,9 +49,8 @@ class SearchBookView: UIView {
   
   override init(frame: CGRect) {
     super.init(frame: frame)
-    
+    collectionView.backgroundColor = .white
     configureLayout()
-    
   }
   
   required init?(coder: NSCoder) {

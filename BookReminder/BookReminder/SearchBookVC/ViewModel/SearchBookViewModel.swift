@@ -12,9 +12,9 @@ import RxCocoa
 
 struct SearchBookListViewModel {
   
-  let searchBooks: [SearchBookViewModel]
+  var searchBooks: [SearchBookViewModel]
   
-  lazy var allcase = BehaviorRelay(value: self.searchBooks)
+  lazy var allcase = BehaviorRelay(value: [SearchBookViewModel]() )
   
   init(_ searchBookList: [SearchBook]) {
     self.searchBooks = searchBookList.compactMap(SearchBookViewModel.init)

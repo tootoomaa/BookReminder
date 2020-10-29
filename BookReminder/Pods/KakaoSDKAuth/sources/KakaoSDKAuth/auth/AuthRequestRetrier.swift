@@ -32,10 +32,10 @@ public class AuthRequestRetrier : RequestInterceptor {
                 case .customValidationFailed(let error):
                     return error as? SdkError
                 default:
-                    SdkLog.d("don care case")
+                    SdkLog.d("dont care case")
                 }
             default:
-                SdkLog.d("don care case")
+                SdkLog.d("dont care case")
                 
             }
         }
@@ -71,9 +71,9 @@ public class AuthRequestRetrier : RequestInterceptor {
 
                             guard let strongSelf = self else {
                                 SdkLog.e("strong self casting error!")
-                                //pending 리퀘스트들을 전부 fail.
+                                //abort all pending requests.
                                 self?.requestsToRetry.forEach {
-                                    $0(.doNotRetry)
+                                    $0(.doNotRetryWithError(SdkError(message:"string self casing error!")))
                                 }
                                 self?.requestsToRetry.removeAll()
                                 self?.isRefreshing = false
@@ -81,43 +81,40 @@ public class AuthRequestRetrier : RequestInterceptor {
                             }
                             
                             if let error = error {
-                                //해당 리퀘스트에 토큰 리프레시 실패로 abort retry.
+                                //token refresh failure.
                                 SdkLog.e(" refreshToken error: \(error). retry aborted.\n request: \(request) \n\n")
                                 
-                                //pending 리퀘스트들을 전부 fail
+                                //pending requests all cancel
                                 strongSelf.requestsToRetry.forEach {
-                                    $0(.doNotRetry)
+                                    $0(.doNotRetryWithError(error))
                                 }                              }
                             else {
-                                //해당 리퀘스트에 토큰 리프레시 성공.
+                                //token refresh success.
                                 //SdkLog.d(">>>>>>>>>>>>>> refreshToken success\n request: \(request) \n\n")
                                 
-                                //pending 리퀘스트들을 retry.
+                                //proceed all pending requests.
                                 strongSelf.requestsToRetry.forEach {
                                     $0(.retry)
                                 }
                             }
                             
-                            strongSelf.requestsToRetry.removeAll() //컴플리션 전부 리셋
+                            strongSelf.requestsToRetry.removeAll() //reset all stored completion
                             strongSelf.isRefreshing = false
                         }
                     }
                 }
                 else {
-                    //실패로 처리 - 리프레시 하지마라고 해서.
                     SdkLog.e(" should not refresh -> pass through \n")
-                    completion(.doNotRetry)
+                    completion(.doNotRetryWithError(SdkError(message:"should not refresh -> pass through ")))
                 }
             case .InsufficientScope:
-                //동적동의 추가중.
-                
                 logString = "\(logString)\n reason:\(error)\n token: \(String(describing: AUTH.tokenManager.getToken()))"
                 SdkLog.e("\(logString)\n\n")
                 
                 if let requiredScopes = sdkError.getApiError().info?.requiredScopes {
                     AuthController.shared.authorizeWithAuthenticationSession(scopes: requiredScopes) { (_, error) in
-                        if let _ = error {
-                            completion(.doNotRetry)
+                        if let error = error {
+                            completion(.doNotRetryWithError(error))
                         }
                         else {
                             completion(.retry)
@@ -125,15 +122,15 @@ public class AuthRequestRetrier : RequestInterceptor {
                     }
                 }
             default:
-                //실패로 처리 - 401이 아님.
+                //error : not 401.
                 SdkLog.e("\(sdkError)\n not 401,403 error -> pass through \n\n")
-                completion(.doNotRetry)
+                completion(.doNotRetryWithError(sdkError))
             }
         }
         else {
-            //실패로 처리 - 에러정보가 없어서 retry를 할 수 없다.
+            //error : should not refresh because error info does not exist.
             SdkLog.e("\(error)\n no error info : should not refresh -> pass through \n\n")
-            completion(.doNotRetry)
+            completion(.doNotRetryWithError(error))
         }
     }
     

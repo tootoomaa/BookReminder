@@ -26,6 +26,40 @@ struct SearchBook: Decodable {
   let url: String
 }
 
+extension SearchBook {
+  
+  static func empty() -> SearchBook {
+    return SearchBook(authors: ["a"], contents: "", datetime: "", isbn: "", price: 0, publisher: "", sale_price: 0, status: "", thumbnail: "", title: "", translators: [""], url: "")
+  }
+  
+}
+
+extension SearchBook {
+  
+  var value: Dictionary<String, AnyObject> {
+    let creationDate = Int(NSDate().timeIntervalSince1970)
+    return [
+      "authors": self.authors,
+      "contents": self.contents,
+      "datetime": self.datetime,
+      "isbn": self.isbn,
+      "price": self.price,
+      "publisher": self.publisher,
+      "sale_price": self.sale_price,
+      "status": self.status,
+      "thumbnail": self.thumbnail,
+      "title": self.title,
+      "translators": self.translators,
+      "url": self.url,
+      "creationDate": creationDate
+    ] as Dictionary<String, AnyObject>
+  }
+  
+  var book: Book {
+    return Book(isbnCode: self.isbn, dictionary: self.value)
+  }
+}
+
 struct Meta: Decodable {
   let is_end: Bool
   let pageable_count: Int

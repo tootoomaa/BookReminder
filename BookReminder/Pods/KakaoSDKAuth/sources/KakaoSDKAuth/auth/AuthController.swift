@@ -126,8 +126,10 @@ public class AuthController {
     // MARK: Login with Web Cookie
     
     /// :nodoc: iOS 11 이상에서 제공되는 (SF/ASWeb)AuthenticationSession 을 이용하여 로그인 페이지를 띄우고 쿠키 기반 로그인을 수행합니다. 이미 사파리에에서 로그인하여 카카오계정의 쿠키가 있다면 이를 활용하여 ID/PW 입력 없이 간편하게 로그인할 수 있습니다.
-    public func authorizeWithAuthenticationSession(completion: @escaping (OAuthToken?, Error?) -> Void) {
-        return self.authorizeWithAuthenticationSession(agtToken: nil,
+    public func authorizeWithAuthenticationSession(authType: AuthType? = nil,
+                                                   completion: @escaping (OAuthToken?, Error?) -> Void) {
+        return self.authorizeWithAuthenticationSession(authType: authType,
+                                                       agtToken: nil,
                                                        scopes: nil,
                                                        channelPublicIds: nil,
                                                        serviceTerms:nil,
@@ -135,10 +137,12 @@ public class AuthController {
     }
     
     /// :nodoc: 카카오싱크 전용입니다. 자세한 내용은 카카오싱크 전용 개발가이드를 참고하시기 바랍니다.
-    public func authorizeWithAuthenticationSession(channelPublicIds: [String]? = nil,
+    public func authorizeWithAuthenticationSession(authType: AuthType? = nil,
+                                                   channelPublicIds: [String]? = nil,
                                                    serviceTerms: [String]? = nil,
                                                    completion: @escaping (OAuthToken?, Error?) -> Void) {
-        return self.authorizeWithAuthenticationSession(agtToken: nil,
+        return self.authorizeWithAuthenticationSession(authType: authType,
+                                                       agtToken: nil,
                                                        scopes: nil,
                                                        channelPublicIds: channelPublicIds,
                                                        serviceTerms:serviceTerms,
@@ -155,13 +159,20 @@ public class AuthController {
                 return
             }
             
-            strongSelf.authorizeWithAuthenticationSession(agtToken: agtToken, scopes: scopes) { (oauthToken, error) in
-                completion(oauthToken, error)
+            if let error = error {
+                completion(nil, error)
+                return
+            }
+            else {
+                strongSelf.authorizeWithAuthenticationSession(agtToken: agtToken, scopes: scopes) { (oauthToken, error) in
+                    completion(oauthToken, error)
+                }
             }
         }
     }
     
-    func authorizeWithAuthenticationSession(agtToken: String? = nil,
+    func authorizeWithAuthenticationSession(authType: AuthType? = nil,
+                                            agtToken: String? = nil,
                                             scopes:[String]? = nil,
                                             channelPublicIds: [String]? = nil,
                                             serviceTerms: [String]? = nil,
@@ -192,6 +203,8 @@ public class AuthController {
                 }
             }
             
+            SdkLog.d("callback url: \(callbackUrl)")
+            
             let parseResult = callbackUrl.oauthResult()
             if let code = parseResult.code {
                 SdkLog.i("code:\n \(String(describing: code))\n\n" )
@@ -211,7 +224,7 @@ public class AuthController {
             }
             else {
                 let error = parseResult.error ?? SdkError(reason: .Unknown, message: "Failed to parse redirect URI.")
-                SdkLog.e("Failed to parse redirect URI.")
+                SdkLog.e("redirect URI error: \(error)")
                 completion(nil, error)
                 return
             }
@@ -231,8 +244,17 @@ public class AuthController {
             }
         }
         
-        parameters["channel_public_id"] = channelPublicIds?.joined(separator: ",")
-        parameters["service_terms"] = serviceTerms?.joined(separator: ",")        
+        if let authType = authType {
+            parameters["auth_type"] = authType.rawValue
+        }        
+        
+        if let channelPublicIds = channelPublicIds?.joined(separator: ",") {
+            parameters["channel_public_id"] = channelPublicIds
+        }
+        
+        if let serviceTerms = serviceTerms?.joined(separator: ",")  {
+            parameters["service_terms"] = serviceTerms
+        }
         
         if let url = SdkUtils.makeUrlWithParameters(Urls.compose(.Kauth, path:Paths.authAuthorize), parameters:parameters) {
             SdkLog.d("\n===================================================================================================")

@@ -89,12 +89,12 @@ public struct NaviLocation : Codable {
     public let name: String
     
     /// 경도 좌표
-    /// - note: 사용할 좌표계는 `NaviOptions.coordType` 으로 설정합니다. 기본 좌표계(KATEC)를 사용하지 않을 경우 API 호출 시 옵션 객체를 생성하고 원하는 좌표계를 설정한 후 파라미터로 전달해야 합니다.
-    public let x: Int64
+    /// - note: 사용할 좌표계는 `NaviOption.coordType` 으로 설정합니다. 기본 좌표계(KATEC)를 사용하지 않을 경우 API 호출 시 옵션 객체를 생성하고 원하는 좌표계를 설정한 후 파라미터로 전달해야 합니다.
+    public let x: String
     
     /// 위도 좌표
-    /// - note: 사용할 좌표계는 `NaviOptions.coordType` 으로 설정합니다. 기본 좌표계(KATEC)를 사용하지 않을 경우 API 호출 시 옵션 객체를 생성하고 원하는 좌표계를 설정한 후 파라미터로 전달해야 합니다.
-    public let y: Int64
+    /// - note: 사용할 좌표계는 `NaviOption.coordType` 으로 설정합니다. 기본 좌표계(KATEC)를 사용하지 않을 경우 API 호출 시 옵션 객체를 생성하고 원하는 좌표계를 설정한 후 파라미터로 전달해야 합니다.
+    public let y: String
     
     /// 도착링크 옵션 "G"
     public let rpflag: String?
@@ -104,8 +104,8 @@ public struct NaviLocation : Codable {
     
     /// 장소 객체를 생성합니다.
     public init(name : String,
-                x : Int64,
-                y : Int64,
+                x : String,
+                y : String,
                 rpflag: String? = nil) {
         self.name = name
         self.x = x
@@ -114,8 +114,13 @@ public struct NaviLocation : Codable {
     }
 }
 
+//public struct NaviCoordinate {
+//    public let start : Numeric
+//}
+//
+
 /// 길안내 옵션을 설정합니다.
-public struct NaviOptions : Codable {
+public struct NaviOption : Codable {
     
     // MARK: Fields
     
@@ -134,17 +139,25 @@ public struct NaviOptions : Codable {
     /// 전체 경로정보 보기 사용여부
     public let routeInfo : Bool?
     
-    /// 시작 위치의 경도 좌표
-    public let startX : Int64?
+    /// 시작 위치의 경도 좌표 (KATEC, WGS84) 공통
+    let startX : String?
     
-    /// 시작 위치의 위도 좌표
-    public let startY : Int64?
+    /// 시작 위치의 위도 좌표 (KATEC, WGS84) 공통
+    let startY : String?
     
     /// 시작 차량각도 (0~359)
     public let startAngle : Int?
     
     /// 길안내 종료(전체 경로보기시 종료) 후 호출 될 URI.
     public let returnUri : URL?
+    
+    enum CodingKeys: String, CodingKey {
+        case coordType, vehicleType, routeInfo, returnUri
+        case startX = "s_x"
+        case startY = "s_y"
+        case startAngle = "s_angle"
+        case rpOption = "rpoption"
+    }
     
     
     // MARK: Initializers
@@ -154,8 +167,8 @@ public struct NaviOptions : Codable {
                 vehicleType : VehicleType? = nil,
                 rpOption : RpOption? = nil,
                 routeInfo : Bool? = false,
-                startX : Int64? = 0,
-                startY : Int64? = 0,
+                startX : String? = "0",
+                startY : String? = "0",
                 startAngle : Int? = 0,
                 returnUri : URL? = nil)  {
         self.coordType = coordType
@@ -172,14 +185,14 @@ public struct NaviOptions : Codable {
 //내부전용.
 struct NaviParameters : Codable {
     var destination : NaviLocation
-    var options : NaviOptions?
+    var option : NaviOption?
     var viaList : [NaviLocation]?
     
     init(destination : NaviLocation,
-                options : NaviOptions? = nil,
+                option : NaviOption? = nil,
                 viaList : [NaviLocation]? = nil) {
         self.destination = destination
-        self.options = options
+        self.option = option
         self.viaList = viaList
         
     }

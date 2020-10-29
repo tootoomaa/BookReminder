@@ -60,7 +60,6 @@ class MyBookVC: UIViewController {
       } else {
         self?.myBookListVM.addMyBook(Book(isbnCode: isbnCode, dictionary: bookDicValue),
                                           value: bookDicValue)
-        self?.myBookListVM.reloadData()
         self?.myBookView.initializationMultiButton()
       }
     }
@@ -250,7 +249,6 @@ class MyBookVC: UIViewController {
   
   func deleteMyBook(_ deleteBookIndex: IndexPath) {
     myBookListVM.removeMyBook(deleteBookIndex)
-    myBookListVM.reloadData()
     userSelectedCellForDelete = nil
   }
   
