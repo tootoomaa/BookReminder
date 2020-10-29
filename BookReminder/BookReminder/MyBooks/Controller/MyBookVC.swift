@@ -209,8 +209,8 @@ class MyBookVC: UIViewController {
         
         if let filteredBooks = searchText == "" ?
           self?.myBookListVM.myBooks :
-            self?.myBookListVM.myBooks.filter { ($0.book.title).contains(searchText) } {
-        
+          self?.myBookListVM.myBooks.filter({ ($0.book.title).contains(searchText) })
+        {
           self?.myBookListVM.filteredMyBooks = filteredBooks
           self?.myBookListVM.allcase.accept(filteredBooks)
         }

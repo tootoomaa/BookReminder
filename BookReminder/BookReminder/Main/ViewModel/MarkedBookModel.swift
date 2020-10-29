@@ -28,7 +28,8 @@ extension MarkedBookListModel {
     allcase.accept(books.count == 0 ? [MarkedBookModel(Book.empty())] : books)
   }
   
-  func bookAt(_ index: Int) -> MarkedBookModel {
+  func bookAt(_ index: Int) -> MarkedBookModel? {
+    guard !self.books.isEmpty else { return nil }
     return books[index]
   }
   

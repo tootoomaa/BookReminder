@@ -82,6 +82,9 @@ struct Book: Equatable {
   static func == (lhs: Book, rhs: Book) -> Bool {
     lhs.isbn == rhs.isbn
   }
+}
+
+extension Book {
   
   static func returnDictionaryValue(documents: Book) -> Dictionary<String, AnyObject> {
     //    guard let documents = documents else { fatalError() }
@@ -98,7 +101,7 @@ struct Book: Equatable {
       "title": documents.title!,
       "translators": documents.translators ?? [],
       "url": documents.url!,
-      "creationDate": documents.creationDate ?? Int(NSDate().timeIntervalSince1970)
+      "creationDate": documents.creationDate ?? NSDate().timeIntervalSince1970
     ] as Dictionary<String, AnyObject>
     return bookDicValue
   }
