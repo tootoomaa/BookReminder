@@ -26,7 +26,7 @@ class MyBookView: UIView {
     sBar.barStyle = .default
     sBar.barTintColor = .none
     sBar.searchBarStyle = .minimal
-    sBar.showsCancelButton = false
+    sBar.showsCancelButton = true
     return sBar
   }()
   
@@ -89,9 +89,7 @@ class MyBookView: UIView {
   // MARK: - Life Cycle
   override init(frame: CGRect) {
     super.init(frame: frame)
-    
     configureLayout()
-    
   }
   
   required init?(coder: NSCoder) {

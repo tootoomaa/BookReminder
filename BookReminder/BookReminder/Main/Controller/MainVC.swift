@@ -32,7 +32,6 @@ class MainVC: UIViewController, ViewModelBindableType {
     }
   }
   
-  
   // MARK: - Life Cycle
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -53,8 +52,8 @@ class MainVC: UIViewController, ViewModelBindableType {
 //    }
     
     getInitalData()
-
-    configureViewGesture()
+    
+    configureButtonBinding()
   }
   
   func bindViewModel() {
@@ -67,23 +66,6 @@ class MainVC: UIViewController, ViewModelBindableType {
   
   override func viewWillAppear(_ animated: Bool) {
     navigationController?.navigationBar.isHidden = true
-  }
-
-  private func configureViewGesture() {
-    let imageViewGesture = UITapGestureRecognizer(target: self, action: #selector(tabProfileImageButton))
-    let nameLabelGesture = UITapGestureRecognizer(target: self, action: #selector(tabProfileImageButton))
-    mainView.profileImageView.addGestureRecognizer(imageViewGesture)
-    mainView.nameLabel.addGestureRecognizer(nameLabelGesture)
-    mainView.detailProfileButton.addTarget(self, action: #selector(tabDetailProfileButton), for: .touchUpInside)
-    
-    let tabBookMarkLabelGuesture = UITapGestureRecognizer(target: self, action: #selector(tapBookMarkLabel))
-    let tabCommentLabelGuesture = UITapGestureRecognizer(target: self, action: #selector(tapCommentLabel))
-    
-    mainView.mainConrtollMenu.bookMarkLabel.addGestureRecognizer(tabBookMarkLabelGuesture)
-    mainView.mainConrtollMenu.commentLabel.addGestureRecognizer(tabCommentLabelGuesture)
-    mainView.mainConrtollMenu.commentAddButton.addTarget(self, action: #selector(tabAddCommentButton), for: .touchUpInside)
-    mainView.mainConrtollMenu.commentEditButton.addTarget(self, action: #selector(tabCommentListEditButton), for: .touchUpInside)
-    mainView.mainConrtollMenu.compliteButton.addTarget(self, action: #selector(tabCompliteButton), for: .touchUpInside)
   }
   
   // MARK: - Network handler
@@ -221,13 +203,35 @@ class MainVC: UIViewController, ViewModelBindableType {
       }).disposed(by: dispoeBag)
   }
 
-  // MARK: - Button Handler
-  @objc private func tabProfileImageButton() {
-    presentUserProfileVC()
+  // MARK: - Configure Button Binder
+  private func configureButtonBinding() {
+    userProfileTapGuesture()
+    addCommentButtonBinding()
+    commentEditButtonBinding()
+    completeButtonBinding()
+    deleteBookMarkButtonBinding()
+    showCommentsButtonBind()
   }
   
-  @objc private func tabDetailProfileButton() {
-    presentUserProfileVC()
+  private func userProfileTapGuesture() {
+    let imageViewGesture = UITapGestureRecognizer()
+    mainView.profileImageView.addGestureRecognizer(imageViewGesture)
+    
+    imageViewGesture.rx.event.bind (onNext: { [weak self] recognizer in
+      self?.presentUserProfileVC()
+    }).disposed(by: dispoeBag)
+    
+    let nameLabelGesture = UITapGestureRecognizer()
+    mainView.nameLabel.addGestureRecognizer(nameLabelGesture)
+    
+    nameLabelGesture.rx.event.bind (onNext: { [weak self] recognizer in
+      self?.presentUserProfileVC()
+    }).disposed(by: dispoeBag)
+    
+    mainView.detailProfileButton.rx.tap
+      .bind { [weak self] in
+        self?.presentUserProfileVC()
+      }.disposed(by: dispoeBag)
   }
   
   private func presentUserProfileVC() {
@@ -235,55 +239,132 @@ class MainVC: UIViewController, ViewModelBindableType {
     navigationController?.pushViewController(userProfileVC, animated: true)
   }
   
-  @objc private func tabAddCommentButton() {
-    guard (markedBookListVM.books.first?.book.title) != nil else { popErrorAlertController(); return }
-    
-    let addCommentVC = AddCommentVC()
-    addCommentVC.markedBookInfo = markedBookListVM.bookAt(userSelectedBookIndex.row).book
-    navigationController?.pushViewController(addCommentVC, animated: true)
-  }
-  
-  @objc private func tabCommentListEditButton() {
-    guard (markedBookListVM.books.first?.book.title) != nil else { popErrorAlertController(); return }
-    
-    let commentListVC = CommentListVC(style: .plain)
-    commentListVC.markedBookInfo = markedBookListVM.bookAt(userSelectedBookIndex.row).book
-    navigationController?.pushViewController(commentListVC, animated: true)
-  }
-  
-  @objc private func tabCompliteButton() {
-    guard (markedBookListVM.books.first?.book.title) != nil else { popErrorAlertController(); return }
-    
-    let okAction = UIAlertAction(title: "완독 처리", style: .destructive) { [weak self] (_) in
-      guard let deleteBookIndex = self?.userSelectedBookIndex.item,
-            let uid = Auth.auth().currentUser?.uid,
-            let deleteBook = self?.markedBookListVM.bookAt(deleteBookIndex),
-            let isbnCode = deleteBook.book.isbn else { return }
-      
-      DB_REF_COMPLITEBOOKS.child(uid).observeSingleEvent(of: .value) { [weak self] (snapshot) in
-        guard (snapshot.value as? Dictionary<String, AnyObject>) == nil else {
-          self?.present(UIAlertController.defaultSetting(title: "오류", message: "이미 완독된 책 입니다"),
-                       animated: true, completion: nil)
-          return
+  private func addCommentButtonBinding() {
+    mainView.mainConrtollMenu.commentAddButton.rx.tap
+      .subscribe(onNext: { [weak self] in
+        guard let index = self?.userSelectedBookIndex.item else { return }
+        
+        if let book = self?.markedBookListVM.bookAt(index)?.book {
+          let addCommentVC = AddCommentVC()
+          addCommentVC.markedBookInfo = book
+          self?.navigationController?.pushViewController(addCommentVC, animated: true)
+        } else {
+          self?.popErrorAlertController()
         }
-        // 신규 등록 되는 책 DB 업데이트
-        DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue() // 북마크에서 제거
-        DB_REF_COMPLITEBOOKS.child(uid).updateChildValues([isbnCode:1]) // 완료된 책 등록
-        Database.userProfileStaticsHanlder(uid: uid, plusMinus: .plus, updateCategory: .compliteBookCount, amount: 1) // 완료 통계 증가
+      }).disposed(by: dispoeBag)
+  }
+  
+  private func commentEditButtonBinding() {
+    mainView.mainConrtollMenu.commentEditButton.rx.tap
+      .subscribe(onNext: { [weak self] in
+        guard let index = self?.userSelectedBookIndex.item else { return }
         
-        // 북마크 북 제거
-        guard let deleteBook = self?.markedBookListVM.bookAt(deleteBookIndex) else { return }
-        self?.markedBookListVM.removeMarkedBook(deleteBook.book)
+        if let book = self?.markedBookListVM.bookAt(index)?.book {
+          let commentListVC = CommentListVC(style: .plain)
+          commentListVC.markedBookInfo = book
+          self?.navigationController?.pushViewController(commentListVC, animated: true)
+        } else {
+          self?.popErrorAlertController()
+        }
+      }).disposed(by: dispoeBag)
+  }
+  
+  private func completeButtonBinding() {
+    mainView.mainConrtollMenu.compliteButton.rx.tap
+      .subscribe(onNext: { [weak self] in
+        guard let index = self?.userSelectedBookIndex.item else { return }
+        if let deleteBookModel = self?.markedBookListVM.bookAt(index) {
         
-        // myBook 재설정
-        self?.reloadMyBookCollectionView()
-      }
-      
-    }
-    let message = "해당 책을 완독 처리하시겠습니까?\n 완독한 책은 Main메뉴에서 삭제됩니다."
-    guard let title = markedBookListVM.books[userSelectedBookIndex.row].book.title else { return }
-    let alertController = UIAlertController.okCancelSetting(title: "\(title) 완독", message: message, okAction: okAction)
-    present(alertController, animated: true, completion: nil)
+          let okAction = UIAlertAction(title: "완독 처리", style: .destructive) { [weak self] (_) in
+            guard let uid = Auth.auth().currentUser?.uid,
+                  let isbnCode = deleteBookModel.book.isbn else { return }
+            
+            DB_REF_COMPLITEBOOKS.child(uid).observeSingleEvent(of: .value) { [weak self] (snapshot) in
+              guard (snapshot.value as? Dictionary<String, AnyObject>) == nil else {
+                self?.present(UIAlertController.defaultSetting(title: "오류", message: "이미 완독된 책 입니다"),
+                              animated: true, completion: nil)
+                return
+              }
+              // 신규 등록 되는 책 DB 업데이트
+              DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue() // 북마크에서 제거
+              DB_REF_COMPLITEBOOKS.child(uid).updateChildValues([isbnCode:1]) // 완료된 책 등록
+              Database.userProfileStaticsHanlder(uid: uid, plusMinus: .plus, updateCategory: .compliteBookCount, amount: 1) // 완료 통계 증가
+              
+              // 북마크 북 제거
+              self?.markedBookListVM.removeMarkedBook(deleteBookModel)
+              
+              // myBook 재설정
+              self?.reloadMyBookCollectionView()
+            }
+          }
+          
+          let message = "해당 책을 완독 처리하시겠습니까?\n 완독한 책은 Main메뉴에서 삭제됩니다."
+          
+          if let deleteBookTitle = deleteBookModel.book.title {
+            let alertController = UIAlertController.okCancelSetting(title: "\(deleteBookTitle) 완독", message: message, okAction: okAction)
+            
+            self?.present(alertController, animated: true, completion: nil)
+          }
+        } else {
+          self?.popErrorAlertController()
+        }
+      }).disposed(by: dispoeBag)
+  }
+  
+  private func deleteBookMarkButtonBinding() {
+    let bookMarkTapGuesture = UITapGestureRecognizer()
+    mainView.mainConrtollMenu.bookMarkLabel.addGestureRecognizer(bookMarkTapGuesture)
+    
+    bookMarkTapGuesture.rx.event
+      .bind (onNext: { [weak self] recognizer in
+        guard let index = self?.userSelectedBookIndex.item else { return }
+        
+        if let bookModel = self?.markedBookListVM.bookAt(index) {
+          
+          let okAction = UIAlertAction(title: "북마크 제거", style: .destructive) { [weak self] (_) in
+            
+            self?.markedBookListVM.removeMarkedBook(bookModel)
+            self?.markedBookListVM.reloadData()
+          }
+          
+          let alert = UIAlertController.okCancelSetting(title: "북마크 제거", message: "\(bookModel.book.title ?? "") 책을 북마크에서 제거 합니다.", okAction: okAction)
+          
+          self?.present(alert, animated: true, completion: nil)
+          
+        } else {
+          self?.popErrorAlertController()
+        }
+        
+      }).disposed(by: dispoeBag)
+  }
+  
+  private func showCommentsButtonBind() {
+    let commentLabelTapGuesture = UITapGestureRecognizer()
+    mainView.mainConrtollMenu.commentLabel.addGestureRecognizer(commentLabelTapGuesture)
+    
+    commentLabelTapGuesture.rx.event
+      .bind (onNext: { [weak self] _ in
+        guard let index = self?.userSelectedBookIndex.item else { return }
+        
+        if let book = self?.markedBookListVM.bookAt(index)?.book {
+          
+          let commentListVC = CommentListVC(style: .plain)
+          commentListVC.markedBookInfo = book
+          self?.navigationController?.pushViewController(commentListVC, animated: true)
+          
+        } else {
+          
+          self?.popErrorAlertController()
+          
+        }
+      }).disposed(by: dispoeBag)
+  }
+  
+  // MARK: - Handler
+  private func popErrorAlertController() {
+    present(UIAlertController.defaultSetting(title: "오류 ", message: "북마크된 책이 선택되지 않았습니다."),
+            animated: true,
+            completion: nil)
   }
   
   private func reloadMyBookCollectionView() {
@@ -294,32 +375,6 @@ class MainVC: UIViewController, ViewModelBindableType {
       let myBookVC = naviController.visibleViewController as? MyBookVC else { return }
     
     myBookVC.myBookListVM.reloadData()
-  }
-  
-  @objc private func tapBookMarkLabel() {
-    guard (markedBookListVM.books.first?.book.title) != nil else { popErrorAlertController(); return }
-    
-    let bookInfo = markedBookListVM.bookAt(userSelectedBookIndex.row).book
-    let okAction = UIAlertAction(title: "북마크 제거", style: .destructive) { [weak self] (_) in
-      self?.markedBookListVM.removeMarkedBook(bookInfo)
-      self?.markedBookListVM.reloadData()
-    }
-    
-    let alert = UIAlertController.okCancelSetting(title: "북마크 제거", message: "\(bookInfo.title ?? "") 책을 북마크에서 제거 합니다.", okAction: okAction)
-    present(alert, animated: true, completion: nil)
-  }
-  
-  @objc private func tapCommentLabel() {
-    guard (markedBookListVM.books.first?.book.title) != nil else { popErrorAlertController(); return }
-    let commentListVC = CommentListVC(style: .plain)
-    commentListVC.markedBookInfo = markedBookListVM.bookAt(userSelectedBookIndex.row).book
-    navigationController?.pushViewController(commentListVC, animated: true)
-  }
-  
-  private func popErrorAlertController() {
-    present(UIAlertController.defaultSetting(title: "오류 ", message: "북마크된 책이 선택되지 않았습니다."),
-            animated: true,
-            completion: nil)
   }
 }
 

@@ -82,6 +82,9 @@ struct Book: Equatable {
   static func == (lhs: Book, rhs: Book) -> Bool {
     lhs.isbn == rhs.isbn
   }
+}
+
+extension Book {
   
   static func returnDictionaryValue(documents: Book) -> Dictionary<String, AnyObject> {
     //    guard let documents = documents else { fatalError() }
@@ -98,7 +101,7 @@ struct Book: Equatable {
       "title": documents.title!,
       "translators": documents.translators ?? [],
       "url": documents.url!,
-      "creationDate": documents.creationDate ?? Int(NSDate().timeIntervalSince1970)
+      "creationDate": documents.creationDate ?? NSDate().timeIntervalSince1970
     ] as Dictionary<String, AnyObject>
     return bookDicValue
   }
@@ -115,14 +118,13 @@ extension Book {
       guard let uid = Auth.auth().currentUser?.uid else { fatalError("Fail to get Uid") }
       DB_REF_USERBOOKS.child(uid).observeSingleEvent(of: .value) { (snapshot, uid) in
         
-        /*
+          /*
          case 1 첫 사용자 값, nil
          case 2 인터넷 에러, nil
          */
         
         guard let bookDetailInfos = snapshot.value as? Dictionary<String, AnyObject> else {
           observer.onNext([])
-          print("Fail to fetch", snapshot.value)
           return
         }
         

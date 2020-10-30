@@ -28,7 +28,8 @@ extension MarkedBookListModel {
     allcase.accept(books.count == 0 ? [MarkedBookModel(Book.empty())] : books)
   }
   
-  func bookAt(_ index: Int) -> MarkedBookModel {
+  func bookAt(_ index: Int) -> MarkedBookModel? {
+    guard !self.books.isEmpty else { return nil }
     return books[index]
   }
   
@@ -37,11 +38,14 @@ extension MarkedBookListModel {
     self.books.append(addBookModel)
   }
   
-  mutating func removeMarkedBook(_ removeBook: Book) {
+  mutating func removeMarkedBook(_ removeBookModel: MarkedBookModel) {
     guard let uid = Auth.auth().currentUser?.uid else { return }
-    guard let isbnCode = removeBook.isbn else { return }
+    guard let isbnCode = removeBookModel.book.isbn else { return }
     
-    let removeBookModel = MarkedBookModel(removeBook)
+    /* [ 북마크된 책이 삭제될때 같이 지워져야 되는 사항
+     1. 등록 권수 통계 값 -1
+     2. 사용자 북마크 북 리스트에서 삭제
+     */
     if let index = self.books.firstIndex(of: removeBookModel) {
       DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue()
       self.books.remove(at: index)
