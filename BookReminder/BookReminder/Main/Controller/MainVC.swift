@@ -273,11 +273,11 @@ class MainVC: UIViewController, ViewModelBindableType {
     mainView.mainConrtollMenu.compliteButton.rx.tap
       .subscribe(onNext: { [weak self] in
         guard let index = self?.userSelectedBookIndex.item else { return }
-        if let deleteBook = self?.markedBookListVM.bookAt(index)?.book {
+        if let deleteBookModel = self?.markedBookListVM.bookAt(index) {
         
           let okAction = UIAlertAction(title: "완독 처리", style: .destructive) { [weak self] (_) in
             guard let uid = Auth.auth().currentUser?.uid,
-                  let isbnCode = deleteBook.isbn else { return }
+                  let isbnCode = deleteBookModel.book.isbn else { return }
             
             DB_REF_COMPLITEBOOKS.child(uid).observeSingleEvent(of: .value) { [weak self] (snapshot) in
               guard (snapshot.value as? Dictionary<String, AnyObject>) == nil else {
@@ -291,17 +291,20 @@ class MainVC: UIViewController, ViewModelBindableType {
               Database.userProfileStaticsHanlder(uid: uid, plusMinus: .plus, updateCategory: .compliteBookCount, amount: 1) // 완료 통계 증가
               
               // 북마크 북 제거
-              self?.markedBookListVM.removeMarkedBook(deleteBook)
+              self?.markedBookListVM.removeMarkedBook(deleteBookModel)
               
               // myBook 재설정
               self?.reloadMyBookCollectionView()
             }
-            
           }
+          
           let message = "해당 책을 완독 처리하시겠습니까?\n 완독한 책은 Main메뉴에서 삭제됩니다."
-          guard let title = self?.markedBookListVM.books[index].book.title else { return }
-          let alertController = UIAlertController.okCancelSetting(title: "\(title) 완독", message: message, okAction: okAction)
-          self?.present(alertController, animated: true, completion: nil)
+          
+          if let deleteBookTitle = deleteBookModel.book.title {
+            let alertController = UIAlertController.okCancelSetting(title: "\(deleteBookTitle) 완독", message: message, okAction: okAction)
+            
+            self?.present(alertController, animated: true, completion: nil)
+          }
         } else {
           self?.popErrorAlertController()
         }
@@ -316,15 +319,16 @@ class MainVC: UIViewController, ViewModelBindableType {
       .bind (onNext: { [weak self] recognizer in
         guard let index = self?.userSelectedBookIndex.item else { return }
         
-        if let bookInfo = self?.markedBookListVM.bookAt(index)?.book {
+        if let bookModel = self?.markedBookListVM.bookAt(index) {
           
           let okAction = UIAlertAction(title: "북마크 제거", style: .destructive) { [weak self] (_) in
             
-            self?.markedBookListVM.removeMarkedBook(bookInfo)
+            self?.markedBookListVM.removeMarkedBook(bookModel)
             self?.markedBookListVM.reloadData()
           }
           
-          let alert = UIAlertController.okCancelSetting(title: "북마크 제거", message: "\(bookInfo.title ?? "") 책을 북마크에서 제거 합니다.", okAction: okAction)
+          let alert = UIAlertController.okCancelSetting(title: "북마크 제거", message: "\(bookModel.book.title ?? "") 책을 북마크에서 제거 합니다.", okAction: okAction)
+          
           self?.present(alert, animated: true, completion: nil)
           
         } else {

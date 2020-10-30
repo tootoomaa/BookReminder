@@ -40,21 +40,12 @@ extension UIAlertController {
         이 책을 삭제하시겠습니까?\n이 책과 관련한 모든 내용이 삭제 됩니다\n 삭제된 데이터는 복원 불가능 합니다
     """
     let alert = UIAlertController(title: "\(book.title ?? "책") 삭제", message: message, preferredStyle: .alert)
-    let addAction = UIAlertAction(title: "취소", style: .cancel) { (_) in }
-    let deleteAction = UIAlertAction(title: "삭제", style: .destructive) { (_) in
-      
-      myBookVC.deleteMyBook(indexPath)
-      myBookVC.deleteBookAtBookMarkedList(book)
-      
-    }
     
-    let imageView = CustomImageView(frame: CGRect(x: 80, y: 110, width: 140, height: 200))
+    let imageView = CustomImageView(frame: CGRect(x: 80, y: 140, width: 140, height: 200))
     imageView.loadImage(urlString: book.thumbnail)
     
     alert.view.addSubview(imageView)
-    alert.addAction(addAction)
-    alert.addAction(deleteAction)
-
+    
     if let view = alert.view {
       let height = NSLayoutConstraint(item: view, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 400)
       let width = NSLayoutConstraint(item: view, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 300)

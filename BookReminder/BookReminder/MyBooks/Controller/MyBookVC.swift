@@ -208,9 +208,8 @@ class MyBookVC: UIViewController {
         guard let searchText = $0 else { return }
         
         if let filteredBooks = searchText == "" ?
-          self?.myBookListVM.myBooks :
-          self?.myBookListVM.myBooks.filter({ ($0.book.title).contains(searchText) })
-        {
+            self?.myBookListVM.myBooks :
+            self?.myBookListVM.myBooks.filter({ ($0.book.title).contains(searchText) }) {
           self?.myBookListVM.filteredMyBooks = filteredBooks
           self?.myBookListVM.allcase.accept(filteredBooks)
         }
@@ -263,10 +262,25 @@ class MyBookVC: UIViewController {
         }
         
         if let self = self {
-          let deleteBookInfo = self.myBookListVM.bookAt(deleteBookIndex.item)
+          guard let deleteBookInfo = self.myBookListVM.bookAt(deleteBookIndex.item) else { return }
           let bookInfo = deleteBookInfo.book
           
-          self.present(UIAlertController.deleteBookWarning(self, bookInfo, deleteBookIndex), animated: true)
+          let alert = UIAlertController.deleteBookWarning(self, bookInfo, deleteBookIndex)
+          
+          
+          let addAction = UIAlertAction(title: "취소", style: .cancel) { (_) in }
+          let deleteAction = UIAlertAction(title: "삭제", style: .destructive) { (_) in
+            
+            guard let index = self.userSelectedCellForDelete,
+                  let deleteBookModel = self.myBookListVM.bookAt(index.item) else { return }
+            self.deleteMyBook(index)
+            self.deleteBookAtBookMarkedList(deleteBookModel.toMarkedBookModel())
+            
+          }
+          alert.addAction(addAction)
+          alert.addAction(deleteAction)
+          
+          self.present(alert, animated: true)
         }
       }.disposed(by: disposeBag)
   }
@@ -282,7 +296,7 @@ class MyBookVC: UIViewController {
     userSelectedCellForDelete = nil
   }
   
-  func deleteBookAtBookMarkedList(_ deleteBookInfo: Book) {
+  func deleteBookAtBookMarkedList(_ deleteBookInfo: MarkedBookModel) {
     // bookMarked Book Remove
     guard let window = UIApplication.shared.delegate?.window,
           let tabBarController = window?.rootViewController as? UITabBarController else { return }
@@ -313,7 +327,7 @@ class MyBookVC: UIViewController {
         mainVC.markedBookListVM.addMarkedBook(bookDetailInfo)
       } else {
         DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue()
-        mainVC.markedBookListVM.removeMarkedBook(bookDetailInfo)
+        mainVC.markedBookListVM.removeMarkedBook(MarkedBookModel(bookDetailInfo))
       }
       mainVC.markedBookListVM.allcase.accept(mainVC.markedBookListVM.books)
 

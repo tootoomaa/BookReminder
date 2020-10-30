@@ -33,7 +33,10 @@ extension MyBookListViewModel {
     return isSameBook
   }
   
-  func bookAt(_ index: Int) -> MyBookViewModel {
+  func bookAt(_ index: Int) -> MyBookViewModel? {
+    
+    if myBooks.isEmpty { return nil }
+    
     return myBooks[index]
   }
   
@@ -73,4 +76,12 @@ struct MyBookViewModel {
   init(_ book: Book) {
     self.book = book
   }
+}
+
+extension MyBookViewModel {
+  
+  func toMarkedBookModel() -> MarkedBookModel {
+    return MarkedBookModel(self.book)
+  }
+  
 }
