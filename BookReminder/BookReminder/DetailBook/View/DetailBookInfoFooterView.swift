@@ -23,17 +23,26 @@ class DetailBookInfoFooterView: UIView {
     textView.autocorrectionType = .no
     textView.autocapitalizationType = .none
     textView.autoresizingMask = .flexibleHeight
-    textView.contentInset = UIEdgeInsets(top: 5, left: 5, bottom: 5, right: 5)
+    textView.isSelectable = false
+    textView.isUserInteractionEnabled = false
+    textView.contentInset = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
     textView.font = .systemFont(ofSize: 15)
     textView.layer.cornerRadius = 20
     textView.clipsToBounds = true
     return textView
   }()
   
-  
   override init(frame: CGRect) {
     super.init(frame: frame)
     
+    configureLayout()
+  }
+  
+  required init?(coder: NSCoder) {
+    fatalError("init(coder:) has not been implemented")
+  }
+  
+  private func configureLayout() {
     [titleLabel, myTextView].forEach{
       addSubview($0)
     }
@@ -43,18 +52,9 @@ class DetailBookInfoFooterView: UIView {
     }
     
     myTextView.snp.makeConstraints{
-      $0.top.equalTo(titleLabel.snp.bottom).offset(5)
-      $0.leading.equalTo(self).offset(5)
-      $0.trailing.bottom.equalTo(self).offset(-5)
+      $0.top.equalTo(titleLabel.snp.bottom).offset(10)
+      $0.leading.equalTo(self).offset(10)
+      $0.trailing.bottom.equalTo(self).offset(-10)
     }
-  }
-  
-  func configure(title: String, context: String) {
-    titleLabel.text = title
-    myTextView.text = context
-  }
-    
-  required init?(coder: NSCoder) {
-    fatalError("init(coder:) has not been implemented")
   }
 }

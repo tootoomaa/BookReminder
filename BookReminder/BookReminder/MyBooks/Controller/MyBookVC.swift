@@ -340,7 +340,7 @@ class MyBookVC: UIViewController {
     } else if buttonName == MyBookCellButtonTitle.info.rawValue {
       
       let detailBookInfoVC = DetailBookInfoVC()
-      detailBookInfoVC.detailBookInfo = bookDetailInfo
+      detailBookInfoVC.userSelectedBook = bookDetailInfo
       navigationController?.pushViewController(detailBookInfoVC, animated: true)
       
     }

@@ -15,13 +15,13 @@ class DetailBookInfoCell: UITableViewCell {
   
   let titleLabel: UILabel = {
     let label = UILabel()
-    label.text = "labelText"
+    label.text = "loading.."
     return label
   }()
   
   let contextLabel: UILabel = {
     let label = UILabel()
-    label.text = "context"
+    label.text = "loading.."
     return label
   }()
   
@@ -45,11 +45,5 @@ class DetailBookInfoCell: UITableViewCell {
   
   required init?(coder: NSCoder) {
     fatalError("init(coder:) has not been implemented")
-  }
-  
-  func configure(titleText: String, contextText: String) {
-    
-    titleLabel.text = titleText
-    contextLabel.text = contextText
   }
 }

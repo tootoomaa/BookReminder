@@ -158,14 +158,6 @@ class SearchBookVC: UIViewController {
   }
 }
 
-// MARK: - UICollectionViewDelegate
-extension SearchBookVC: UICollectionViewDelegate {
-  
-  func scrollViewDidScroll(_ scrollView: UIScrollView) {
-    hideKeyBoard()
-  }
-}
-
 // MARK: - UICollecionViewDelegateFlowLayout
 extension SearchBookVC: UICollectionViewDelegateFlowLayout {
   

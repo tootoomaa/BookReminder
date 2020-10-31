@@ -11,28 +11,28 @@ import SnapKit
 
 class DetailBookInfoHeaderView: UIView {
   
-  let blurView: UIVisualEffectView = {
-    let blurEffet = UIBlurEffect(style: .systemThinMaterial)
-    return UIVisualEffectView(effect: blurEffet)
-  }()
-  
   let bookThumbnailImageView: CustomImageView = {
     let imageView = CustomImageView()
+    imageView.layer.borderWidth = 2
+    imageView.layer.borderColor = UIColor.black.cgColor
     return imageView
   }()
   
   override init(frame: CGRect) {
     super.init(frame: frame)
     
-    blurView.alpha = 1
-    backgroundColor = .systemGray4
+    backgroundColor = .white
     
-    [blurView, bookThumbnailImageView].forEach{
+    configureLayout()
+  }
+  
+  required init?(coder: NSCoder) {
+    fatalError("init(coder:) has not been implemented")
+  }
+  
+  private func configureLayout() {
+    [bookThumbnailImageView].forEach{
       addSubview($0)
-    }
-    
-    blurView.snp.makeConstraints{
-      $0.top.leading.trailing.bottom.equalTo(self)
     }
     
     bookThumbnailImageView.snp.makeConstraints{
@@ -41,13 +41,5 @@ class DetailBookInfoHeaderView: UIView {
       $0.centerX.equalTo(self.snp.centerX)
       $0.width.equalTo(bookThumbnailImageView.snp.height).multipliedBy(0.68)
     }
-  }
-  
-  required init?(coder: NSCoder) {
-    fatalError("init(coder:) has not been implemented")
-  }
-  
-  func configure(thumbnailImageUrl: String) {
-    bookThumbnailImageView.loadImage(urlString: thumbnailImageUrl)
   }
 }

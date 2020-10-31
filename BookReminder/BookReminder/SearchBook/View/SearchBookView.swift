@@ -21,14 +21,6 @@ class SearchBookView: UIView {
     return button
   }()
   
-  let resultResearchButton: UIButton = {
-    let button = UIButton()
-    button.setTitle("결과내검색", for: .normal)
-    button.setTitleColor(.black, for: .normal)
-    button.backgroundColor = .systemGray5
-    return button
-  }()
-  
   lazy var searchBar: UISearchBar = {
     let sBar = UISearchBar(frame: .zero)
     sBar.placeholder = " 검색.."
@@ -58,15 +50,14 @@ class SearchBookView: UIView {
   }
   
   private func configureLayout() {
-    let safeGuide = safeAreaLayoutGuide
-    
+    let guide = self.safeAreaLayoutGuide
     [mainCategoryButton, searchBar, collectionView].forEach{
       addSubview($0)
     }
     
     mainCategoryButton.snp.makeConstraints{
-      $0.top.equalTo(safeGuide.snp.top).offset(20)
-      $0.leading.equalTo(safeGuide.snp.leading).offset(5)
+      $0.top.equalTo(guide).offset(20)
+      $0.leading.equalTo(guide).offset(5)
       $0.height.equalTo(40)
       $0.width.equalTo(110)
     }
@@ -74,18 +65,15 @@ class SearchBookView: UIView {
     searchBar.snp.makeConstraints{
       $0.centerY.equalTo(mainCategoryButton.snp.centerY)
       $0.leading.equalTo(mainCategoryButton.snp.trailing).offset(5)
-      $0.trailing.equalTo(safeGuide.snp.trailing).offset(-10)
-      $0.height.equalTo(40)
+      $0.trailing.equalTo(guide).offset(-10)
+      $0.height.equalTo(mainCategoryButton.snp.height)
     }
     
     collectionView.snp.makeConstraints{
-      $0.top.equalTo(searchBar.snp.bottom).offset(20)
-      $0.leading.equalTo(safeGuide).offset(20)
-      $0.trailing.equalTo(safeGuide).offset(-20)
-      $0.bottom.equalTo(safeGuide)
+      $0.top.equalTo(mainCategoryButton.snp.bottom)
+      $0.leading.equalTo(guide).offset(20)
+      $0.trailing.equalTo(guide).offset(-20)
+      $0.bottom.equalTo(guide)
     }
-    
-    bringSubviewToFront(self.mainCategoryButton)
   }
-  
 }
