@@ -267,7 +267,6 @@ class MyBookVC: UIViewController {
           
           let alert = UIAlertController.deleteBookWarning(self, bookInfo, deleteBookIndex)
           
-          
           let addAction = UIAlertAction(title: "취소", style: .cancel) { (_) in }
           let deleteAction = UIAlertAction(title: "삭제", style: .destructive) { (_) in
             
