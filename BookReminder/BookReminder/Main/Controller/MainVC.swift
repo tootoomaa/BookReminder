@@ -264,7 +264,7 @@ class MainVC: UIViewController, ViewModelBindableType {
         guard let index = self?.userSelectedBookIndex.item else { return }
         
         if let book = self?.markedBookListVM.bookAt(index)?.book {
-          let commentListVC = CommentListVC(book)
+          let commentListVC = CommentListVC(book, true)
           self?.navigationController?.pushViewController(commentListVC, animated: true)
         } else {
           self?.popErrorAlertController()
@@ -351,7 +351,7 @@ class MainVC: UIViewController, ViewModelBindableType {
         
         if let book = self?.markedBookListVM.bookAt(index)?.book {
           
-          let commentListVC = CommentListVC(book)
+          let commentListVC = CommentListVC(book, false)
           self?.navigationController?.pushViewController(commentListVC, animated: true)
           
         } else {

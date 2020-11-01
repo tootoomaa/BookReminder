@@ -20,13 +20,16 @@ class CommentListVC: UIViewController {
   let tableView = UITableView(frame: .zero, style: .plain)
   
   var userSelectedBook: Book?
+  var isCommentEditing: Bool?
   
   var commentList: [Comment] = []
   
   // MARK: - Life Cycle
-  init(_ userSelectedBook: Book) {
+  init(_ userSelectedBook: Book, _ isCommentEditing: Bool) {
     super.init(nibName: nil, bundle: nil)
     self.userSelectedBook = userSelectedBook
+    self.isCommentEditing = isCommentEditing
+    
     title = userSelectedBook.title
   }
   
@@ -92,6 +95,7 @@ class CommentListVC: UIViewController {
   }
   
   private func tableViewSelectItemBinding() {
+    guard let isCommentEditing = isCommentEditing else { return }
     tableView.rx
       .itemSelected.bind { [weak self] in
         if let comment = self?.commentListVM.commentList[$0.row] {
@@ -111,7 +115,7 @@ class CommentListVC: UIViewController {
             .disposed(by: disposeBag)
           
           addCommentVC.title = "Comment Detail"
-          addCommentVC.isEditing = false
+          addCommentVC.isEditing = isCommentEditing
           self?.navigationController?.pushViewController(addCommentVC, animated: true)
         }
       }.disposed(by: disposeBag)

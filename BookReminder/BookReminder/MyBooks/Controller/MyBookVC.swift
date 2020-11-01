@@ -332,7 +332,7 @@ class MyBookVC: UIViewController {
 
     } else if buttonName == MyBookCellButtonTitle.comment.rawValue {
       
-      let commentList = CommentListVC(bookDetailInfo)
+      let commentList = CommentListVC(bookDetailInfo, false)
       navigationController?.pushViewController(commentList, animated: true)
       
     } else if buttonName == MyBookCellButtonTitle.info.rawValue {

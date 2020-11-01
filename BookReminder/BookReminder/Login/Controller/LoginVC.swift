@@ -22,66 +22,7 @@ class LoginVC: UIViewController {
   // MARK: - Properites
   fileprivate var currentNonce: String? // 에플 로그인을 위한 nonce값
   
-  let titleLabel: UILabel = {
-    let label = UILabel()
-    label.text = "Book\nReminder"
-    label.font = .systemFont(ofSize: 50, weight: .bold)
-    label.numberOfLines = 2
-    label.textColor = .white
-    return label
-  }()
-  
-  let bottomView: UIView = {
-    let view = UIView()
-    view.backgroundColor = .white
-    return view
-  }()
-  
-  let loginTextLabel: UILabel = {
-    let label = UILabel()
-    label.text = "소셜 계정 연동 하기"
-    label.font = .systemFont(ofSize: 20, weight: .medium)
-    label.textAlignment = .center
-    label.backgroundColor = .white
-    label.textColor = .black
-    return label
-  }()
-  
-  lazy var kakaoLoginButton: KOLoginButton = {
-    let button = KOLoginButton()
-    //    button.setImage(UIImage(named: "kakao_login_large_wide"), for: .normal)
-    //    button.imageView?.contentMode = .scaleAspectFit
-    button.layer.cornerRadius = 10
-    button.layer.masksToBounds = true
-    button.addTarget(self, action: #selector(tapKakaoLoginButton), for: .touchUpInside)
-    return button
-  }()
-  
-  lazy var googleLoginButton: UIButton = {
-    let button = UIButton()
-    button.titleLabel?.font = .boldSystemFont(ofSize: 20)
-    button.setTitle("     Sign in With Google", for: .normal)
-    button.setTitleColor(.black, for: .normal)
-    button.addTarget(self, action: #selector(tabGoogleLoginButton), for: .touchUpInside)
-    button.backgroundColor = .white
-    button.layer.borderWidth = 1
-    button.layer.borderColor = UIColor.gray.cgColor
-    button.layer.cornerRadius = 10
-    button.layer.masksToBounds = true
-    return button
-  }()
-  
-  let googleLogoImageView: UIImageView = {
-    let imageView = UIImageView(frame: .zero)
-    imageView.image = UIImage(named: "googleLogo1")
-    return imageView
-  }()
-  
-  let appleLoginButton: ASAuthorizationAppleIDButton = {
-    let button = ASAuthorizationAppleIDButton(authorizationButtonType: .signIn, authorizationButtonStyle: .black)
-    button.addTarget(self, action: #selector(tapAppleLoginbutton), for: .touchUpInside)
-    return button
-  }()
+  let loginView = LoginView()
   
   // MARK: - Inti
   override func viewDidLoad() {
@@ -91,77 +32,28 @@ class LoginVC: UIViewController {
     
     GIDSignIn.sharedInstance().presentingViewController = self
     GIDSignIn.sharedInstance().delegate = self
-    configureLayout()
     
+    configureButtonAction()
   }
   
-  private func configureLayout() {
-    
-    let padding: CGFloat = 50
-    //    let bottomViewPadding: CGFloat = padding*0.7
-    
-    // 상단 뷰
-    [titleLabel, bottomView].forEach{
-      view.addSubview($0)
-    }
-    
-    titleLabel.snp.makeConstraints{
-      $0.top.equalTo(view.snp.top).offset(padding*1.5)
-      $0.centerX.equalTo(view.snp.centerX)
-    }
-    
-    bottomView.snp.makeConstraints{
-      $0.top.equalTo(titleLabel.snp.bottom).offset(padding)
-      $0.leading.equalTo(view.snp.leading)
-      $0.trailing.equalTo(view.snp.trailing)
-      $0.bottom.equalTo(view.snp.bottom)
-    }
-    
-    // 하단 뷰
-    bottomView.layoutMargins = UIEdgeInsets(top: 10, left: 15, bottom: 20, right: 15)
-    
-    [loginTextLabel, googleLoginButton, appleLoginButton, googleLogoImageView].forEach{
-      bottomView.addSubview($0)
-    }
-    
-    loginTextLabel.snp.makeConstraints{
-      $0.top.equalTo(bottomView.layoutMargins.top)
-      $0.leading.equalTo(bottomView.snp.leading)
-      $0.trailing.equalTo(bottomView.snp.trailing)
-      $0.centerX.equalTo(bottomView.snp.centerX)
-      $0.height.equalTo(90)
-    }
-    
-    appleLoginButton.snp.makeConstraints{
-      $0.top.equalTo(loginTextLabel.snp.bottom).offset(30)
-      $0.centerX.equalTo(loginTextLabel.snp.centerX)
-      $0.height.equalTo(56)
-      $0.width.equalTo(330)
-    }
-    
-    googleLoginButton.snp.makeConstraints{
-      $0.top.equalTo(appleLoginButton.snp.bottom).offset(20)
-      $0.centerX.equalTo(loginTextLabel.snp.centerX)
-      $0.height.equalTo(56)
-      $0.width.equalTo(330)
-    }
-    
-    googleLogoImageView.snp.makeConstraints{
-      $0.centerX.equalTo(googleLoginButton.snp.centerX).offset(-95)
-      $0.centerY.equalTo(googleLoginButton.snp.centerY)
-      $0.width.height.equalTo(15)
-    }
-    
+  override func loadView() {
+    view = loginView
+  }
+  
+  private func configureButtonAction() {
+    loginView.appleLoginButton.addTarget(self, action: #selector(tapAppleLoginbutton), for: .touchUpInside)
+    loginView.googleLoginButton.addTarget(self, action: #selector(tabGoogleLoginButton), for: .touchUpInside)
+    loginView.kakaoLoginButton.addTarget(self, action: #selector(tapKakaoLoginButton), for: .touchUpInside)
   }
   
   // MARK: - Handler
-    @objc private func tabGoogleLoginButton() {
+  @objc private func tabGoogleLoginButton() {
+    GIDSignIn.sharedInstance().signIn()
+    
+    if GIDSignIn.sharedInstance().currentUser != nil {
       GIDSignIn.sharedInstance().signIn()
-  
-      if GIDSignIn.sharedInstance().currentUser != nil {
-        GIDSignIn.sharedInstance().signIn()
-      }
     }
+  }
   
   @objc private func tapKakaoLoginButton() {
     
@@ -230,7 +122,6 @@ class LoginVC: UIViewController {
         }
       }
     }
-    
     return result
   }
   

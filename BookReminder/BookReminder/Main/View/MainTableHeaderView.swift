@@ -43,15 +43,7 @@ class MainTableHeaderView: UIView {
     button.sizeToFit()
     return button
   }()
-  
-  let detailProfileButton: UIButton = {
-    let button = UIButton()
-    let sysImageConf = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium)
-    button.setImage(UIImage(systemName: "line.horizontal.3", withConfiguration: sysImageConf), for: .normal)
-    button.imageView?.tintColor = CommonUI.titleTextColor
-    return button
-  }()
-  
+
   // MARK: - Init
   override init(frame: CGRect) {
     super.init(frame: frame)
@@ -67,7 +59,7 @@ class MainTableHeaderView: UIView {
   
   private func configureLayout() {
     
-    [profileImageView, nameLabel, logoutButton, detailProfileButton].forEach{
+    [profileImageView, nameLabel, logoutButton].forEach{
       addSubview($0)
     }
     
@@ -88,11 +80,7 @@ class MainTableHeaderView: UIView {
       $0.width.equalTo(80)
       $0.height.equalTo(40)
     }
-    
-    detailProfileButton.snp.makeConstraints{
-      $0.centerY.equalTo(profileImageView)
-      $0.trailing.equalTo(self).offset(-20)
-    }
+
   }
   
   func configureHeaderView(profileImageUrlString: String?, userName: String?, isHiddenLogoutButton: Bool) {
@@ -105,9 +93,5 @@ class MainTableHeaderView: UIView {
     if let userName = userName {
       nameLabel.text = userName
     }
-    
-    logoutButton.isHidden = isHiddenLogoutButton
-    logoutButton.isUserInteractionEnabled = !isHiddenLogoutButton
-    detailProfileButton.isHidden = !isHiddenLogoutButton
   }
 }

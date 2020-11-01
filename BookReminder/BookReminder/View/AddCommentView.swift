@@ -22,20 +22,21 @@ class AddCommentView: UIScrollView {
   
   var colorButtonArray: [UIButton] = []
   
-  var isEditingMode = false {
+  var isCommentEditing = false {
     didSet {
       configureLayout()
       
       [multiButton, cameraButton, photoAlbumButton, saveButton].forEach {
-        $0.isHidden = true
+        $0.isHidden = !isCommentEditing
       }
       
       colorButtonArray.forEach {
-        $0.isHidden = true
+        $0.isHidden = !isCommentEditing
       }
-      
-      pagetextField.isUserInteractionEnabled = false
-      myTextView.isUserInteractionEnabled = false
+      pagetextField.isEnabled = !isCommentEditing
+      pagetextField.isUserInteractionEnabled = !isCommentEditing
+      myTextView.isEditable = !isCommentEditing
+      myTextView.isUserInteractionEnabled = !isCommentEditing
     }
   } // Comment 수정 모드를 통해 들어온 경우 stackview 제거
     
@@ -194,7 +195,7 @@ class AddCommentView: UIScrollView {
     stackView.snp.makeConstraints{
       $0.top.equalTo(captureImageView.snp.bottom).offset(10)
       $0.leading.trailing.equalTo(captureImageView)
-      let height = isEditingMode == false ? 0 : 40
+      let height = isCommentEditing == false ? 0 : 40
       $0.height.equalTo(CGFloat(height))
     }
 

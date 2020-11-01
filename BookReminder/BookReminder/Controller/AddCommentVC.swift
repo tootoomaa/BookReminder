@@ -30,9 +30,9 @@ class AddCommentVC: UIViewController {
     }
   }
   // editing Comment
-  var isEditingMode: Bool = false {
+  var isCommentEditing: Bool = false {
     didSet {
-      addCommentView.isEditingMode = isEditingMode
+      addCommentView.isCommentEditing = isCommentEditing
       view = addCommentView
     }
   }
@@ -115,7 +115,7 @@ class AddCommentVC: UIViewController {
   }
   
   private func configureSetUI() {
-    navigationItem.title = isEditingMode == false ? markedBookInfo?.title : "Comment 수정"
+    navigationItem.title = isCommentEditing == false ? markedBookInfo?.title : "Comment 수정"
     view.backgroundColor = .white
   }
   
@@ -306,7 +306,7 @@ class AddCommentVC: UIViewController {
     }
     
     var alertString: String = ""
-    if isEditingMode {
+    if isCommentEditing {
       // 사용자가 Comment 수정 모드로 들어온 경우
       alertString = "수정"
     } else {
@@ -321,7 +321,7 @@ class AddCommentVC: UIViewController {
       guard let markedBookInfo = self.markedBookInfo else { return }
       guard let isbnCode = markedBookInfo.isbn else { return }
       
-      if self.isEditingMode == true {
+      if self.isCommentEditing == true {
         // 기존 Comment 수정
         guard let commentInfo = self.commentInfo else { return }
         self.updateBeforeComment(uid: uid, isbnCode: isbnCode, updateCommentInfo: commentInfo)
@@ -440,7 +440,7 @@ class AddCommentVC: UIViewController {
         let keyboardHeight = keyboardRectangle.height
         view.frame.origin.y += keyboardHeight
         tempKeyboardHeight = keyboardHeight
-        if !isEditingMode { // 사진 수정 방지 기능
+        if !isCommentEditing { // 사진 수정 방지 기능
           isUserInputText = false
         }
         keyboardUpChecker = false
