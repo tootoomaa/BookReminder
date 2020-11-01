@@ -239,7 +239,8 @@ class MainVC: UIViewController, ViewModelBindableType {
   }
   
   private func presentUserProfileVC() {
-    let userProfileVC = UserProfileVC(style: .grouped)
+    let userProfileVC = UserProfileVC()
+    userProfileVC.userVM = self.userVM
     navigationController?.pushViewController(userProfileVC, animated: true)
   }
   
