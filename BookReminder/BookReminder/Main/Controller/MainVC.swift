@@ -68,6 +68,10 @@ class MainVC: UIViewController, ViewModelBindableType {
     navigationController?.navigationBar.isHidden = true
   }
   
+  override func viewDidDisappear(_ animated: Bool) {
+    navigationController?.navigationBar.isHidden = false
+  }
+  
   // MARK: - Network handler
   private func getInitalData() {
     mainView.activityIndicator.startAnimating()
@@ -260,8 +264,7 @@ class MainVC: UIViewController, ViewModelBindableType {
         guard let index = self?.userSelectedBookIndex.item else { return }
         
         if let book = self?.markedBookListVM.bookAt(index)?.book {
-          let commentListVC = CommentListVC(style: .plain)
-          commentListVC.markedBookInfo = book
+          let commentListVC = CommentListVC(book)
           self?.navigationController?.pushViewController(commentListVC, animated: true)
         } else {
           self?.popErrorAlertController()
@@ -348,8 +351,7 @@ class MainVC: UIViewController, ViewModelBindableType {
         
         if let book = self?.markedBookListVM.bookAt(index)?.book {
           
-          let commentListVC = CommentListVC(style: .plain)
-          commentListVC.markedBookInfo = book
+          let commentListVC = CommentListVC(book)
           self?.navigationController?.pushViewController(commentListVC, animated: true)
           
         } else {

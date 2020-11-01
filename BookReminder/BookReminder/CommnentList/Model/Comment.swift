@@ -41,4 +41,25 @@ class Comment {
       self.captureImageFilename = captureImageFilename
     }
   }
+  
+  var sortedInt: Int {
+    let value = page.split(separator: "P")
+    if let intPage = Int(value[0]) {
+      return intPage
+    }
+    return 999
+  }
+}
+
+extension Comment {
+  static func empty() -> Comment {
+    let dicValue = [
+      "captureImageUrl" : "",
+      "page" : "",
+      "creationDate" : "",
+      "myComment" : "",
+      "captureImageFilename": ""
+    ] as Dictionary<String, AnyObject>
+    return Comment(commentUid: "", dictionary: dicValue)
+  }
 }

@@ -76,7 +76,7 @@ class AddCommentVC: UIViewController {
     return imagePicker
   }()
   
-  // MARK: - Init
+  // MARK: - Init  
   override func viewDidLoad() {
     super.viewDidLoad()
     
