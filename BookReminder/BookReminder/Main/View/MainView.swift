@@ -92,7 +92,7 @@ class MainView: UIView {
     }
     
     profileImageView.snp.makeConstraints{
-      $0.top.equalTo(safeAreaLayoutGuide).offset(10)
+      $0.top.equalTo(safeAreaLayoutGuide).offset(20)
       $0.leading.equalTo(safeAreaLayoutGuide).offset(20)
       $0.width.height.equalTo(70)
     }

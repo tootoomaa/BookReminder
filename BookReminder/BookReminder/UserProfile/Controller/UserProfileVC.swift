@@ -44,8 +44,6 @@ class UserProfileVC: UIViewController {
     
     configureSetUI()
     
-    userDataBinding()
-    
     configureTableViewSetting()
     
   }
@@ -68,14 +66,24 @@ class UserProfileVC: UIViewController {
     view.backgroundColor = .white
 
   }
+  // MARK: - Fetch UserStatic Data
+  private func fetchStaticData() {
+    UserProfileViewModel.fetchUserProfile()
+      .subscribe(onNext:{ [weak self] value in
+        self?.userProfileVM = value
+        self?.userDataBinding()
+        self?.tableViewBinding()
+      }).disposed(by: disposeBag)
+  }
+  
   // MARK: - User Data Binding
   private func userDataBinding() {
-    guard let userVM = userVM else { return }
-    userVM.nickName.asDriver(onErrorJustReturn: "")
+    userVM?.nickName.asDriver(onErrorJustReturn: "")
+      .debug()
       .drive(self.userProfileView.nameLabel.rx.text)
       .disposed(by: disposeBag)
     
-    userVM.profileImageUrl.bind { [weak self] imageUrl in
+    userVM?.profileImageUrl.bind { [weak self] imageUrl in
       self?.userProfileView.profileImageView.loadImage(urlString: imageUrl)
     }.disposed(by: disposeBag)
   }
@@ -104,6 +112,7 @@ class UserProfileVC: UIViewController {
 
   // MARK: - TableView Binding
   private func tableViewBinding() {
+        
     userProfileView.tableView.register(UserProfileTableViewCell.self, forCellReuseIdentifier: UserProfileTableViewCell.identifier)
     
     userProfileVM.allcase
@@ -183,30 +192,20 @@ class UserProfileVC: UIViewController {
   }
   
   @objc private func tabNameLabel() {
-    guard let userData = userVM?.user else { return }
     let alertController = UIAlertController(title: "사용자 이름 변경", message: "변경하실 이름을 입력하세요", preferredStyle: .alert)
 
     alertController.addTextField()
 
-    let okAction = UIAlertAction(title: "확인", style: .default) { (_) in
-      guard let uid = Auth.auth().currentUser?.uid else { return }
-
-      if let email = userData.email,
-        let profileImageUrl = userData.profileImageUrl {
-
-        if let text = alertController.textFields?.first?.text {
-          self.mainTableHeaderView.nameLabel.text = text
-
-          let value = [
-            "nickName": text,
-            "email": email,
-            "profileImageUrl": profileImageUrl
-            ] as Dictionary<String, AnyObject>
-
-          
-          
-          DB_REF_USER.updateChildValues([uid: value])
+    let okAction = UIAlertAction(title: "확인", style: .default) { [weak self] (_) in
+      if let newName = alertController.textFields?.first?.text {
+        
+        guard let userVM = self?.userVM else {
+          self?.presentErrorAlert()
+          return
         }
+        self?.userProfileView.nameLabel.text = newName
+        userVM.saveUserName(newName)
+        
       }
     }
     let cancelAction = UIAlertAction(title: "취소", style: .cancel) { (_) in }
@@ -215,79 +214,41 @@ class UserProfileVC: UIViewController {
     alertController.addAction(cancelAction)
     present(alertController, animated: true, completion: nil)
   }
-  
-  // MARK: - Handler
-  private func fetchStaticData() {
-    UserProfileViewModel.fetchUserProfile()
-      .subscribe(onNext:{ [weak self] value in
-        self?.userProfileVM = value
-        self?.tableViewBinding()
-      }).disposed(by: disposeBag)
-  }
 }
 
 // MARK: - UIImagePickerControllerDelegate & UINavigationControllerDelegate
 extension UserProfileVC: UIImagePickerControllerDelegate & UINavigationControllerDelegate {
 //
-//  func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-//    picker.dismiss(animated: true, completion: nil)
-//  }
-//
-//  func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-//    let mediaType = info[.mediaType] as! NSString
-//    if UTTypeEqual(mediaType, kUTTypeImage) {
-//      // handle Image Type
-//      let originalImage = info[.originalImage] as! UIImage    // 이미지를 가져옴
-//      let editedImage = info[.cropRect] as? UIImage        // editedImage
-//      let selectedImage = editedImage ?? originalImage
-//
-//      let profileImageView = mainTableHeaderView.profileImageView
-//      profileImageView.image = selectedImage
-//      profileImageView.layer.cornerRadius = (profileImageView.frame.size.height)/2
-//      profileImageView.clipsToBounds = true
-//    }
-//
-//    dismiss(animated: true, completion: {
-//
-//      guard let uid = Auth.auth().currentUser?.uid,
-//            let userdata = self.userProfileData,
-//            let nickName = userdata.nickName,
-//            let email = userdata.email else { return }
-//
-//      guard let userProfileImage = self.mainTableHeaderView.profileImageView.image else { return }
-//      guard let uploadImageDate = userProfileImage.jpegData(compressionQuality: 0.3) else { return }
-//
-//      let filename = NSUUID().uuidString
-//
-//      if let beforeImageURL = self.userProfileData?.profileImageUrl {
-//        if beforeImageURL != "" {
-//          Storage.storage().reference(forURL: beforeImageURL).delete(completion: nil)
-//        }
-//      }
-//
-//      STORAGE_REF_USER_PROFILEIMAGE.child(filename).putData(uploadImageDate, metadata: nil) { (metadata, error) in
-//        if let error = error {
-//          print("error",error.localizedDescription)
-//          return
-//        }
-//
-//        let uploadImageRef = STORAGE_REF_USER_PROFILEIMAGE.child(filename)
-//        uploadImageRef.downloadURL { (url, error) in
-//          if let error = error { print("Error", error.localizedDescription); return }
-//          guard let url = url else { return }
-//
-//          let value = [
-//            "nickName": nickName,
-//            "email": email,
-//            "profileImageUrl": url.absoluteString
-//          ] as Dictionary<String, AnyObject>
-//
-//          self.userProfileData = User(uid: uid, dictionary: value)
-//
-//          DB_REF_USER.child(uid).updateChildValues(value)
-//        }
-//      }
-//    })
-//  }
+  func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+    picker.dismiss(animated: true, completion: nil)
+  }
+
+  func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+    let mediaType = info[.mediaType] as! NSString
+    if UTTypeEqual(mediaType, kUTTypeImage) {
+      // handle Image Type
+      let originalImage = info[.originalImage] as! UIImage    // 이미지를 가져옴
+      let editedImage = info[.cropRect] as? UIImage        // editedImage
+      let selectedImage = editedImage ?? originalImage
+      
+      guard var userVM = userVM else {
+        presentErrorAlert()
+        return
+      }
+      
+      userProfileView.profileImageView.image = selectedImage
+      
+      userVM.removeUserProfileImageAtStorage(userVM.user.profileImageUrl)
+      userVM.uploadUserProfileImageAtStorage(selectedImage) { newUserDate in
+        userVM.user = newUserDate
+      }
+      
+    }
+    dismiss(animated: true)
+  }
+  
+  private func presentErrorAlert() {
+    present(UIAlertController.defaultSetting(title: "오류", message: "사진 전송에 오류가 발생하였습니다. 다시 시도해주세요!"), animated: true, completion: nil)
+  }
 }
 

@@ -107,6 +107,7 @@ extension Book {
   }
 }
 
+// MARK: - Fetch BookS
 extension Book {
   
   static func empty() -> Book {
@@ -122,7 +123,6 @@ extension Book {
          case 1 첫 사용자 값, nil
          case 2 인터넷 에러, nil
          */
-        
         guard let bookDetailInfos = snapshot.value as? Dictionary<String, AnyObject> else {
           observer.onNext([])
           return
@@ -137,6 +137,83 @@ extension Book {
         observer.onNext(newBookArray)
       }
       return Disposables.create()
+    }
+  }
+  
+}
+
+// MARK: - fetch Marked books
+
+enum fetchError: Error {
+  case getUidError
+  case valueValidationError
+}
+
+extension Book {
+  
+  static func fetchMarkedBookIndex() -> Observable<[String]> {
+    
+    return Observable.create { observer -> Disposable in
+      guard let uid = Auth.auth().currentUser?.uid else {
+        observer.onError(fetchError.getUidError)
+        fatalError("Fail to get Uid")
+      }
+      
+      DB_REF_MARKBOOKS.child(uid).observeSingleEvent(of: .value) { snapshot in
+        guard let markedBookIndex = snapshot.value as? [String: Int] else {
+          observer.onError(fetchError.valueValidationError)
+          fatalError("Fail to get MarkedBook")
+        }
+        
+        let isbnCodeArray = markedBookIndex.map { key, value -> String in
+          return "\(key)"
+        }
+        
+        observer.onNext(isbnCodeArray)
+      }
+      return Disposables.create()
+    }
+  }
+  
+  static func fetchMarkedBookss(_ isbnCode: String) -> Observable<Book> {
+    return Observable.create { [isbn = isbnCode] observer -> Disposable in
+      
+      guard let uid = Auth.auth().currentUser?.uid else {
+        observer.onError(fetchError.getUidError)
+        fatalError("Fail to get Uid")
+      }
+      
+      DB_REF_USERBOOKS.child(uid).child(isbn).observeSingleEvent(of: .value) { (snapshot) in
+        
+        let key = snapshot.key
+        guard let dictionary = snapshot.value as? Dictionary<String, AnyObject> else { return }
+        
+        let bookDetailInfo = Book(isbnCode: key, dictionary: dictionary)
+        
+        observer.onNext(bookDetailInfo)
+      }
+      
+      return Disposables.create()
+    }
+  }
+  
+  static func fetchMarkedBooks(completion: @escaping ([Book]) -> Void) {
+    guard let uid = Auth.auth().currentUser?.uid else { return }
+    
+    var tempMarkedBookList = [Book]()
+    
+    DB_REF_MARKBOOKS.child(uid).observeSingleEvent(of: .value) { (snapshot) in
+      guard let value = snapshot.value as? [String: Int] else { return }
+      
+      value.keys.forEach{
+        Database.fetchBookDetailData(uid: uid, isbnCode: $0) { book in
+          tempMarkedBookList.append(book)
+          tempMarkedBookList.sort { (book1, book2) -> Bool in
+            book1.creationDate > book2.creationDate
+          }
+        }
+      }
+      
     }
   }
   

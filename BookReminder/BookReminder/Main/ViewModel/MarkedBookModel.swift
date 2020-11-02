@@ -14,8 +14,7 @@ import FirebaseAuth
 struct MarkedBookListModel {
   var books: [MarkedBookModel]
   
-  lazy var allcase = BehaviorRelay(value: books.count == 0 ? [MarkedBookModel(Book.empty())] : books.sorted(by: { (markedbook1, markedbook2) -> Bool in return markedbook1.book.creationDate > markedbook2.book.creationDate
-  }))
+  lazy var allcase = BehaviorRelay(value: books)
   
   init(_ books:[Book]) {
     self.books = books.compactMap(MarkedBookModel.init)

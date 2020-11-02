@@ -24,6 +24,7 @@ class MainVC: UIViewController, ViewModelBindableType {
   
   let dispoeBag = DisposeBag()
   
+  var tempMarkedBooksIndex: [String] = []
   var tempMarkedBookList: [Book] = []
   
   var userSelectedBookIndex: IndexPath = IndexPath(row: 0, section: 0) {
@@ -36,22 +37,23 @@ class MainVC: UIViewController, ViewModelBindableType {
   override func viewDidLoad() {
     super.viewDidLoad()
     
-//    if (Auth.auth().currentUser?.uid) != nil {
-//      let firebaseAuth = Auth.auth()
-//      do { // Firebase 계정 로그아웃
-//        try firebaseAuth.signOut()
-//        print("Success logout")
-//
-//        let loginVC = LoginVC()
-//        loginVC.modalPresentationStyle = .fullScreen
-//        present(loginVC, animated: true)
-//
-//      } catch let signOutError as NSError {
-//        print ("Error signing out: %@", signOutError)
-//      }
-//    }
+    //    if (Auth.auth().currentUser?.uid) != nil {
+    //      let firebaseAuth = Auth.auth()
+    //      do { // Firebase 계정 로그아웃
+    //        try firebaseAuth.signOut()
+    //        print("Success logout")
+    //
+    //        let loginVC = LoginVC()
+    //        loginVC.modalPresentationStyle = .fullScreen
+    //        present(loginVC, animated: true)
+    //
+    //      } catch let signOutError as NSError {
+    //        print ("Error signing out: %@", signOutError)
+    //      }
+    //    }
     
-    getInitalData()
+    getUserData()
+    getMarkedBookList()
     
     configureButtonBinding()
   }
@@ -73,40 +75,38 @@ class MainVC: UIViewController, ViewModelBindableType {
   }
   
   // MARK: - Network handler
-  private func getInitalData() {
+  private func getUserData() {
     mainView.activityIndicator.startAnimating()
     
-    let fetchGroup = DispatchGroup()
-    
-    fetchGroup.enter()
-    DispatchQueue.main.async {
-      User.getUserProfileData { [weak self] (userVM) in
-        self?.userVM = userVM
-        fetchGroup.leave()
-      }
+    User.getUserProfileData { [weak self] (userVM) in
+      self?.userVM = userVM
+      self?.initialUserDataBinding()
     }
-    
-    DispatchQueue.main.async {
-      guard let uid = Auth.auth().currentUser?.uid else { return }
-      DB_REF_MARKBOOKS.child(uid).observe(.value) { (snapshot) in
-        guard let value = snapshot.value as? [String: Int] else { return }
-        value.keys.forEach{
-          fetchGroup.enter()
-          Database.fetchBookDetailData(uid: uid, isbnCode: $0) { [weak self] (bookDetailInfo) in
-            self?.tempMarkedBookList.append(bookDetailInfo)
-            self?.tempMarkedBookList.sort { (book1, book2) -> Bool in
-              book1.creationDate > book2.creationDate
+  }
+  
+  private func getMarkedBookList() {
+    Book.fetchMarkedBookIndex()
+      .subscribe {
+        self.tempMarkedBooksIndex = $0
+        
+        $0.forEach { isbnCode in
+          
+          Book.fetchMarkedBookss(isbnCode).subscribe(onNext: { value in
+            
+            self.tempMarkedBookList.append(value)
+            if self.tempMarkedBookList.count == self.tempMarkedBooksIndex.count {
+              self.markedBookListVM = MarkedBookListModel(self.tempMarkedBookList)
+              self.markedBookListVM.reloadData()
+              self.colletionViewBinding()
+              self.mainView.activityIndicator.stopAnimating()
             }
-            fetchGroup.leave()
-          }
+            
+          }).disposed(by: self.dispoeBag)
+          
         }
-      }
-    }
-   
-    fetchGroup.notify(queue: .main) {
-      self.initialUserDataBinding()
-      self.colletionViewBinding()
-    }
+      } onError: { error in
+        print(error)
+      }.disposed(by: dispoeBag)
   }
   
   // MARK: - UserData Binding
@@ -114,6 +114,7 @@ class MainVC: UIViewController, ViewModelBindableType {
     self.markedBookListVM = MarkedBookListModel(tempMarkedBookList)
     
     userVM.nickName.asDriver(onErrorJustReturn: "NickName")
+      .debug()
       .drive(mainView.nameLabel.rx.text)
       .disposed(by: dispoeBag)
     
@@ -121,8 +122,6 @@ class MainVC: UIViewController, ViewModelBindableType {
     mainView.profileImageView.clipsToBounds = true
     
     setupSelectedMarkedBookCommentCount()
-    
-    self.mainView.activityIndicator.stopAnimating()
   }
   
   private func setupSelectedMarkedBookCommentCount() {
@@ -149,7 +148,7 @@ class MainVC: UIViewController, ViewModelBindableType {
       .disposed(by: dispoeBag)
     
     mainView.collectionView.register(CollecionViewCustomCell.self,
-                            forCellWithReuseIdentifier: CollecionViewCustomCell.identifier)
+                                     forCellWithReuseIdentifier: CollecionViewCustomCell.identifier)
     
     mainView.collectionView.register(CollectionViewNoDataCell.self,
                                      forCellWithReuseIdentifier: CollectionViewNoDataCell.identifier)
@@ -159,7 +158,7 @@ class MainVC: UIViewController, ViewModelBindableType {
     markedBookListVM.allcase
       .bind(to: mainView.collectionView.rx.items) { [weak self] (collectionView, item, markedBook) -> UICollectionViewCell in
         let indexPath = IndexPath(item: item, section: 0)
-
+        
         if self?.markedBookListVM.allcase.value.first?.book == Book.empty() {
           let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CollectionViewNoDataCell.identifier,
                                                         for: indexPath) as! CollectionViewNoDataCell
@@ -206,7 +205,6 @@ class MainVC: UIViewController, ViewModelBindableType {
         }
       }).disposed(by: dispoeBag)
   }
-
   // MARK: - Configure Button Binder
   private func configureButtonBinding() {
     userProfileTapGuesture()
@@ -278,7 +276,7 @@ class MainVC: UIViewController, ViewModelBindableType {
       .subscribe(onNext: { [weak self] in
         guard let index = self?.userSelectedBookIndex.item else { return }
         if let deleteBookModel = self?.markedBookListVM.bookAt(index) {
-        
+          
           let okAction = UIAlertAction(title: "완독 처리", style: .destructive) { [weak self] (_) in
             guard let uid = Auth.auth().currentUser?.uid,
                   let isbnCode = deleteBookModel.book.isbn else { return }
@@ -372,10 +370,10 @@ class MainVC: UIViewController, ViewModelBindableType {
   
   private func reloadMyBookCollectionView() {
     guard let window = UIApplication.shared.delegate?.window,
-      let tabBarController = window?.rootViewController as? UITabBarController else { return }
+          let tabBarController = window?.rootViewController as? UITabBarController else { return }
     
     guard let naviController = tabBarController.viewControllers?[1] as? UINavigationController,
-      let myBookVC = naviController.visibleViewController as? MyBookVC else { return }
+          let myBookVC = naviController.visibleViewController as? MyBookVC else { return }
     
     myBookVC.myBookListVM.reloadData()
   }
