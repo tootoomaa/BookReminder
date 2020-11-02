@@ -80,18 +80,5 @@ class MainTableHeaderView: UIView {
       $0.width.equalTo(80)
       $0.height.equalTo(40)
     }
-
-  }
-  
-  func configureHeaderView(profileImageUrlString: String?, userName: String?, isHiddenLogoutButton: Bool) {
-    if let profileImageUrlString = profileImageUrlString { // 사용자 데이터에 이미지가 있는 경우 이미지 추가 // 없으면 기본 설정 값
-      profileImageView.loadImage(urlString: profileImageUrlString)
-      profileImageView.layer.cornerRadius = (profileImageView.frame.size.width)/2
-      profileImageView.clipsToBounds = true
-    }
-    
-    if let userName = userName {
-      nameLabel.text = userName
-    }
   }
 }
