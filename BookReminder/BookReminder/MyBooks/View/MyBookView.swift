@@ -86,6 +86,14 @@ class MyBookView: UIView {
     return button
   }()
   
+  let activityIndicator: UIActivityIndicatorView = {
+    let activityView = UIActivityIndicatorView()
+    activityView.color = CommonUI.mainBackgroudColor
+    activityView.hidesWhenStopped = true
+    activityView.style = .large
+    return activityView
+  }()
+  
   // MARK: - Life Cycle
   override init(frame: CGRect) {
     super.init(frame: frame)
@@ -101,6 +109,7 @@ class MyBookView: UIView {
     searchBarSetting()
     collectionViewSetting()
     multibuttonSetting()
+    activityIndicatoerSetting()
   }
   
   private func searchBarSetting() {
@@ -139,6 +148,13 @@ class MyBookView: UIView {
         $0.centerY.equalTo(multiButton.snp.centerY)
         $0.width.height.equalTo(featureButtonSize)
       }
+    }
+  }
+  
+  private func activityIndicatoerSetting() {
+    addSubview(activityIndicator)
+    activityIndicator.snp.makeConstraints {
+      $0.centerX.centerY.equalToSuperview()
     }
   }
   

@@ -14,26 +14,27 @@ import MobileCoreServices
 class AddCommentVC: UIViewController {
   
   // MARK: - Properties
-  var markedBookInfo: Book?
+  var markedBook: Book?
   var keyboardUpChecker: Bool = false
   var tempKeyboardHeight: CGFloat = 0
-  var isMultibuttomActive: Bool = false
   var isDrawing = false
   var isScrolled = false
+  var isCommentListVC: Bool?
   var isUserInputText: Bool = false {
     didSet {
       if !isUserInputText {
-         addCommentView.configureMultiButton(systemImageName: "plus")
+        addCommentView.configureMultiButton(systemImageName: "plus")
       } else {
         addCommentView.configureMultiButton(systemImageName: "square.and.arrow.up.fill")
       }
+      addCommentView.isUserInputText = self.isUserInputText
     }
   }
   // editing Comment
   var isCommentEditing: Bool = false {
     didSet {
       addCommentView.isCommentEditing = isCommentEditing
-      view = addCommentView
+      navigationItem.title = "Comment"
     }
   }
   var commentInfo: Comment?
@@ -57,11 +58,6 @@ class AddCommentVC: UIViewController {
   
   lazy var addCommentView: AddCommentView = {
     let view = AddCommentView()
-    view.multiButton.addTarget(self, action: #selector(tabMultiButton), for: .touchUpInside)
-    view.cameraButton.addTarget(self, action: #selector(tabTakePhoto), for: .touchUpInside)
-    view.photoAlbumButton.addTarget(self, action: #selector(tabPhotoAlnum), for: .touchUpInside)
-    view.multiButton.addTarget(self, action: #selector(tabMultiButton), for: .touchUpInside)
-    view.saveButton.addTarget(self, action: #selector(tabSaveButton), for: .touchUpInside)
     view.contentSize = CGSize(width: deviceSzie.width, height: 1000)
     view.pagetextField.delegate = self
     view.isScrollEnabled = true
@@ -80,12 +76,16 @@ class AddCommentVC: UIViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
     
-    configureSetUI()
+    view.backgroundColor = .white
     
-    configureLayout()
+    configureMultiButtonAction()
     
     multiButtonAppear()
+  }
   
+  override func loadView() {
+    view = addCommentView
+    addCommentView.frame = view.frame
   }
   
   override func viewWillAppear(_ animated: Bool) {
@@ -105,18 +105,13 @@ class AddCommentVC: UIViewController {
     NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
   }
   
-  private func configureLayout() {
-    
-    view.addSubview(addCommentView)
-    
-    addCommentView.snp.makeConstraints{
-      $0.top.leading.trailing.bottom.equalTo(view)
+  private func configureMultiButtonAction() {
+    addCommentView.passSaveButtonTap = { [weak self] in
+      self?.popSaveAlertController()
     }
-  }
-  
-  private func configureSetUI() {
-    navigationItem.title = isCommentEditing == false ? markedBookInfo?.title : "Comment 수정"
-    view.backgroundColor = .white
+    addCommentView.cameraButton.addTarget(self, action: #selector(tabTakePhoto), for: .touchUpInside)
+    addCommentView.photoAlbumButton.addTarget(self, action: #selector(tabPhotoAlnum), for: .touchUpInside)
+    addCommentView.saveButton.addTarget(self, action: #selector(tabSaveButton), for: .touchUpInside)
   }
   
   // MARK: - Drawing Handler
@@ -132,7 +127,7 @@ class AddCommentVC: UIViewController {
   }
   
   private func touchesMovedHandler() {
-    initializationMultiButton()
+    addCommentView.initializationMultiButton()
     addCommentView.passTouchMoveData = { touches in
       guard self.isDrawing else { return }
       
@@ -217,77 +212,6 @@ class AddCommentVC: UIViewController {
   }
   
   // MARK: - Button Handler
-  @objc func tabMultiButton() {
-    let view = self.addCommentView
-    
-    guard !isUserInputText else {
-      // 사용자가 입력한 텍스트를 입력하는 도중에는 멀티 버튼을 저장 버튼으로 변경
-      // save 관련 체크 및 저장 기능
-      popSaveAlertController()
-      return
-    }
-    
-    // 멀티 버튼 활성화 에니메이션
-    if !isMultibuttomActive {
-      UIView.animate(withDuration: 0.5) {
-        view.multiButton.transform = view.multiButton.transform.rotated(by: -(.pi/4*3))
-      }
-      //barcode -> bookSearch -> delete
-      UIView.animateKeyframes(withDuration: 0.7, delay: 0, options: [], animations: {
-        UIView.addKeyframe(withRelativeStartTime: 0, relativeDuration: 0.3) {
-          view.cameraButton.center.y -= view.featureButtonSize*2
-        }
-        UIView.addKeyframe(withRelativeStartTime: 0.1, relativeDuration: 0.3) {
-          view.photoAlbumButton.center.y -= view.featureButtonSize*1.5
-          view.photoAlbumButton.center.x -= view.featureButtonSize*1.5
-          //          self.bookSearchButton.transform = .init(scaleX: 2, y: 2)
-        }
-        UIView.addKeyframe(withRelativeStartTime: 0.2, relativeDuration: 0.3) {
-          view.saveButton.center.x -= view.featureButtonSize*2
-        }
-        UIView.addKeyframe(withRelativeStartTime: 0.3, relativeDuration: 0.1) {
-          view.cameraButton.center.y += view.bounceDistance
-        }
-        UIView.addKeyframe(withRelativeStartTime: 0.4, relativeDuration: 0.1) {
-          view.photoAlbumButton.center.y += view.bounceDistance
-          view.photoAlbumButton.center.x += view.bounceDistance
-        }
-        UIView.addKeyframe(withRelativeStartTime: 0.5, relativeDuration: 0.1) {
-          view.saveButton.center.x += view.bounceDistance
-        }
-      })
-    } else {
-      UIView.animate(withDuration: 0.5) {
-        view.multiButton.transform = view.multiButton.transform.rotated(by: .pi/4*3)
-      }
-      // delete -> bookSearch -> barcode
-      UIView.animateKeyframes(withDuration: 0.7, delay: 0, options: [], animations: {
-        // 바운드
-        UIView.addKeyframe(withRelativeStartTime: 0, relativeDuration: 0.1) {
-          view.saveButton.center.x -= view.bounceDistance
-        }
-        UIView.addKeyframe(withRelativeStartTime: 0.1, relativeDuration: 0.1) {
-          view.photoAlbumButton.center.y -= view.bounceDistance
-          view.photoAlbumButton.center.x -= view.bounceDistance
-        }
-        UIView.addKeyframe(withRelativeStartTime: 0.2, relativeDuration: 0.1) {
-          view.cameraButton.center.y -= view.bounceDistance
-        }
-        // 사라짐
-        UIView.addKeyframe(withRelativeStartTime: 0.3, relativeDuration: 0.3) {
-          view.saveButton.center.x += view.featureButtonSize*2
-        }
-        UIView.addKeyframe(withRelativeStartTime: 0.4, relativeDuration: 0.3) {
-          view.photoAlbumButton.center.y += view.featureButtonSize*1.5
-          view.photoAlbumButton.center.x += view.featureButtonSize*1.5
-        }
-        UIView.addKeyframe(withRelativeStartTime: 0.5, relativeDuration: 0.3) {
-          view.cameraButton.center.y += view.featureButtonSize*2
-        }
-      })
-    }
-    isMultibuttomActive.toggle()
-  }
   
   @objc private func tabSaveButton() {
     popSaveAlertController()
@@ -305,33 +229,30 @@ class AddCommentVC: UIViewController {
       return
     }
     
-    var alertString: String = ""
-    if isCommentEditing {
-      // 사용자가 Comment 수정 모드로 들어온 경우
-      alertString = "수정"
+    var alertTitleString: String = ""
+    if commentInfo != nil {
+      alertTitleString = "수정"
     } else {
       // 사용자가 Comment 추가 모드로 들어온 경우
-      alertString = "추가"
+      alertTitleString = "추가"
     }
-    
-    let alertController = UIAlertController(title: "Comment", message: "이 Comment을 \(alertString) 하시겠습니까?", preferredStyle: .alert)
-    let uploadAction = UIAlertAction(title: "\(alertString)", style: .default) { _ in
+
+    let alertController = UIAlertController(title: "\(alertTitleString)", message: "이 Comment을 \(alertTitleString) 하시겠습니까?", preferredStyle: .alert)
+    let uploadAction = UIAlertAction(title: "\(alertTitleString)", style: .default) { [weak self] _ in
       
       guard let uid = Auth.auth().currentUser?.uid else { return }
-      guard let markedBookInfo = self.markedBookInfo else { return }
-      guard let isbnCode = markedBookInfo.isbn else { return }
+      guard let isbnCode = self?.markedBook?.isbn else { return }
       
-      if self.isCommentEditing == true {
+      if let commentInfo = self?.commentInfo {
         // 기존 Comment 수정
-        guard let commentInfo = self.commentInfo else { return }
-        self.updateBeforeComment(uid: uid, isbnCode: isbnCode, updateCommentInfo: commentInfo)
+        self?.updateBeforeComment(uid: uid, isbnCode: isbnCode, updateCommentInfo: commentInfo)
       } else {
         // 신규 Comment 업데이트
-        self.uploadCommentData(uid: uid, isbnCode: isbnCode)
+        self?.uploadNewCommentData(uid: uid, isbnCode: isbnCode)
         Database.commentCountHandler(uid: uid, isbnCode: isbnCode, plusMinus: .plus)
       }
       
-      self.navigationController?.popViewController(animated: true)
+      self?.navigationController?.popViewController(animated: true)
     }
     
     let cancelAction = UIAlertAction(title: "취소", style: .destructive, handler: { _ in })
@@ -352,24 +273,12 @@ class AddCommentVC: UIViewController {
   }
   
   // multiButton 에니메이션 초기화
-  func initializationMultiButton() {
-    let view = self.addCommentView
-    
-    isMultibuttomActive = false
-    
-    view.saveButton.center.x = view.multiButton.center.x
-    view.photoAlbumButton.center.y = view.multiButton.center.y
-    view.photoAlbumButton.center.x = view.multiButton.center.x
-    view.cameraButton.center.y = view.multiButton.center.y
-
-    view.multiButton.transform = .identity
-  }
   
   @objc func tabPhotoAlnum() {
     imagePicker.sourceType = .savedPhotosAlbum // 차이점 확인하기
     imagePicker.mediaTypes = [kUTTypeImage] as [String] // 이미지 불러오기
     present(imagePicker, animated: true,completion: {
-      self.initializationMultiButton()
+      self.addCommentView.initializationMultiButton()
     })
   }
   
@@ -386,8 +295,8 @@ class AddCommentVC: UIViewController {
       imagePicker.cameraFlashMode = .off
     }
     
-    present(imagePicker, animated: true,completion: {
-      self.initializationMultiButton()
+    present(imagePicker, animated: true,completion: { [weak self] in
+      self?.addCommentView.initializationMultiButton()
     })
   }
   // MARK: - Handler
@@ -426,7 +335,7 @@ class AddCommentVC: UIViewController {
         let keyboardHeight = keyboardRectangle.height
         view.frame.origin.y -= keyboardHeight
         tempKeyboardHeight = keyboardHeight
-        initializationMultiButton()
+        addCommentView.initializationMultiButton()
         isUserInputText = true
         keyboardUpChecker = true
       }
@@ -487,16 +396,10 @@ extension AddCommentVC: UITextFieldDelegate {
   }
 }
 
-// MARK: - UITextViewDelegate
-extension AddCommentVC: UITextViewDelegate {
-
-
-}
-
 // MARK: - Network Handler
 extension AddCommentVC {
   
-  private func uploadCommentData(uid: String, isbnCode: String) {
+  private func uploadNewCommentData(uid: String, isbnCode: String) {
     
     guard let uploadImage = addCommentView.captureImageView.image,
           let pageString = addCommentView.pagetextField.text,

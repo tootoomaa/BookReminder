@@ -21,6 +21,7 @@ class CommentListVC: UIViewController {
   
   var userSelectedBook: Book?
   var isCommentEditing: Bool?
+  var isInitailDataLoaded = false
   
   var commentList: [Comment] = []
   
@@ -29,8 +30,7 @@ class CommentListVC: UIViewController {
     super.init(nibName: nil, bundle: nil)
     self.userSelectedBook = userSelectedBook
     self.isCommentEditing = isCommentEditing
-    
-    title = userSelectedBook.title
+    self.title = isCommentEditing == false ? userSelectedBook.title : "Comment 수정"
   }
   
   override func viewDidLoad() {
@@ -44,14 +44,24 @@ class CommentListVC: UIViewController {
   
   override func viewWillAppear(_ animated: Bool) {
     super.viewWillAppear(true)
+    if isInitailDataLoaded == true {
+      guard let book = userSelectedBook else { return }
+      CommentViewModel.fetchUserComments(book)
+        .subscribe(onNext:{ [weak self] value in
+          
+          let newArrayValue = value.map { comment -> CommentViewModel in
+            return CommentViewModel(comment)
+          }
+          
+          self?.commentListVM.allcase.accept(newArrayValue)
+        }).disposed(by: disposeBag)
+    }
     navigationController?.navigationBar.isHidden = false
   }
   
   // MARK: - Configure TableView Binding
   private func configureUISetting() {
-    guard let book = userSelectedBook else { return }
     
-    self.title = book.title
     view.backgroundColor = .white
     
     view.addSubview(tableView)
@@ -100,6 +110,10 @@ class CommentListVC: UIViewController {
       .itemSelected.bind { [weak self] in
         if let comment = self?.commentListVM.commentList[$0.row] {
           let addCommentVC = AddCommentVC()
+          addCommentVC.commentInfo = comment.comment
+          addCommentVC.markedBook = self?.userSelectedBook
+          //순서 변경 X
+          addCommentVC.isCommentEditing = isCommentEditing
           
           let disposeBag = DisposeBag()
           let view = addCommentVC.addCommentView
@@ -114,8 +128,6 @@ class CommentListVC: UIViewController {
             .drive(view.myTextView.rx.text)
             .disposed(by: disposeBag)
           
-          addCommentVC.title = "Comment Detail"
-          addCommentVC.isEditing = isCommentEditing
           self?.navigationController?.pushViewController(addCommentVC, animated: true)
         }
       }.disposed(by: disposeBag)
@@ -136,10 +148,11 @@ class CommentListVC: UIViewController {
     
     CommentViewModel.fetchUserComments(book)
       .subscribe(onNext: { [weak self] value in
-        print(value)
         self?.commentListVM = CommentListViewModel(value)
         self?.configureTableView()
         self?.commentListVM.reloadData()
+        self?.isInitailDataLoaded = true
       }).disposed(by: disposeBag)
+    
   }
 }

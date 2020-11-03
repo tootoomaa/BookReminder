@@ -119,6 +119,10 @@ class MainVC: UIViewController, ViewModelBindableType {
       .disposed(by: dispoeBag)
     
     mainView.profileImageView.loadImage(urlString: userVM.user.profileImageUrl)
+    
+    let imageViewWidth = mainView.profileImageView.frame.width
+    
+    mainView.profileImageView.layer.cornerRadius = imageViewWidth/2
     mainView.profileImageView.clipsToBounds = true
     
     setupSelectedMarkedBookCommentCount()
@@ -249,7 +253,8 @@ class MainVC: UIViewController, ViewModelBindableType {
         
         if let book = self?.markedBookListVM.bookAt(index)?.book {
           let addCommentVC = AddCommentVC()
-          addCommentVC.markedBookInfo = book
+          addCommentVC.markedBook = book
+          addCommentVC.isCommentEditing = true
           self?.navigationController?.pushViewController(addCommentVC, animated: true)
         } else {
           self?.popErrorAlertController()
@@ -351,6 +356,7 @@ class MainVC: UIViewController, ViewModelBindableType {
         if let book = self?.markedBookListVM.bookAt(index)?.book {
           
           let commentListVC = CommentListVC(book, false)
+          commentListVC.isCommentEditing = false
           self?.navigationController?.pushViewController(commentListVC, animated: true)
           
         } else {
