@@ -252,8 +252,7 @@ class MainVC: UIViewController, ViewModelBindableType {
         guard let index = self?.userSelectedBookIndex.item else { return }
         
         if let book = self?.markedBookListVM.bookAt(index)?.book {
-          let addCommentVC = AddCommentVC()
-          addCommentVC.markedBook = book
+          let addCommentVC = AddCommentVC(book.isbn, nil)
           addCommentVC.isCommentEditing = true
           self?.navigationController?.pushViewController(addCommentVC, animated: true)
         } else {

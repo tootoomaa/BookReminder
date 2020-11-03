@@ -10,16 +10,19 @@ import UIKit
 import SnapKit
 import Firebase
 import MobileCoreServices
+import RxSwift
+import RxCocoa
 
 class AddCommentVC: UIViewController {
   
   // MARK: - Properties
-  var markedBook: Book?
+  let disposeBag = DisposeBag()
+  var addCommentVM: AddCommentViewModel?
+  
   var keyboardUpChecker: Bool = false
   var tempKeyboardHeight: CGFloat = 0
   var isDrawing = false
-  var isScrolled = false
-  var isCommentListVC: Bool?
+  var isChangeCaptureImage = false
   var isUserInputText: Bool = false {
     didSet {
       if !isUserInputText {
@@ -30,6 +33,7 @@ class AddCommentVC: UIViewController {
       addCommentView.isUserInputText = self.isUserInputText
     }
   }
+  
   // editing Comment
   var isCommentEditing: Bool = false {
     didSet {
@@ -37,7 +41,6 @@ class AddCommentVC: UIViewController {
       navigationItem.title = "Comment"
     }
   }
-  var commentInfo: Comment?
   
   // drwaing
   let colorSet: [UIColor] = [#colorLiteral(red: 0.999956429, green: 0.8100972176, blue: 0.8099586368, alpha: 0.2), #colorLiteral(red: 0.9965302348, green: 1, blue: 0.8521329761, alpha: 0.2), #colorLiteral(red: 0.7270262837, green: 0.7612577081, blue: 1, alpha: 0.2), #colorLiteral(red: 0.7421473861, green: 1, blue: 0.7957901359, alpha: 0.2), #colorLiteral(red: 1, green: 0.5636324883, blue: 0.7579589486, alpha: 0.2)]
@@ -72,7 +75,24 @@ class AddCommentVC: UIViewController {
     return imagePicker
   }()
   
-  // MARK: - Init  
+  // MARK: - Life Cycle
+  init( _ markedBookIsbnCode: String, _ comment: Comment?) {
+    super.init(nibName: nil, bundle: nil)
+    if let comment = comment {
+      self.addCommentVM = AddCommentViewModel(comment)
+    } else {
+      let comment = Comment(commentUid: "", dictionary: Dictionary<String, AnyObject>())
+      self.addCommentVM = AddCommentViewModel(comment)
+    }
+    
+    self.addCommentVM?.bookIsbnCode = markedBookIsbnCode
+    viewBinding()
+  }
+  
+  required init?(coder: NSCoder) {
+    fatalError("init(coder:) has not been implemented")
+  }
+  
   override func viewDidLoad() {
     super.viewDidLoad()
     
@@ -105,6 +125,29 @@ class AddCommentVC: UIViewController {
     NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
   }
   
+  // MARK: - View Binding
+  private func viewBinding() {
+    
+    addCommentView.pagetextField.rx.value.changed
+      .subscribe(onNext: { [weak self] inputText in
+        
+        if let inputText = inputText {
+          self?.addCommentVM?.newPageString = inputText
+        }
+        
+      }).disposed(by: disposeBag)
+    
+    addCommentView.myTextView.rx.value.changed
+      .subscribe(onNext: { [weak self] inputText in
+        
+        if let inputText = inputText {
+          self?.addCommentVM?.newMyComment = inputText
+        }
+        
+      }).disposed(by: disposeBag)
+  }
+  
+  // MARK: - Configure Buttom Actions
   private func configureMultiButtonAction() {
     addCommentView.passSaveButtonTap = { [weak self] in
       self?.popSaveAlertController()
@@ -220,17 +263,14 @@ class AddCommentVC: UIViewController {
   private func popSaveAlertController() {
     // 사용자가 입력상태를 모두 마치고 멀티버튼을 눌렀을때
     if let errorMessage = userInputDataCheker() {
-      
-      let errorAlert = UIAlertController(title: "Comment 내용 오류", message: errorMessage, preferredStyle: .alert)
-      let okButton = UIAlertAction(title: "확인", style: .default, handler: nil)
-      errorAlert.addAction(okButton)
+      let title = "Comment 내용 오류"
+      let errorAlert = UIAlertController.defaultSetting(title: title, message: errorMessage)
       present(errorAlert, animated: true, completion: nil)
-      
       return
     }
     
     var alertTitleString: String = ""
-    if commentInfo != nil {
+    if addCommentVM?.commentUid != "" {
       alertTitleString = "수정"
     } else {
       // 사용자가 Comment 추가 모드로 들어온 경우
@@ -238,21 +278,28 @@ class AddCommentVC: UIViewController {
     }
 
     let alertController = UIAlertController(title: "\(alertTitleString)", message: "이 Comment을 \(alertTitleString) 하시겠습니까?", preferredStyle: .alert)
+    
     let uploadAction = UIAlertAction(title: "\(alertTitleString)", style: .default) { [weak self] _ in
       
-      guard let uid = Auth.auth().currentUser?.uid else { return }
-      guard let isbnCode = self?.markedBook?.isbn else { return }
-      
-      if let commentInfo = self?.commentInfo {
-        // 기존 Comment 수정
-        self?.updateBeforeComment(uid: uid, isbnCode: isbnCode, updateCommentInfo: commentInfo)
-      } else {
-        // 신규 Comment 업데이트
-        self?.uploadNewCommentData(uid: uid, isbnCode: isbnCode)
-        Database.commentCountHandler(uid: uid, isbnCode: isbnCode, plusMinus: .plus)
+      guard let uploadImage = self?.addCommentView.captureImageView.image else {
+        self?.presentErrorAlertVC()
+        return
       }
       
-      self?.navigationController?.popViewController(animated: true)
+      if self?.addCommentVM?.commentUid == "" {
+        // 신규 Comment 등록
+        self?.addCommentVM?.uploadNewCommentData(uploadImage)
+        
+        self?.navigationController?.popViewController(animated: true)
+      } else {
+        // 기존 Comment 수정
+        
+        self?.isChangeCaptureImage == true ?
+          self?.addCommentVM?.updateBeforeComment(uploadImage) :
+          self?.addCommentVM?.updateBeforeComment()
+        
+        self?.navigationController?.popViewController(animated: true)
+      }
     }
     
     let cancelAction = UIAlertAction(title: "취소", style: .destructive, handler: { _ in })
@@ -273,7 +320,6 @@ class AddCommentVC: UIViewController {
   }
   
   // multiButton 에니메이션 초기화
-  
   @objc func tabPhotoAlnum() {
     imagePicker.sourceType = .savedPhotosAlbum // 차이점 확인하기
     imagePicker.mediaTypes = [kUTTypeImage] as [String] // 이미지 불러오기
@@ -327,6 +373,15 @@ class AddCommentVC: UIViewController {
     return checker == true ? errorMessage : nil
   }
   
+  private func presentErrorAlertVC() {
+    let title = "네트워트 오류 발생"
+    let message = "네트워크 문제로 오류가 발생하였습니다. 잠시후에 재시도 부탁드립니다."
+    
+    present(UIAlertController.defaultSetting(title: title, message: message),
+            animated: true,
+            completion: nil)
+  }
+  
   // MARK: - Keyboard Handler
   @objc func keyboardWillAppear( noti: NSNotification ) {
     if let keyboardFrame: NSValue = noti.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue  {
@@ -375,6 +430,8 @@ extension AddCommentVC: UIImagePickerControllerDelegate & UINavigationController
       let selectedImage = cripImage ?? editedImage ?? originalImage
       addCommentView.captureImageView.image = selectedImage
       backupImage = selectedImage                               // 백업 이미지 저장
+      print("Change Imgae!!!!!")
+      self.isChangeCaptureImage = true
     }
     dismiss(animated: true, completion: {
       self.touchesBeganHandler()
@@ -395,69 +452,6 @@ extension AddCommentVC: UITextFieldDelegate {
     return true
   }
 }
-
-// MARK: - Network Handler
-extension AddCommentVC {
-  
-  private func uploadNewCommentData(uid: String, isbnCode: String) {
-    
-    guard let uploadImage = addCommentView.captureImageView.image,
-          let pageString = addCommentView.pagetextField.text,
-          let myComment = addCommentView.myTextView.text else { return }
-    
-    guard let uploadImageDate = uploadImage.jpegData(compressionQuality: 0.5) else { return }
-    
-    let creationDate = Int(NSDate().timeIntervalSince1970)
-    let filename = NSUUID().uuidString
-    
-    STORAGE_REF_COMMENT_CAPTUREIMAGE.child(filename).putData(uploadImageDate, metadata: nil) { (metadata, error) in
-      if let error = error {
-        print("error",error.localizedDescription)
-        return
-      }
-      
-      let uploadImageRef = STORAGE_REF_COMMENT_CAPTUREIMAGE.child(filename)
-      uploadImageRef.downloadURL { (url, error) in
-        if let error = error { print("Error", error.localizedDescription); return }
-        guard let url = url else { return }
-        
-        let value = [
-          "captureImageUrl": url.absoluteString,
-          "page": pageString,
-          "creationDate": creationDate,
-          "myComment": myComment,
-          "captureImageFilename": filename
-        ] as Dictionary<String, AnyObject>
-        
-        DB_REF_COMMENT.child(uid).child(isbnCode).childByAutoId().updateChildValues(value)
-      }
-    }
-  }
-  
-  private func updateBeforeComment(uid: String, isbnCode: String, updateCommentInfo: Comment) {
-    
-    // 기존 데이터 사용
-    guard let commentUid = updateCommentInfo.commentUid,
-          let url = updateCommentInfo.captureImageUrl,
-          let creationDate = updateCommentInfo.creationDate,
-          let captureImageFilename = updateCommentInfo.captureImageFilename else { return }
-          
-    // 업데이트 된 데이터 사용
-    guard let pageString = addCommentView.pagetextField.text,
-          let myComment = addCommentView.myTextView.text else { return }
-    
-    let value = [
-      "captureImageUrl": url,
-      "page": pageString,
-      "creationDate": creationDate,
-      "myComment": myComment,
-      "captureImageFilename": captureImageFilename
-    ] as Dictionary<String, AnyObject>
-    
-    DB_REF_COMMENT.child(uid).child(isbnCode).child(commentUid).updateChildValues(value)
-  }
-}
-
 
 extension AddCommentVC: UIScrollViewDelegate {
   

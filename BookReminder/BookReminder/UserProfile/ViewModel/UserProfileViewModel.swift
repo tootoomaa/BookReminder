@@ -98,6 +98,7 @@ extension UserProfileViewModel {
   static func fetchUserProfile() -> Observable<UserProfileViewModel> {
     return Observable.create { observer -> Disposable in
       guard let uid = Auth.auth().currentUser?.uid else { fatalError("Fail to get UID") }
+      
       DB_REF_USERPROFILE.child(uid).observe(.value) { (snapshot) in
         
         guard let dictionaryValue = snapshot.value as? [String: Int] else { fatalError("Fail to get Dictionary Value") }
