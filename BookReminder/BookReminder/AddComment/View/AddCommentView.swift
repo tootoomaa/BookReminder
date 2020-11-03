@@ -19,6 +19,10 @@ class AddCommentView: UIScrollView {
   var passTouchMoveData: ((Set<UITouch>) -> ())?
   var passTouchEndData: ((Set<UITouch>) -> ())?
   var passColorButtonTag: ((Int)->())?
+  var passSaveButtonTap: (()->())?
+  
+  var isMultibuttomActive: Bool = false
+  var isUserInputText: Bool = false
   
   var colorButtonArray: [UIButton] = []
   
@@ -33,10 +37,10 @@ class AddCommentView: UIScrollView {
       colorButtonArray.forEach {
         $0.isHidden = !isCommentEditing
       }
-      pagetextField.isEnabled = !isCommentEditing
-      pagetextField.isUserInteractionEnabled = !isCommentEditing
-      myTextView.isEditable = !isCommentEditing
-      myTextView.isUserInteractionEnabled = !isCommentEditing
+      pagetextField.isEnabled = isCommentEditing
+      pagetextField.isUserInteractionEnabled = isCommentEditing
+      myTextView.isEditable = isCommentEditing
+      myTextView.isUserInteractionEnabled = isCommentEditing
     }
   } // Comment 수정 모드를 통해 들어온 경우 stackview 제거
     
@@ -55,6 +59,7 @@ class AddCommentView: UIScrollView {
   lazy var multiButton: UIButton = {
     let button = UIButton()
     button.imageView?.tintColor = .white
+    button.addTarget(self, action: #selector(tabMultiButton), for: .touchUpInside)
     button.backgroundColor = CommonUI.mainBackgroudColor
     button.layer.cornerRadius = multiButtonSize/2
     button.clipsToBounds = true
@@ -84,7 +89,6 @@ class AddCommentView: UIScrollView {
     button.clipsToBounds = true
     return button
   }()
-  
   
   lazy var saveButton: UIButton = {
     let button = UIButton()
@@ -141,8 +145,6 @@ class AddCommentView: UIScrollView {
   
     backgroundColor = .white
     self.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
-    
-    configureLayout()
     
     configureMultiButton(systemImageName: "plus")
   }
@@ -307,6 +309,91 @@ class AddCommentView: UIScrollView {
     for index in 0..<colorButtonArray.count {
       colorButtonArray[index].isSelected = index == sender.tag ? true : false
     }
+  }
+  
+  // MARK: - MultiButton Animation
+  @objc func tabMultiButton() {
+    
+    guard !isUserInputText else {
+      // 사용자가 입력한 텍스트를 입력하는 도중에는 멀티 버튼을 저장 버튼으로 변경
+      // save 관련 체크 및 저장 기능
+      if let passSaveButtonTap = passSaveButtonTap {
+        passSaveButtonTap()
+      }
+      return
+    }
+    
+    // 멀티 버튼 활성화 에니메이션
+    if !isMultibuttomActive {
+      UIView.animate(withDuration: 0.5) { [ unowned self] in
+        self.multiButton.transform = self.multiButton.transform.rotated(by: -(.pi/4*3))
+      }
+      //barcode -> bookSearch -> delete
+      UIView.animateKeyframes(withDuration: 0.7, delay: 0, options: [], animations: {
+        UIView.addKeyframe(withRelativeStartTime: 0, relativeDuration: 0.3) { [ unowned self] in
+          self.cameraButton.center.y -= featureButtonSize*2
+        }
+        UIView.addKeyframe(withRelativeStartTime: 0.1, relativeDuration: 0.3) {
+          self.photoAlbumButton.center.y -= self.featureButtonSize*1.5
+          self.photoAlbumButton.center.x -= self.featureButtonSize*1.5
+          //          self.bookSearchButton.transform = .init(scaleX: 2, y: 2)
+        }
+        UIView.addKeyframe(withRelativeStartTime: 0.2, relativeDuration: 0.3) {
+          self.saveButton.center.x -= self.featureButtonSize*2
+        }
+        UIView.addKeyframe(withRelativeStartTime: 0.3, relativeDuration: 0.1) {
+          self.cameraButton.center.y += self.bounceDistance
+        }
+        UIView.addKeyframe(withRelativeStartTime: 0.4, relativeDuration: 0.1) {
+          self.photoAlbumButton.center.y += self.bounceDistance
+          self.photoAlbumButton.center.x += self.bounceDistance
+        }
+        UIView.addKeyframe(withRelativeStartTime: 0.5, relativeDuration: 0.1) {
+          self.saveButton.center.x += self.bounceDistance
+        }
+      })
+    } else {
+      UIView.animate(withDuration: 0.5) { [unowned self] in
+        self.multiButton.transform = multiButton.transform.rotated(by: .pi/4*3)
+      }
+      // delete -> bookSearch -> barcode
+      UIView.animateKeyframes(withDuration: 0.7, delay: 0, options: [], animations: {
+        // 바운드
+        UIView.addKeyframe(withRelativeStartTime: 0, relativeDuration: 0.1) { [unowned self] in
+          self.saveButton.center.x -= self.bounceDistance
+        }
+        UIView.addKeyframe(withRelativeStartTime: 0.1, relativeDuration: 0.1) {
+          self.photoAlbumButton.center.y -= self.bounceDistance
+          self.photoAlbumButton.center.x -= self.bounceDistance
+        }
+        UIView.addKeyframe(withRelativeStartTime: 0.2, relativeDuration: 0.1) {
+          self.cameraButton.center.y -= self.bounceDistance
+        }
+        // 사라짐
+        UIView.addKeyframe(withRelativeStartTime: 0.3, relativeDuration: 0.3) {
+          self.saveButton.center.x += self.featureButtonSize*2
+        }
+        UIView.addKeyframe(withRelativeStartTime: 0.4, relativeDuration: 0.3) {
+          self.photoAlbumButton.center.y += self.featureButtonSize*1.5
+          self.photoAlbumButton.center.x += self.featureButtonSize*1.5
+        }
+        UIView.addKeyframe(withRelativeStartTime: 0.5, relativeDuration: 0.3) {
+          self.cameraButton.center.y += self.featureButtonSize*2
+        }
+      })
+    }
+    isMultibuttomActive.toggle()
+  }
+  
+  func initializationMultiButton() {
+    isMultibuttomActive = false
+    
+    saveButton.center.x = multiButton.center.x
+    photoAlbumButton.center.y = multiButton.center.y
+    photoAlbumButton.center.x = multiButton.center.x
+    cameraButton.center.y = multiButton.center.y
+
+    multiButton.transform = .identity
   }
 }
 

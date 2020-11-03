@@ -82,11 +82,4 @@ class CommentListCell: UITableViewCell {
       $0.leading.equalTo(self).offset(20)
     }
   }
-  
-  func configure( captureImageUrl: String, pageString: String, myCommentText: String) {
-    
-    captureImageView.loadImage(urlString: captureImageUrl)
-    pageLabel.text = "\(pageString)P"
-    myTextView.text = myCommentText
-  }
 }

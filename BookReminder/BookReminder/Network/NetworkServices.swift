@@ -36,6 +36,7 @@ class NetworkServices {
     urlComponents.setQueryItems(with: queryParams)
     
     if let url = urlComponents.url {
+      
       var urlRequest = URLRequest(url: url)
       urlRequest.httpMethod = "GET"
       urlRequest.setValue(authorization, forHTTPHeaderField: "Authorization")

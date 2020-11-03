@@ -86,6 +86,11 @@ class UserProfileVC: UIViewController {
     userVM?.profileImageUrl.bind { [weak self] imageUrl in
       self?.userProfileView.profileImageView.loadImage(urlString: imageUrl)
     }.disposed(by: disposeBag)
+    
+    let imageViewWidth = userProfileView.profileImageView.frame.width
+    
+    userProfileView.profileImageView.layer.cornerRadius = imageViewWidth/2
+    userProfileView.profileImageView.clipsToBounds = true
   }
   
   // MARK: - TableView Setting

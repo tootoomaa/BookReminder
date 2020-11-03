@@ -21,37 +21,61 @@ class CommentListVC: UIViewController {
   
   var userSelectedBook: Book?
   var isCommentEditing: Bool?
+  var isInitailDataLoaded = false
   
   var commentList: [Comment] = []
+  
+  let activityIndicator: UIActivityIndicatorView = {
+    let activityView = UIActivityIndicatorView()
+    activityView.color = CommonUI.mainBackgroudColor
+    activityView.hidesWhenStopped = true
+    activityView.style = .large
+    return activityView
+  }()
   
   // MARK: - Life Cycle
   init(_ userSelectedBook: Book, _ isCommentEditing: Bool) {
     super.init(nibName: nil, bundle: nil)
     self.userSelectedBook = userSelectedBook
     self.isCommentEditing = isCommentEditing
-    
-    title = userSelectedBook.title
+    self.title = isCommentEditing == false ? userSelectedBook.title : "Comment 수정"
   }
   
   override func viewDidLoad() {
     fetchUserCommentDate()
     configureUISetting()
+    configureActivityIndicatorView()
   }
   
   required init?(coder: NSCoder) {
     fatalError("init(coder:) has not been implemented")
   }
   
+  private func configureActivityIndicatorView() {
+    
+  }
+  
   override func viewWillAppear(_ animated: Bool) {
     super.viewWillAppear(true)
+    activityIndicator.startAnimating()
+    if isInitailDataLoaded == true {
+      guard let book = userSelectedBook else { return }
+      CommentViewModel.fetchUpdatedUserComments(book)
+        .subscribe(onNext:{ [weak self] value in
+          
+          let newArrayValue = value.map { comment -> CommentViewModel in
+            return CommentViewModel(comment)
+          }
+          self?.commentListVM.allcase.accept(newArrayValue)
+          self?.activityIndicator.stopAnimating()
+        }).disposed(by: disposeBag)
+    }
     navigationController?.navigationBar.isHidden = false
   }
   
   // MARK: - Configure TableView Binding
   private func configureUISetting() {
-    guard let book = userSelectedBook else { return }
     
-    self.title = book.title
     view.backgroundColor = .white
     
     view.addSubview(tableView)
@@ -61,12 +85,18 @@ class CommentListVC: UIViewController {
       $0.bottom.equalTo(view.safeAreaLayoutGuide).offset(-10)
     }
     
-    tableView.backgroundColor = .white
-    tableView.separatorStyle = .none
-    tableView.rowHeight = 150
+    tableView.addSubview(activityIndicator)
+    
+    activityIndicator.snp.makeConstraints {
+      $0.centerX.centerY.equalToSuperview()
+    }
   }
   
   private func configureTableView() {
+    tableView.backgroundColor = .white
+    tableView.separatorStyle = .none
+    tableView.rowHeight = 150
+    
     tableViewBinding()
     tableViewSelectItemBinding()
     tableViewDeleteItemBinding()
@@ -98,8 +128,10 @@ class CommentListVC: UIViewController {
     guard let isCommentEditing = isCommentEditing else { return }
     tableView.rx
       .itemSelected.bind { [weak self] in
-        if let comment = self?.commentListVM.commentList[$0.row] {
-          let addCommentVC = AddCommentVC()
+        if let comment = self?.commentListVM.commentList[$0.row],
+           let isbnCode = self?.userSelectedBook?.isbn {
+          let addCommentVC = AddCommentVC(isbnCode, comment.comment)
+          addCommentVC.isCommentEditing = isCommentEditing
           
           let disposeBag = DisposeBag()
           let view = addCommentVC.addCommentView
@@ -114,8 +146,6 @@ class CommentListVC: UIViewController {
             .drive(view.myTextView.rx.text)
             .disposed(by: disposeBag)
           
-          addCommentVC.title = "Comment Detail"
-          addCommentVC.isEditing = isCommentEditing
           self?.navigationController?.pushViewController(addCommentVC, animated: true)
         }
       }.disposed(by: disposeBag)
@@ -133,13 +163,15 @@ class CommentListVC: UIViewController {
   // MARK: - handle Network
   func fetchUserCommentDate() {
     guard let book = userSelectedBook else { return }
-    
+    activityIndicator.startAnimating()
     CommentViewModel.fetchUserComments(book)
       .subscribe(onNext: { [weak self] value in
-        print(value)
         self?.commentListVM = CommentListViewModel(value)
         self?.configureTableView()
         self?.commentListVM.reloadData()
+        self?.isInitailDataLoaded = true
+        self?.activityIndicator.stopAnimating()
       }).disposed(by: disposeBag)
+    
   }
 }

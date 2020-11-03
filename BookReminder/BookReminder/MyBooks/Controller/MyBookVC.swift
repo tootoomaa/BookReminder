@@ -64,6 +64,7 @@ class MyBookVC: UIViewController {
   // MARK: - Life Cycle
   override func viewDidLoad() {
     super.viewDidLoad()
+    activityIndicatorStartAnimation()
     fetchInitialData()
     configureUI()
     configureMultiButtonAction()
@@ -114,6 +115,7 @@ class MyBookVC: UIViewController {
       .subscribe(onNext: { [weak self] value in
         self?.myBookListVM = MyBookListViewModel(value)
         self?.configureCollectionView()
+        self?.activityIndicatorStopAnimation()
     }).disposed(by: disposeBag)
   }
   
@@ -305,6 +307,14 @@ class MyBookVC: UIViewController {
     
     mainVC.markedBookListVM.removeMarkedBook(deleteBookInfo)
     mainVC.markedBookListVM.reloadData()
+  }
+  
+  private func activityIndicatorStartAnimation() {
+    myBookView.activityIndicator.startAnimating()
+  }
+  
+  private func activityIndicatorStopAnimation() {
+    myBookView.activityIndicator.stopAnimating()
   }
   
   // MARK: - Cell Button handelr
