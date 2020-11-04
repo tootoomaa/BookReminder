@@ -20,8 +20,6 @@ class MainVC: UIViewController {
   var userVM: UserViewModel!
   var markedBookListVM: MarkedBookListModel!
   
-  var viewModel: MarkedBookListModel!
-  
   let dispoeBag = DisposeBag()
   
   var tempMarkedBooksIndex: [String] = []
@@ -58,10 +56,6 @@ class MainVC: UIViewController {
     configureButtonBinding()
   }
   
-  func bindViewModel() {
-    
-  }
-  
   override func loadView() {
     view = mainView
   }
@@ -91,10 +85,14 @@ class MainVC: UIViewController {
         
         $0.forEach { isbnCode in
           
-          Book.fetchMarkedBookss(isbnCode).subscribe(onNext: { value in
+          Book.fetchMarkedBooks(isbnCode).subscribe(onNext: { [unowned self] value in
             
             self.tempMarkedBookList.append(value)
+            
             if self.tempMarkedBookList.count == self.tempMarkedBooksIndex.count {
+              
+              self.tempMarkedBookList.sort(by: { $0.creationDate > $1.creationDate })
+              
               self.markedBookListVM = MarkedBookListModel(self.tempMarkedBookList)
               self.markedBookListVM.reloadData()
               self.colletionViewBinding()
@@ -124,8 +122,6 @@ class MainVC: UIViewController {
     
     mainView.profileImageView.layer.cornerRadius = imageViewWidth/2
     mainView.profileImageView.clipsToBounds = true
-    
-    setupSelectedMarkedBookCommentCount()
   }
   
   private func setupSelectedMarkedBookCommentCount() {
@@ -142,6 +138,7 @@ class MainVC: UIViewController {
     configureCollectionViewDataSource()
     configureCollectionViewDelegate()
     configureCollectionViewWillAppear()
+    setupSelectedMarkedBookCommentCount()
   }
   
   private func configureCollectionViewOptionSetting() {
@@ -170,6 +167,12 @@ class MainVC: UIViewController {
         } else {
           let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CollecionViewCustomCell.identifier,
                                                         for: indexPath) as! CollecionViewCustomCell
+          
+          if item == 0 {
+            cell.isSelected = true
+            print("true Setting")
+          }
+          
           cell.bookThumbnailImageView.loadImage(urlString: markedBook.book.thumbnail)
           return cell
         }
@@ -185,6 +188,14 @@ class MainVC: UIViewController {
           cell.selectedimageView.isHidden.toggle()
           self?.userSelectedBookIndex = indexPath
         }
+        
+        // 화면 로딩 후 첫번째 클릭된 cell이 0번째가 아닌 경우, 0번째 체크 이미지가 사라지지 않는 오류 수정 ( bug: #43 )
+        if self?.userSelectedBookIndex != IndexPath(row: 0, section: 0) {
+          guard let firstCell = self?.mainView.collectionView.cellForItem(at: IndexPath(row: 0, section: 0)) as?
+                  CollecionViewCustomCell else { return }
+          firstCell.selectedimageView.isHidden = true
+        }
+        
       }).disposed(by: dispoeBag)
     
     mainView.collectionView.rx
@@ -198,18 +209,23 @@ class MainVC: UIViewController {
   private func configureCollectionViewWillAppear() {
     mainView.collectionView.rx
       .willDisplayCell
+      .debug()
       .subscribe(onNext: { event in
         guard let cell = event.cell as? CollecionViewCustomCell else { return }
-        if event.at == self.userSelectedBookIndex || cell.isSelected {
+        if event.at == self.userSelectedBookIndex {
+          print("SEtting")
           cell.selectedimageView.isHidden = false
           cell.isSelected = true
         } else {
+          print("No SEtting")
           cell.selectedimageView.isHidden = true
           cell.isSelected = false
         }
       }).disposed(by: dispoeBag)
   }
+  
   // MARK: - Configure Button Binder
+  
   private func configureButtonBinding() {
     userProfileTapGuesture()
     addCommentButtonBinding()
@@ -309,9 +325,6 @@ class MainVC: UIViewController {
                     self?.markedBookListVM.reloadData()
                     self?.userSelectedBookIndex = IndexPath(row: 0, section: 0)
                     
-                    // myBook 재설정
-      //              self?.reloadMyBookCollectionView()
-                    
                   }
                 }
               }
@@ -345,6 +358,7 @@ class MainVC: UIViewController {
           let okAction = UIAlertAction(title: "북마크 제거", style: .destructive) { [weak self] (_) in
             
             self?.markedBookListVM.removeMarkedBook(bookModel)
+            self?.userSelectedBookIndex = IndexPath(row: 0, section: 0)
             self?.markedBookListVM.reloadData()
           }
           
@@ -382,6 +396,7 @@ class MainVC: UIViewController {
   }
   
   // MARK: - Handler
+  
   private func popErrorAlertController() {
     present(UIAlertController.defaultSetting(title: "오류 ", message: "북마크된 책이 선택되지 않았습니다."),
             animated: true,

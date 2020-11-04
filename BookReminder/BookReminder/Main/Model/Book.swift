@@ -175,7 +175,7 @@ extension Book {
     }
   }
   
-  static func fetchMarkedBookss(_ isbnCode: String) -> Observable<Book> {
+  static func fetchMarkedBooks(_ isbnCode: String) -> Observable<Book> {
     return Observable.create { [isbn = isbnCode] observer -> Disposable in
       
       guard let uid = Auth.auth().currentUser?.uid else {
@@ -196,25 +196,4 @@ extension Book {
       return Disposables.create()
     }
   }
-  
-  static func fetchMarkedBooks(completion: @escaping ([Book]) -> Void) {
-    guard let uid = Auth.auth().currentUser?.uid else { return }
-    
-    var tempMarkedBookList = [Book]()
-    
-    DB_REF_MARKBOOKS.child(uid).observeSingleEvent(of: .value) { (snapshot) in
-      guard let value = snapshot.value as? [String: Int] else { return }
-      
-      value.keys.forEach{
-        Database.fetchBookDetailData(uid: uid, isbnCode: $0) { book in
-          tempMarkedBookList.append(book)
-          tempMarkedBookList.sort { (book1, book2) -> Bool in
-            book1.creationDate > book2.creationDate
-          }
-        }
-      }
-      
-    }
-  }
-  
 }
