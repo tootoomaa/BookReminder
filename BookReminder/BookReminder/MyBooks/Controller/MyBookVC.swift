@@ -125,6 +125,7 @@ class MyBookVC: UIViewController {
     collectionViewDataBinding()
     collectionViewDelegate()
     collectionViewWillDisplayCell()
+    changeCompleteBookObserveBinding()
   }
   
   private func collectionViewBasicSetting() {
@@ -284,6 +285,15 @@ class MyBookVC: UIViewController {
           self.present(alert, animated: true)
         }
       }.disposed(by: disposeBag)
+  }
+  
+  private func changeCompleteBookObserveBinding() {
+    
+    myBookListVM.checkCompleteBookChange()
+      .subscribe(onNext: { [weak self] _ in
+        self?.myBookListVM.reloadData()
+      }).disposed(by: disposeBag)
+    
   }
   
   // MARK: - Hander
