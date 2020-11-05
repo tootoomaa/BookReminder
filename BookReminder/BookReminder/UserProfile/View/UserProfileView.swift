@@ -42,6 +42,14 @@ class UserProfileView: UIView {
     return button
   }()
   
+  let userGuideLabel: UILabel = {
+    let label = UILabel()
+    label.text = "프로필 사진, 이름을 변경하려면 터치하세요!"
+    label.font = .systemFont(ofSize: 15)
+    label.textColor = .systemGray2
+    return label
+  }()
+  
   let sectionLabel: UILabel = {
     let label = UILabel()
     label.text = "사용자 책 관련 통계"
@@ -56,6 +64,7 @@ class UserProfileView: UIView {
     super.init(frame: frame)
     
     configureTopUISetting()
+    configureUserGuideLabelSetting()
     configureSectionLabel()
     configureTableViewSetting()
   }
@@ -88,10 +97,18 @@ class UserProfileView: UIView {
     }
   }
   
+  private func configureUserGuideLabelSetting() {
+    addSubview(userGuideLabel)
+    userGuideLabel.snp.makeConstraints {
+      $0.top.equalTo(profileImageView.snp.bottom).offset(10)
+      $0.leading.equalTo(profileImageView)
+    }
+  }
+  
   private func configureSectionLabel() {
     addSubview(sectionLabel)
     sectionLabel.snp.makeConstraints {
-      $0.top.equalTo(profileImageView.snp.bottom).offset(10)
+      $0.top.equalTo(userGuideLabel.snp.bottom).offset(10)
       $0.leading.equalTo(safeAreaLayoutGuide).offset(20)
       $0.trailing.equalTo(safeAreaLayoutGuide)
       $0.height.equalTo(50)

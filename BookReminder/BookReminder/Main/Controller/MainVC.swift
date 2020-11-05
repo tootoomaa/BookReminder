@@ -83,24 +83,30 @@ class MainVC: UIViewController {
       .subscribe {
         self.tempMarkedBooksIndex = $0
         
-        $0.forEach { isbnCode in
-          
-          Book.fetchMarkedBooks(isbnCode).subscribe(onNext: { [unowned self] value in
+        if $0.isEmpty {
+          self.markedBookListVM = MarkedBookListModel(self.tempMarkedBookList)
+          self.markedBookListVM.reloadData()
+          self.colletionViewBinding()
+          self.mainView.activityIndicator.stopAnimating()
+        } else {
+          $0.forEach { isbnCode in
             
-            self.tempMarkedBookList.append(value)
-            
-            if self.tempMarkedBookList.count == self.tempMarkedBooksIndex.count {
+            Book.fetchMarkedBooks(isbnCode).subscribe(onNext: { [unowned self] value in
               
-              self.tempMarkedBookList.sort(by: { $0.creationDate > $1.creationDate })
+              self.tempMarkedBookList.append(value)
               
-              self.markedBookListVM = MarkedBookListModel(self.tempMarkedBookList)
-              self.markedBookListVM.reloadData()
-              self.colletionViewBinding()
-              self.mainView.activityIndicator.stopAnimating()
-            }
-            
-          }).disposed(by: self.dispoeBag)
-          
+              if self.tempMarkedBookList.count == self.tempMarkedBooksIndex.count {
+                
+                self.tempMarkedBookList.sort(by: { $0.creationDate > $1.creationDate })
+                
+                self.markedBookListVM = MarkedBookListModel(self.tempMarkedBookList)
+                self.markedBookListVM.reloadData()
+                self.colletionViewBinding()
+                self.mainView.activityIndicator.stopAnimating()
+              }
+              
+            }).disposed(by: self.dispoeBag)
+          }
         }
       } onError: { error in
         print(error)

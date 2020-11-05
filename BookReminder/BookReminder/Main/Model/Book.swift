@@ -160,16 +160,18 @@ extension Book {
       }
       
       DB_REF_MARKBOOKS.child(uid).observeSingleEvent(of: .value) { snapshot in
-        guard let markedBookIndex = snapshot.value as? [String: Int] else {
-          observer.onError(fetchError.valueValidationError)
-          fatalError("Fail to get MarkedBook")
+        if let markedBookIndex = snapshot.value as? [String: Int] {
+          
+          let isbnCodeArray = markedBookIndex.map { key, value -> String in
+            return "\(key)"
+          }
+          
+          observer.onNext(isbnCodeArray)
+          
+        } else {
+          observer.onNext([])
+//          observer.onError(fetchError.valueValidationError)
         }
-        
-        let isbnCodeArray = markedBookIndex.map { key, value -> String in
-          return "\(key)"
-        }
-        
-        observer.onNext(isbnCodeArray)
       }
       return Disposables.create()
     }

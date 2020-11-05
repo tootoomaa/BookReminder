@@ -102,6 +102,7 @@ class UserProfileVC: UIViewController {
   private func tableViewBasicSetting() {
     userProfileView.tableView.backgroundColor = .white
     userProfileView.tableView.allowsSelection = false
+    userProfileView.tableView.isScrollEnabled = false
   }
   
   private func tableViewHeaderSetting() {
