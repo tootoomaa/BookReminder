@@ -126,6 +126,7 @@ class MyBookVC: UIViewController {
     collectionViewDelegate()
     collectionViewWillDisplayCell()
     changeCompleteBookObserveBinding()
+    conbineUserGuideLabelShow()
   }
   
   private func collectionViewBasicSetting() {
@@ -201,6 +202,13 @@ class MyBookVC: UIViewController {
           }
         }
         
+      }).disposed(by: disposeBag)
+  }
+  
+  private func conbineUserGuideLabelShow() {
+    myBookListVM.allcase
+      .subscribe(onNext:{ [weak self] in
+        self?.myBookView.isBookOverCount = $0.count >= 3 ? false : true
       }).disposed(by: disposeBag)
   }
   // MARK: - Setting SearchBar

@@ -19,6 +19,26 @@ class MyBookView: UIView {
   let bounceDistance: CGFloat = 25
   let multiButtonSize: CGFloat = 70
   
+  var isBookOverCount: Bool = false {
+    didSet {
+      // 사용자 가이드문 표시 on/off
+      emptyBookUserGuideTitle.isHidden = !isBookOverCount
+      emptyBookUserGuide.isHidden  = !(isBookOverCount && multibuttomActive)
+      
+    }
+  }
+  
+  let largeImageConf = UIImage.SymbolConfiguration(pointSize: 50, weight: .medium, scale: .large)
+  
+  lazy var downImage = UIImage(systemName: "arrow.turn.right.down", withConfiguration: largeImageConf)!
+  
+  let imageConf = UIImage.SymbolConfiguration(pointSize: 20, weight: .heavy, scale: .medium)
+  
+  lazy var ciclePlusImage = UIImage(systemName: "plus.circle.fill", withConfiguration: imageConf)!
+  lazy var barcodeImage = UIImage(systemName: "barcode", withConfiguration: imageConf)!
+  lazy var deleteImage = UIImage(systemName: "delete.right", withConfiguration: imageConf)!
+  lazy var searchImage = UIImage(systemName: "magnifyingglass", withConfiguration: imageConf)!
+  
   let searchBar: UISearchBar = {
     let sBar = UISearchBar(frame: .zero)
     sBar.placeholder = " 등록된 책 검색.."
@@ -38,12 +58,11 @@ class MyBookView: UIView {
   
   lazy var multiButton: UIButton = {
     let button = UIButton()
-    let imageConfigure = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium, scale: .large)
-    let buttonImage = UIImage(systemName: "plus", withConfiguration: imageConfigure)
     button.addTarget(self, action: #selector(tabMultiButton), for: .touchUpInside)
     button.imageView?.tintColor = .white
     button.backgroundColor = CommonUI.mainBackgroudColor
-    button.setImage(buttonImage, for: .normal)
+    button.setImage(UIImage(systemName: "plus", withConfiguration: imageConf)!,
+                    for: .normal)
     button.layer.cornerRadius = multiButtonSize/2
     button.clipsToBounds = true
     return button
@@ -51,24 +70,19 @@ class MyBookView: UIView {
   
   lazy var barcodeButton: UIButton = {
     let button = UIButton()
-    let imageConfigure = UIImage.SymbolConfiguration(pointSize: 20, weight: .heavy, scale: .medium)
-    let buttonImage = UIImage(systemName: "barcode", withConfiguration: imageConfigure)
     button.imageView?.tintColor = .white
     button.backgroundColor = #colorLiteral(red: 0.999982059, green: 0.6622204781, blue: 0.1913976967, alpha: 1)
-    button.setImage(buttonImage, for: .normal)
+    button.setImage(barcodeImage, for: .normal)
     button.layer.cornerRadius = featureButtonSize/2
     button.clipsToBounds = true
-    
     return button
   }()
   
   lazy var bookSearchButton: UIButton = {
     let button = UIButton()
-    let imageConfigure = UIImage.SymbolConfiguration(pointSize: 20, weight: .heavy, scale: .medium)
-    let buttonImage = UIImage(systemName: "magnifyingglass", withConfiguration: imageConfigure)
     button.imageView?.tintColor = .white
     button.backgroundColor = #colorLiteral(red: 0.8973528743, green: 0.9285049438, blue: 0.7169274688, alpha: 1)
-    button.setImage(buttonImage, for: .normal)
+    button.setImage(searchImage, for: .normal)
     button.layer.cornerRadius = featureButtonSize/2
     button.clipsToBounds = true
     return button
@@ -76,11 +90,9 @@ class MyBookView: UIView {
   
   lazy var deleteBookButton: UIButton = {
     let button = UIButton()
-    let imageConfigure = UIImage.SymbolConfiguration(pointSize: 20, weight: .heavy, scale: .medium)
-    let buttonImage = UIImage(systemName: "delete.right", withConfiguration: imageConfigure)
     button.imageView?.tintColor = .white
     button.backgroundColor = #colorLiteral(red: 0.5455855727, green: 0.8030222058, blue: 0.8028761148, alpha: 1)
-    button.setImage(buttonImage, for: .normal)
+    button.setImage(deleteImage, for: .normal)
     button.layer.cornerRadius = featureButtonSize/2
     button.clipsToBounds = true
     return button
@@ -92,6 +104,56 @@ class MyBookView: UIView {
     activityView.hidesWhenStopped = true
     activityView.style = .large
     return activityView
+  }()
+  
+  lazy var emptyBookUserGuideTitle: UILabel = {
+    let label = UILabel()
+    
+    let guideAttString: NSMutableAttributedString = .init(string: "")
+    
+    let plus = NSAttributedString(attachment: NSTextAttachment(image: ciclePlusImage))
+    let plusImg = NSAttributedString(string: " 버튼을 눌러 메뉴를 확인해주세요")
+    let downImg = NSAttributedString(attachment: NSTextAttachment(image: downImage))
+    let infoText = NSAttributedString(
+      string: "\n        (해당 안내문은 2권이상 등록시 사라집니다)",
+      attributes: [NSAttributedString.Key.foregroundColor: UIColor.gray,        NSAttributedString.Key.font: UIFont.systemFont(ofSize: 12)])
+    
+    guideAttString.append(plus)
+    guideAttString.append(plusImg)
+    guideAttString.append(downImg)
+    guideAttString.append(infoText)
+    
+    label.attributedText = guideAttString
+    label.numberOfLines = 0
+    label.isHidden = true
+    return label
+  }()
+  
+  lazy var emptyBookUserGuide: UILabel = {
+    let label = UILabel()
+    label.numberOfLines = 0
+    
+    let guideAttString: NSMutableAttributedString = .init(string: "")
+    
+    let barcode = NSAttributedString(attachment: NSTextAttachment(image: barcodeImage))
+    let barcodeText = NSAttributedString(string: " : 바코드 찍어서 등록하기\n\n")
+    
+    let search = NSAttributedString(attachment: NSTextAttachment(image: searchImage))
+    let searchText = NSAttributedString(string: " : 책 이름으로 검색하기\n\n")
+    
+    let delete = NSAttributedString(attachment: NSTextAttachment(image: deleteImage))
+    let deleteText = NSAttributedString(string: " : 선택한 책 삭제하기\n\n")
+    
+    guideAttString.append(barcode)
+    guideAttString.append(barcodeText)
+    guideAttString.append(search)
+    guideAttString.append(searchText)
+    guideAttString.append(delete)
+    guideAttString.append(deleteText)
+    
+    label.attributedText = guideAttString
+    label.isHidden = true
+    return label
   }()
   
   // MARK: - Life Cycle
@@ -109,6 +171,7 @@ class MyBookView: UIView {
     searchBarSetting()
     collectionViewSetting()
     multibuttonSetting()
+    configureUserGuideForEmpty()
     activityIndicatoerSetting()
   }
   
@@ -148,6 +211,21 @@ class MyBookView: UIView {
         $0.centerY.equalTo(multiButton.snp.centerY)
         $0.width.height.equalTo(featureButtonSize)
       }
+    }
+  }
+  
+  private func configureUserGuideForEmpty() {
+    
+    collectionView.addSubview(emptyBookUserGuideTitle)
+    emptyBookUserGuideTitle.snp.makeConstraints {
+      $0.trailing.equalTo(safeAreaLayoutGuide).offset(-20)
+      $0.bottom.equalTo(multiButton.snp.top).offset(-bounceDistance*4)
+    }
+    
+    collectionView.addSubview(emptyBookUserGuide)
+    emptyBookUserGuide.snp.makeConstraints {
+      $0.leading.equalTo(collectionView).offset(20)
+      $0.bottom.equalTo(safeAreaLayoutGuide).offset(-10)
     }
   }
   
@@ -218,6 +296,10 @@ class MyBookView: UIView {
         }
         
       })
+    }
+    
+    if isBookOverCount {
+      emptyBookUserGuide.isHidden.toggle()
     }
     multibuttomActive.toggle()
   }
