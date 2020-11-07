@@ -110,6 +110,7 @@ class MainVC: UIViewController {
         }
       } onError: { error in
         print(error)
+        fatalError()
       }.disposed(by: dispoeBag)
   }
   

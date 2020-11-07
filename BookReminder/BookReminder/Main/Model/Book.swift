@@ -153,24 +153,27 @@ extension Book {
   
   static func fetchMarkedBookIndex() -> Observable<[String]> {
     
-    return Observable.create { observer -> Disposable in
-      guard let uid = Auth.auth().currentUser?.uid else {
-        observer.onError(fetchError.getUidError)
-        fatalError("Fail to get Uid")
+    guard let uid = Auth.auth().currentUser?.uid else {
+      return Observable.create { observer -> Disposable in
+        observer.onNext([])
+        observer.onCompleted()
+        return Disposables.create()
       }
-      
+    }
+    
+    return Observable.create { observer -> Disposable in      
       DB_REF_MARKBOOKS.child(uid).observeSingleEvent(of: .value) { snapshot in
         if let markedBookIndex = snapshot.value as? [String: Int] {
           
           let isbnCodeArray = markedBookIndex.map { key, value -> String in
             return "\(key)"
           }
-          
           observer.onNext(isbnCodeArray)
-          
+          observer.onCompleted()
         } else {
+          
           observer.onNext([])
-//          observer.onError(fetchError.valueValidationError)
+          observer.onCompleted()
         }
       }
       return Disposables.create()
@@ -178,12 +181,15 @@ extension Book {
   }
   
   static func fetchMarkedBooks(_ isbnCode: String) -> Observable<Book> {
-    return Observable.create { [isbn = isbnCode] observer -> Disposable in
-      
-      guard let uid = Auth.auth().currentUser?.uid else {
-        observer.onError(fetchError.getUidError)
-        fatalError("Fail to get Uid")
+    
+    guard let uid = Auth.auth().currentUser?.uid else {
+      return Observable.create { observer -> Disposable in
+        observer.onNext(Book.empty())
+        return Disposables.create()
       }
+    }
+    
+    return Observable.create { [isbn = isbnCode] observer -> Disposable in
       
       DB_REF_USERBOOKS.child(uid).child(isbn).observeSingleEvent(of: .value) { (snapshot) in
         
