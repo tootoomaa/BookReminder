@@ -45,8 +45,8 @@ extension UserViewModel {
     
     let value = [
       "nickName": newName,
-      "email": self.email,
-      "profileImageUrl": self.profileImageUrl
+      "email": self.user.email,
+      "profileImageUrl": self.user.profileImageUrl
       ] as Dictionary<String, AnyObject>
     
     DB_REF_USER.updateChildValues([uid: value])
@@ -75,8 +75,8 @@ extension UserViewModel {
         guard let newProfileImgURL = newProfileImgURL else { return }
         
         let value = [
-          "nickName": user.nickName,
-          "email": user.email,
+          "nickName": self.user.nickName,
+          "email": self.user.email,
           "profileImageUrl": newProfileImgURL.absoluteString
         ] as Dictionary<String, AnyObject>
         

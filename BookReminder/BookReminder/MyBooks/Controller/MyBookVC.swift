@@ -65,7 +65,9 @@ class MyBookVC: UIViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
     activityIndicatorStartAnimation()
+    
     fetchInitialData()
+    
     configureUI()
     configureMultiButtonAction()
     settingSearchBar()
@@ -76,6 +78,7 @@ class MyBookVC: UIViewController {
   }
   
   override func viewWillAppear(_ animated: Bool) {
+    myBookView.configureUserGuideLabels()
     
     let view = self.myBookView
     UIView.animate(withDuration: 0.5) {
@@ -127,6 +130,7 @@ class MyBookVC: UIViewController {
     collectionViewWillDisplayCell()
     changeCompleteBookObserveBinding()
     conbineUserGuideLabelShow()
+    markedBookChangingBind()
   }
   
   private func collectionViewBasicSetting() {
@@ -266,32 +270,30 @@ class MyBookVC: UIViewController {
   
   private func configureMultiDeleteButtonAction() {
     myBookView.deleteBookButton.rx.tap
-      .bind { [weak self] in
-        guard let deleteBookIndex = self?.userSelectedCellForDelete else {
-          self?.presentDefaultAlertC("삭제 오류", "삭제 할 책을 선택해주세요")
+      .bind { [unowned self] in
+        guard let deleteBookIndex = self.userSelectedCellForDelete else {
+          self.presentDefaultAlertC("삭제 오류", "삭제 할 책을 선택해주세요")
           return
         }
         
-        if let self = self {
-          guard let deleteBookInfo = self.myBookListVM.bookAt(deleteBookIndex.item) else { return }
-          let bookInfo = deleteBookInfo.book
+        guard let deleteBookInfo = self.myBookListVM.bookAt(deleteBookIndex.item) else { return }
+        let bookInfo = deleteBookInfo.book
+        
+        let alert = UIAlertController.deleteBookWarning(self, bookInfo, deleteBookIndex)
+        
+        let addAction = UIAlertAction(title: "취소", style: .cancel) { (_) in }
+        let deleteAction = UIAlertAction(title: "삭제", style: .destructive) { (_) in
           
-          let alert = UIAlertController.deleteBookWarning(self, bookInfo, deleteBookIndex)
+          guard let index = self.userSelectedCellForDelete,
+                let deleteBookModel = self.myBookListVM.bookAt(index.item) else { return }
+          self.deleteMyBook(index)
+          self.deleteBookAtBookMarkedList(deleteBookModel.toMarkedBookModel())
           
-          let addAction = UIAlertAction(title: "취소", style: .cancel) { (_) in }
-          let deleteAction = UIAlertAction(title: "삭제", style: .destructive) { (_) in
-            
-            guard let index = self.userSelectedCellForDelete,
-                  let deleteBookModel = self.myBookListVM.bookAt(index.item) else { return }
-            self.deleteMyBook(index)
-            self.deleteBookAtBookMarkedList(deleteBookModel.toMarkedBookModel())
-            
-          }
-          alert.addAction(addAction)
-          alert.addAction(deleteAction)
-          
-          self.present(alert, animated: true)
         }
+        alert.addAction(addAction)
+        alert.addAction(deleteAction)
+        
+        self.present(alert, animated: true)
       }.disposed(by: disposeBag)
   }
   
@@ -300,6 +302,17 @@ class MyBookVC: UIViewController {
     myBookListVM.checkCompleteBookChange()
       .subscribe(onNext: { [weak self] _ in
         self?.myBookListVM.reloadData()
+      }).disposed(by: disposeBag)
+    
+  }
+  
+  private func markedBookChangingBind() {
+    
+    myBookListVM.markBookListChangingByRemoveBookMarkButton()
+      .subscribe(onNext:{ [unowned self] in
+        if $0 == true {
+          self.myBookListVM.reloadData()
+        }
       }).disposed(by: disposeBag)
     
   }
@@ -356,7 +369,7 @@ class MyBookVC: UIViewController {
         DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue()
         mainVC.markedBookListVM.removeMarkedBook(MarkedBookModel(bookDetailInfo))
       }
-      mainVC.markedBookListVM.allcase.accept(mainVC.markedBookListVM.books)
+//      mainVC.markedBookListVM.allcase.accept(mainVC.markedBookListVM.books)
 
     } else if buttonName == MyBookCellButtonTitle.comment.rawValue {
       

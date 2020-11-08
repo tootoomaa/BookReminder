@@ -11,6 +11,7 @@ import RxSwift
 import RxCocoa
 import FirebaseAuth
 
+// MARK: - Book List Model
 struct MarkedBookListModel {
   var books: [MarkedBookModel]
   
@@ -56,7 +57,10 @@ extension MarkedBookListModel {
   
   func fetchMarkedBookCommentCountAt(_ index: IndexPath) -> Observable<NSAttributedString>? {
     if let uid = Auth.auth().currentUser?.uid, !self.books.isEmpty {
-       let isbnCode = self.books[index.row].book.isbn!
+      
+      guard let isbnCode = self.books.first?.book.isbn else {
+        return Observable<NSAttributedString>.just(NSAttributedString.configureAttributedString(systemName: "bubble.left.fill", setText: "0"))
+      }
     
       return Observable<NSAttributedString>.create({ (observer) -> Disposable in
         DB_REF_COMMENT_STATICS.child(uid).child(isbnCode).observe(.value) { (snapshot) in
@@ -73,6 +77,7 @@ extension MarkedBookListModel {
   }
 }
 
+// MARK: - Book Model
 struct MarkedBookModel: Equatable{
   
   let book: Book

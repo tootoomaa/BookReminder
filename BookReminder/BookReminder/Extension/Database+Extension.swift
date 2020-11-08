@@ -81,43 +81,57 @@ extension Database {
   static func bookDeleteHandler(uid: String, deleteBookData: Book) {
     guard let isbnCode = deleteBookData.isbn else { return }
     
+    //[책 정보 삭제] 책 등록 정보 삭제
     DB_REF_USERBOOKS.child(uid).child(isbnCode).removeValue()
+    
+    // [통계 완룐]
+    // 사용자 등록 권수 -1
+    userProfileStaticsHanlder(uid: uid,
+                              plusMinus: .down,
+                              updateCategory: .enrollBookCount,
+                              amount: 1)
+    
+    //     [코멘트]
+    //     책 코멘트 삭제
     DB_REF_COMMENT_STATICS.child(uid).child(isbnCode).removeValue()
+    //     사용자 코맨트 수 -1
     
-    // enroll 책 count 감소
-    userProfileStaticsHanlder(uid: uid, plusMinus: .down, updateCategory: .enrollBookCount, amount: 1)
+    // 북마크된 경우 삭제
+    DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue()
     
+    // 책의 코멘트 수 감소
     DB_REF_COMMENT_STATICS.child(uid).child(isbnCode).observeSingleEvent(of: .value) { (snapshot) in
-      
+      // 해당 책에 등록된 코멘트 수 불러오기
       guard let deleteBookCommentCount = snapshot.value as? Int else { return }
       // 총 comment 감소
       userProfileStaticsHanlder(uid: uid,
                                 plusMinus: .down,
                                 updateCategory: .commentCount,
                                 amount: deleteBookCommentCount)
+    }
+    
+    // 사용자 완독 권수 -1
+    DB_REF_COMPLITEBOOKS.child(uid).child(isbnCode).observeSingleEvent(of: .value) { (snapshot) in
       
-      DB_REF_COMPLITEBOOKS.child(uid).child(isbnCode).observeSingleEvent(of: .value) { (snapshot) in
-        if (snapshot.value as? Int) != nil {
-          userProfileStaticsHanlder(uid: uid, plusMinus: .down, updateCategory: .compliteBookCount, amount: 1)
-        }
-        DB_REF_COMPLITEBOOKS.child(uid).child(isbnCode).removeValue()
-        DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue()
-        
-        DB_REF_COMMENT.child(uid).child(isbnCode).observeSingleEvent(of: .value) { (snapshot) in
-          guard let dictionary = snapshot.value as? Dictionary<String, AnyObject> else { return }
-          
-          dictionary.forEach{
-            guard let commentDicData = $0.value as? Dictionary<String, AnyObject> else { return }
-            let comment = Comment(commentUid: $0.key, dictionary: commentDicData)
-            if let imageURL = comment.captureImageUrl {
-              Storage.storage().reference(forURL: imageURL).delete(completion: nil)
-            }
-          }
-          
-          DB_REF_COMMENT.child(uid).child(isbnCode).removeValue()
-        }
-        
+      if (snapshot.value as? Int) != nil {
+        userProfileStaticsHanlder(uid: uid, plusMinus: .down, updateCategory: .compliteBookCount, amount: 1)
       }
+      
+      DB_REF_COMMENT.child(uid).child(isbnCode).observeSingleEvent(of: .value) { (snapshot) in
+        guard let dictionary = snapshot.value as? Dictionary<String, AnyObject> else { return }
+        
+        dictionary.forEach{
+          guard let commentDicData = $0.value as? Dictionary<String, AnyObject> else { return }
+          let comment = Comment(commentUid: $0.key, dictionary: commentDicData)
+          if let imageURL = comment.captureImageUrl {
+            Storage.storage().reference(forURL: imageURL).delete(completion: nil)
+          }
+        }
+        
+        DB_REF_COMPLITEBOOKS.child(uid).child(isbnCode).removeValue()
+        DB_REF_COMMENT.child(uid).child(isbnCode).removeValue()
+      }
+      
     }
   }
 }

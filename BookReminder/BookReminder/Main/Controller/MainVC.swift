@@ -21,6 +21,7 @@ class MainVC: UIViewController {
   var markedBookListVM: MarkedBookListModel!
   
   let dispoeBag = DisposeBag()
+  var collectionViewDelegateBag = Disposables.create()
   
   var tempMarkedBooksIndex: [String] = []
   var tempMarkedBookList: [Book] = []
@@ -49,10 +50,11 @@ class MainVC: UIViewController {
     //        print ("Error signing out: %@", signOutError)
     //      }
     //    }
+    markedBookListVM = MarkedBookListModel([Book.empty()])
+    configureCollectionViewOptionSetting()
     
     getUserData()
     getMarkedBookList()
-    
     configureButtonBinding()
   }
   
@@ -80,14 +82,17 @@ class MainVC: UIViewController {
   
   private func getMarkedBookList() {
     Book.fetchMarkedBookIndex()
+      .debug()
       .subscribe {
         self.tempMarkedBooksIndex = $0
         
         if $0.isEmpty {
-          self.markedBookListVM = MarkedBookListModel(self.tempMarkedBookList)
-          self.markedBookListVM.reloadData()
+          
+          self.markedBookListVM.books = []
           self.colletionViewBinding()
+          self.markedBookListVM.reloadData()
           self.mainView.activityIndicator.stopAnimating()
+          
         } else {
           $0.forEach { isbnCode in
             
@@ -99,9 +104,16 @@ class MainVC: UIViewController {
                 
                 self.tempMarkedBookList.sort(by: { $0.creationDate > $1.creationDate })
                 
-                self.markedBookListVM = MarkedBookListModel(self.tempMarkedBookList)
-                self.markedBookListVM.reloadData()
+                let markedBookModels = tempMarkedBookList.map { book -> MarkedBookModel in
+                  return MarkedBookModel(book)
+                }
+                
+                //self.markedBookListVM.allcase.accept(markedBookModels)
+                self.markedBookListVM.books = markedBookModels
                 self.colletionViewBinding()
+                self.markedBookListVM.reloadData()
+                
+                self.tempMarkedBookList.removeAll()
                 self.mainView.activityIndicator.stopAnimating()
               }
               
@@ -110,7 +122,6 @@ class MainVC: UIViewController {
         }
       } onError: { error in
         print(error)
-        fatalError()
       }.disposed(by: dispoeBag)
   }
   
@@ -119,7 +130,6 @@ class MainVC: UIViewController {
     self.markedBookListVM = MarkedBookListModel(tempMarkedBookList)
     
     userVM.nickName.asDriver(onErrorJustReturn: "NickName")
-      .debug()
       .drive(mainView.nameLabel.rx.text)
       .disposed(by: dispoeBag)
     
@@ -138,16 +148,7 @@ class MainVC: UIViewController {
       .disposed(by: dispoeBag)
   }
   
-  // MARK: - CollectionView Binding
-  
-  private func colletionViewBinding() {
-    configureCollectionViewOptionSetting()
-    configureCollectionViewDataSource()
-    configureCollectionViewDelegate()
-    configureCollectionViewWillAppear()
-    setupSelectedMarkedBookCommentCount()
-  }
-  
+  // MARK: - collectionView Setting
   private func configureCollectionViewOptionSetting() {
     mainView.collectionView.backgroundColor = .white
     mainView.collectionView.allowsMultipleSelection = false
@@ -162,8 +163,21 @@ class MainVC: UIViewController {
                                      forCellWithReuseIdentifier: CollectionViewNoDataCell.identifier)
   }
   
+  // MARK: - CollectionView Binding
+  
+  private func colletionViewBinding() {
+    configureCollectionViewDataSource()
+    configureCollectionViewDelegate()
+    configureCollectionViewWillAppear()
+    setupSelectedMarkedBookCommentCount()
+  }
+  
   private func configureCollectionViewDataSource() {
-    markedBookListVM.allcase
+    
+    // 
+    collectionViewDelegateBag.dispose()
+    
+    collectionViewDelegateBag = markedBookListVM.allcase
       .bind(to: mainView.collectionView.rx.items) { [weak self] (collectionView, item, markedBook) -> UICollectionViewCell in
         let indexPath = IndexPath(item: item, section: 0)
         
@@ -174,7 +188,6 @@ class MainVC: UIViewController {
         } else {
           let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CollecionViewCustomCell.identifier,
                                                         for: indexPath) as! CollecionViewCustomCell
-          
           if item == 0 {
             cell.isSelected = true
             print("true Setting")
@@ -183,7 +196,7 @@ class MainVC: UIViewController {
           cell.bookThumbnailImageView.loadImage(urlString: markedBook.book.thumbnail)
           return cell
         }
-      }.disposed(by: dispoeBag)
+      }
   }
   
   private func configureCollectionViewDelegate() {
@@ -216,15 +229,12 @@ class MainVC: UIViewController {
   private func configureCollectionViewWillAppear() {
     mainView.collectionView.rx
       .willDisplayCell
-      .debug()
       .subscribe(onNext: { event in
         guard let cell = event.cell as? CollecionViewCustomCell else { return }
         if event.at == self.userSelectedBookIndex {
-          print("SEtting")
           cell.selectedimageView.isHidden = false
           cell.isSelected = true
         } else {
-          print("No SEtting")
           cell.selectedimageView.isHidden = true
           cell.isSelected = false
         }

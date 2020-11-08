@@ -70,7 +70,7 @@ extension MyBookListViewModel {
   }
   
   func checkCompleteBookChange() -> Observable<Bool> {
-    guard let uid = Auth.auth().currentUser?.uid else { fatalError("Fail to get Uid") }
+    guard let uid = Auth.auth().currentUser?.uid else { return Observable.just(false) }
     return Observable<Bool>.create({ (observer) -> Disposable in
       
       DB_REF_COMPLITEBOOKS.child(uid).observe(.value) { snapshot in
@@ -80,6 +80,19 @@ extension MyBookListViewModel {
       return Disposables.create()
     })
   }
+  
+  func markBookListChangingByRemoveBookMarkButton() -> Observable<Bool> {
+    guard let uid = Auth.auth().currentUser?.uid else { return Observable.just(false) }
+    return Observable<Bool>.create { observer -> Disposable in
+      
+      DB_REF_MARKBOOKS.child(uid).observe(.value) { snapshot in
+        observer.onNext(true)
+      }
+      
+      return Disposables.create()
+    }
+  }
+  
 }
 
 struct MyBookViewModel {

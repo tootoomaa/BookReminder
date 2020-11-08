@@ -48,7 +48,7 @@ extension SearchBook {
       "sale_price": self.sale_price,
       "status": self.status,
       "thumbnail": self.thumbnail,
-      "title": self.title,
+      "title": self.title.trimmingCharacters(in: .whitespaces),
       "translators": self.translators,
       "url": self.url,
       "creationDate": creationDate
