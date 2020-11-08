@@ -90,7 +90,6 @@ extension Database {
                               plusMinus: .down,
                               updateCategory: .enrollBookCount,
                               amount: 1)
-    
     //     [코멘트]
     //     책 코멘트 삭제
     DB_REF_COMMENT_STATICS.child(uid).child(isbnCode).removeValue()

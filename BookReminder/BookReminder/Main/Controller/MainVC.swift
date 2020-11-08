@@ -8,7 +8,6 @@
 
 import UIKit
 import SnapKit
-import Firebase
 import RxSwift
 import RxCocoa
 import RxDataSources
@@ -310,55 +309,28 @@ class MainVC: UIViewController {
   
   private func completeButtonBinding() {
     mainView.mainConrtollMenu.compliteButton.rx.tap
-      .subscribe(onNext: { [weak self] in
+      .subscribe(onNext: { [unowned self] in
         
-        guard let index = self?.userSelectedBookIndex.item else { return }
-        if let completeBookModel = self?.markedBookListVM.bookAt(index) {
+        let okAction = UIAlertAction(title: "완독 처리", style: .destructive) { [unowned self] (_) in
           
-          let okAction = UIAlertAction(title: "완독 처리", style: .destructive) { [weak self] (_) in
-            guard let uid = Auth.auth().currentUser?.uid,
-                  let isbnCode = completeBookModel.book.isbn else { return }
-            
-            DB_REF_COMPLITEBOOKS.child(uid).observeSingleEvent(of: .value) { [weak self] (snapshot) in
+          self.markedBookListVM.completeBook(self.userSelectedBookIndex)
+            .debug()
+            .subscribe(onNext: {
               
-              if let completeBookIndexArray = snapshot.value as? Dictionary<String, AnyObject> {
-                
-                completeBookIndexArray.keys.forEach { completeIsbnCode in
-                  if completeIsbnCode == isbnCode {
-                    
-                    self?.present(UIAlertController.defaultSetting(title: "오류", message: "이미 완독된 책 입니다"),
-                                  animated: true, completion: nil)
-                    return
-                    
-                  } else {
-                    
-                    // 신규 등록 되는 책 DB 업데이트
-                    DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue() // 북마크에서 제거
-                    DB_REF_COMPLITEBOOKS.child(uid) .updateChildValues([isbnCode:1]) // 완료된 책 등록
-                    Database.userProfileStaticsHanlder(uid: uid, plusMinus: .plus, updateCategory: .compliteBookCount, amount: 1) // 완료 통계 증가
-                    
-                    // 북마크 북 제거
-                    self?.markedBookListVM.removeMarkedBook(completeBookModel)
-                    self?.markedBookListVM.reloadData()
-                    self?.userSelectedBookIndex = IndexPath(row: 0, section: 0)
-                    
-                  }
-                }
+              if $0 == false { // 오류 메시지
+                self.present(UIAlertController.defaultSetting(title: "오류", message: "이미 완독된 책 입니다"),
+                             animated: true, completion: nil)
+              } else { // 완료 성공 - > 리로드
+                markedBookListVM.reloadData()
               }
               
-            }
-          }
-          
-          let message = "해당 책을 완독 처리하시겠습니까?\n 완독한 책은 Main메뉴에서 삭제됩니다."
-          
-          if let deleteBookTitle = completeBookModel.book.title {
-            let alertController = UIAlertController.okCancelSetting(title: "\(deleteBookTitle) 완독", message: message, okAction: okAction)
-            
-            self?.present(alertController, animated: true, completion: nil)
-          }
-        } else {
-          self?.popErrorAlertController()
+            }).disposed(by: dispoeBag)
         }
+        
+        let message = "해당 책을 완독 처리하시겠습니까?\n 완독한 책은 Main메뉴에서 삭제됩니다."
+        let alertController = UIAlertController.okCancelSetting(title: "완독 처리", message: message, okAction: okAction)
+        self.present(alertController, animated: true, completion: nil)
+        
       }).disposed(by: dispoeBag)
   }
   

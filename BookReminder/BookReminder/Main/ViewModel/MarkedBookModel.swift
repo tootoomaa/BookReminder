@@ -10,6 +10,7 @@ import Foundation
 import RxSwift
 import RxCocoa
 import FirebaseAuth
+import Firebase
 
 // MARK: - Book List Model
 struct MarkedBookListModel {
@@ -75,6 +76,48 @@ extension MarkedBookListModel {
       return Observable<NSAttributedString>.just(NSAttributedString.configureAttributedString(systemName: "bubble.left.fill", setText: "0"))
     }
   }
+  
+  func completeBook(_ index: IndexPath) -> Observable<Bool> {
+    guard let uid = Auth.auth().currentUser?.uid else { return Observable.just(false) }
+    let completeBookModel = books[index.row]
+    guard let completeBookIsbnCode = completeBookModel.book.isbn else { return Observable.just(false) }
+    
+    return Observable.create { observer -> Disposable in
+      DB_REF_COMPLITEBOOKS.child(uid).observeSingleEvent(of: .value) { snapshot in
+        
+        if let completeBookIndexArray = snapshot.value as? Dictionary<String, AnyObject> {
+          
+          if completeBookIndexArray.keys.contains(completeBookIsbnCode) {
+            observer.onNext(false)
+          } else {
+            completeBookInformationUpdateToServer(uid, completeBookIsbnCode)
+            observer.onNext(true)
+          }
+        }else {
+          completeBookInformationUpdateToServer(uid, completeBookIsbnCode)
+          observer.onNext(true)
+        }
+      }
+      
+      return Disposables.create()
+    }
+  }
+  
+  private func completeBookInformationUpdateToServer(_ uid: String, _ ibsn: String) {
+    // 신규 등록 되는 책 DB 업데이트
+    DB_REF_MARKBOOKS.child(uid).child(ibsn).removeValue() // 북마크에서 제거
+    DB_REF_COMPLITEBOOKS.child(uid).updateChildValues([ibsn:1]) // 완료된 책 등록
+    Database.userProfileStaticsHanlder(uid: uid,
+                                       plusMinus: .plus,
+                                       updateCategory: .compliteBookCount,
+                                       amount: 1) // 완료 통계 증가
+  }
+}
+
+enum completeError: Error {
+  case failToGetUid
+  case networkError
+  case indexError
 }
 
 // MARK: - Book Model
