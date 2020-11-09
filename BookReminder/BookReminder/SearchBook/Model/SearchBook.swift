@@ -23,7 +23,7 @@ struct SearchBook: Decodable {
   let thumbnail: String
   let title: String
   let translators: [String]
-  let url: String
+  var url: String
 }
 
 extension SearchBook {

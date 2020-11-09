@@ -51,7 +51,7 @@ class CollecionViewCustomCell: UICollectionViewCell {
   }
   
   func configureCell(imageURL: String) {
-    bookThumbnailImageView.loadImage(urlString: imageURL)
+    bookThumbnailImageView.loadProfileImage(urlString: imageURL)
   }
   
   required init?(coder: NSCoder) {

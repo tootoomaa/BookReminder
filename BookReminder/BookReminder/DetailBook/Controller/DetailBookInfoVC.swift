@@ -51,7 +51,7 @@ class DetailBookInfoVC: UIViewController {
   
   private func tableHeaderViewSetting() {
     tableView.tableHeaderView = tableHeaderView
-    tableHeaderView.bookThumbnailImageView.loadImage(urlString: detailBookVM.book.thumbnail)
+    tableHeaderView.bookThumbnailImageView.loadBookImage(urlString: detailBookVM.book.thumbnail)
     tableView.tableHeaderView?.frame.size = CGSize(width: view.frame.width, height: 300)
   }
   

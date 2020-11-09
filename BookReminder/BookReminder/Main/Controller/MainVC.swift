@@ -8,6 +8,7 @@
 
 import UIKit
 import SnapKit
+//import Firebase
 import RxSwift
 import RxCocoa
 import RxDataSources
@@ -35,20 +36,21 @@ class MainVC: UIViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
     
-    //    if (Auth.auth().currentUser?.uid) != nil {
-    //      let firebaseAuth = Auth.auth()
-    //      do { // Firebase 계정 로그아웃
-    //        try firebaseAuth.signOut()
-    //        print("Success logout")
-    //
-    //        let loginVC = LoginVC()
-    //        loginVC.modalPresentationStyle = .fullScreen
-    //        present(loginVC, animated: true)
-    //
-    //      } catch let signOutError as NSError {
-    //        print ("Error signing out: %@", signOutError)
-    //      }
-    //    }
+//    if (Auth.auth().currentUser?.uid) != nil {
+//      let firebaseAuth = Auth.auth()
+//      do { // Firebase 계정 로그아웃
+//        try firebaseAuth.signOut()
+//        print("Success logout")
+//
+//        let loginVC = LoginVC()
+//        loginVC.modalPresentationStyle = .fullScreen
+//        present(loginVC, animated: true)
+//
+//      } catch let signOutError as NSError {
+//        print ("Error signing out: %@", signOutError)
+//      }
+//    }
+    
     markedBookListVM = MarkedBookListModel([Book.empty()])
     configureCollectionViewOptionSetting()
     
@@ -130,7 +132,7 @@ class MainVC: UIViewController {
       .drive(mainView.nameLabel.rx.text)
       .disposed(by: dispoeBag)
     
-    mainView.profileImageView.loadImage(urlString: userVM.user.profileImageUrl)
+    mainView.profileImageView.loadProfileImage(urlString: userVM.user.profileImageUrl)
     
     let imageViewWidth = mainView.profileImageView.frame.width
     
@@ -188,7 +190,7 @@ class MainVC: UIViewController {
             cell.isSelected = true
           }
           
-          cell.bookThumbnailImageView.loadImage(urlString: markedBook.book.thumbnail)
+          cell.bookThumbnailImageView.loadBookImage(urlString: markedBook.book.thumbnail)
           return cell
         }
       }

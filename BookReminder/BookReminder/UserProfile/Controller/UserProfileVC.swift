@@ -81,7 +81,7 @@ class UserProfileVC: UIViewController {
       .disposed(by: disposeBag)
     
     userVM?.profileImageUrl.bind { [weak self] imageUrl in
-      self?.userProfileView.profileImageView.loadImage(urlString: imageUrl)
+      self?.userProfileView.profileImageView.loadProfileImage(urlString: imageUrl)
     }.disposed(by: disposeBag)
     
     let imageViewWidth = userProfileView.profileImageView.frame.width

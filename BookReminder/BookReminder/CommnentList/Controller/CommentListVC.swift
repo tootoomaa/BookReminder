@@ -109,7 +109,7 @@ class CommentListVC: UIViewController {
       
       item.captureImageUrl
         .subscribe { imageUrl in
-          cell.captureImageView.loadImage(urlString: imageUrl)
+          cell.captureImageView.loadProfileImage(urlString: imageUrl)
         }.disposed(by: disposeBag)
       
       item.page.asDriver(onErrorJustReturn: "")
@@ -135,7 +135,7 @@ class CommentListVC: UIViewController {
           let disposeBag = DisposeBag()
           let view = addCommentVC.addCommentView
           
-          view.captureImageView.loadImage(urlString: comment.comment.captureImageUrl)
+          view.captureImageView.loadProfileImage(urlString: comment.comment.captureImageUrl)
           
           comment.page.asDriver(onErrorJustReturn: "")
             .drive(view.pagetextField.rx.text)

@@ -42,7 +42,7 @@ extension UIAlertController {
     let alert = UIAlertController(title: "\(book.title ?? "책") 삭제", message: message, preferredStyle: .alert)
     
     let imageView = CustomImageView(frame: CGRect(x: 80, y: 140, width: 140, height: 200))
-    imageView.loadImage(urlString: book.thumbnail)
+    imageView.loadProfileImage(urlString: book.thumbnail)
     
     alert.view.addSubview(imageView)
     
@@ -77,7 +77,7 @@ extension UIAlertController {
     
     let imageView = CustomImageView(frame: CGRect(x: 87, y: 110, width: 126, height: 180))
     // alert 버튼 및 이미지 설정
-    imageView.loadImage(urlString: searchBook.thumbnail)
+    imageView.loadBookImage(urlString: searchBook.book.thumbnail)
     
     alert.view.addSubview(imageView)
     

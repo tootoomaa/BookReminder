@@ -148,7 +148,7 @@ class MyBookVC: UIViewController {
               .items(cellIdentifier: MyBookCustomCell.identifier,
                      cellType: MyBookCustomCell.self)) { index, myBook, cell in
         
-        cell.bookThumbnailImageView.loadImage(urlString: myBook.book.thumbnail)
+        cell.bookThumbnailImageView.loadBookImage(urlString: myBook.book.thumbnail)
         cell.bookDetailInfo = myBook.book
         // cell 내에서 버튼 눌렸을 경우 리턴 받아옴
         cell.passButtonName = { [weak self] buttonName, bookDetailInfo, isMarked in

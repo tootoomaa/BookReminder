@@ -98,12 +98,7 @@ class SearchBookVC: UIViewController {
           .drive(cell.publisherDateValueLable.rx.text)
           .disposed(by: disposeBag)
         
-        let imgUrl = model.searchBook.thumbnail
-        if imgUrl == "" {
-          cell.bookThumbnailImageView.image = UIImage(systemName: "xmark.octagon")
-        } else {
-          cell.bookThumbnailImageView.loadImage(urlString: imgUrl)
-        }
+        cell.bookThumbnailImageView.loadBookImage(urlString: model.searchBook.thumbnail)
         
       }.disposed(by: disposeBag)
   }
@@ -117,7 +112,6 @@ class SearchBookVC: UIViewController {
           let book = self.searchBookListVM.allcase.value[indexPath.item].searchBook
           let alertController = UIAlertController.addBookAlertController(self, book, indexPath)
           self.present(alertController, animated: true, completion: nil)
-          
         }
           
       }).disposed(by: disposeBag)
