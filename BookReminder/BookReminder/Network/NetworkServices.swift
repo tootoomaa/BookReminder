@@ -8,12 +8,6 @@
 
 import Foundation
 
-enum SearchType: String {
-  case isbn = "isbn"
-  case bookName = "title"
-}
-
-
 class NetworkServices {
   
   func fetchBookInfomationFromKakao(type: SearchType,
@@ -42,6 +36,7 @@ class NetworkServices {
     urlComponents.setQueryItems(with: queryParams)
     
     if let url = urlComponents.url {
+      
       var urlRequest = URLRequest(url: url)
       urlRequest.httpMethod = "GET"
       urlRequest.setValue(authorization, forHTTPHeaderField: "Authorization")
@@ -56,8 +51,8 @@ class NetworkServices {
         
         do {
           
-          let bookInfo = try JSONDecoder().decode(Book.self, from: data)
-          
+          let bookInfo = try JSONDecoder().decode(SearchBookList.self, from: data)
+          guard !bookInfo.documents.isEmpty else { return }
           if type == .isbn {
             let creationDate = Int(NSDate().timeIntervalSince1970)
             let documents = bookInfo.documents[0]

@@ -44,16 +44,16 @@ public class NaviApi {
     
     /// 카카오내비 장소 공유 URL을 얻습니다. 획득한 URL을 열면 카카오내비 앱이 실행됩니다.
     public func shareUrl(destination:NaviLocation,
-                         options:NaviOptions? = nil,
+                         option:NaviOption? = nil,
                          viaList:[NaviLocation]? = nil) -> URL? {
-        return makeNaviUrl(url: Urls.compose(.Navi, path:Paths.shareDestination), destination: destination, options: options, viaList: viaList)
+        return makeNaviUrl(url: Urls.compose(.Navi, path:Paths.shareDestination), destination: destination, option: option, viaList: viaList)
     }
     
     /// 카카오내비 길안내 URL을 얻습니다. 획득된 URL을 열면 카카오내비 앱이 실행됩니다.
     public func navigateUrl(destination:NaviLocation,
-                            options:NaviOptions? = nil,
+                            option:NaviOption? = nil,
                             viaList:[NaviLocation]? = nil) -> URL? {
-        return makeNaviUrl(url: Urls.compose(.Navi, path:Paths.navigateDestination), destination: destination, options: options, viaList: viaList)
+        return makeNaviUrl(url: Urls.compose(.Navi, path:Paths.navigateDestination), destination: destination, option: option, viaList: viaList)
     }
     
     
@@ -64,9 +64,9 @@ public class NaviApi {
     /// - important:
     /// 외부 브라우저로 열지 않고 **웹뷰**를 사용할 경우 추가 설정이 필요합니다. 사용자의 위치정보에 접근할 수 있도록 info.plist 파일에 **"Privacy - Location When In Use Usage Description"** 항목을 추가해야 합니다.
     public func webNavigateUrl(destination:NaviLocation,
-                               options:NaviOptions? = nil,
+                               option:NaviOption? = nil,
                                viaList:[NaviLocation]? = nil) -> URL? {
-        return makeNaviUrl(url:Urls.compose(.WebNavi, path:Paths.webNavigateDestination), destination: destination, options: options, viaList: viaList)
+        return makeNaviUrl(url:Urls.compose(.WebNavi, path:Paths.webNavigateDestination), destination: destination, option: option, viaList: viaList)
     }
     
     
@@ -74,11 +74,11 @@ public class NaviApi {
     
     func makeNaviUrl(url:String,
                      destination:NaviLocation,
-                     options:NaviOptions? = nil,
+                     option:NaviOption? = nil,
                      viaList:[NaviLocation]? = nil) -> URL? {
         
         SdkLog.d("===================================================================================================")
-        let url = SdkUtils.makeUrlWithParameters(url, parameters: ["param":SdkUtils.toJsonString(NaviParameters(destination: destination, options: options, viaList: viaList)),
+        let url = SdkUtils.makeUrlWithParameters(url, parameters: ["param":SdkUtils.toJsonString(NaviParameters(destination: destination, option: option, viaList: viaList)),
                                                                    "appkey":try! KakaoSDKCommon.shared.appKey(),
                                                                    "apiver":"1.0",
                                                                    "extras":["KA":Constants.kaHeader, "appPkg":Bundle.main.bundleIdentifier].filterNil().toJsonString()].filterNil())

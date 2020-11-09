@@ -1,21 +1,21 @@
 # Uncomment the next line to define a global platform for your project
-  platform :ios, '13.0'
+# platform :ios, '9.0'
 
 target 'BookReminder' do
   # Comment the next line if you don't want to use dynamic frameworks
   use_frameworks!
 
   # Pods for BookReminder
-  # add the Firebase pod for Google Analytics
-  pod 'Firebase/Analytics'	
+ pod 'Firebase/Analytics'	
   pod 'Firebase/Auth'
   pod 'Firebase/Database'
   pod 'Firebase/Storage'
   pod 'KakaoSDK', '~> 2.0.0-beta.7'
   pod 'Firebase/Auth'
   pod 'GoogleSignIn'
-  # add pods for any other desired Firebase products
-  # https://firebase.google.com/docs/ios/setup#available-podso
+  pod 'RxDataSources', '~> 4.0'
+  pod 'RxSwift', '~> 5.0'
+  pod 'RxCocoa', '~> 5.0'
 
 end
 

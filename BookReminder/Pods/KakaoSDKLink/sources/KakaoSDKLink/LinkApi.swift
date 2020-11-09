@@ -33,6 +33,10 @@ public class LinkApi {
         }
         return false
     }
+    
+    public static func isKakaoLinkAvailable() -> Bool {
+        return UIApplication.shared.canOpenURL(URL(string:Urls.compose(.TalkLink, path:Paths.talkLink))!)
+    }
 }
     
 extension LinkApi {
@@ -174,7 +178,7 @@ extension LinkApi {
                                 apiType: .KApi) { [weak self] (response, data, error) in
                                     let strongSelf = self
                                     
-                                    strongSelf?.transformResponseToLinkResult(response: response, data: data) { (linkResult, error) in
+                                    strongSelf?.transformResponseToLinkResult(response: response, data: data, serverCallbackArgs: serverCallbackArgs) { (linkResult, error) in
                                         if let error = error {
                                             completion(nil, error)
                                         }
@@ -221,7 +225,7 @@ extension LinkApi {
                                 apiType: .KApi) { [weak self] (response, data, error) in
                                     let strongSelf = self
                                     
-                                    strongSelf?.transformResponseToLinkResult(response: response, data: data) { (linkResult, error) in
+                                    strongSelf?.transformResponseToLinkResult(response: response, data: data, serverCallbackArgs: serverCallbackArgs) { (linkResult, error) in
                                         if let error = error {
                                             completion(nil, error)
                                         }
@@ -254,7 +258,7 @@ extension LinkApi {
                                 apiType: .KApi ) { [weak self] (response, data, error) in
                                     let strongSelf = self
                                     
-                                    strongSelf?.transformResponseToLinkResult(response: response, data: data) { (linkResult, error) in
+                                    strongSelf?.transformResponseToLinkResult(response: response, data: data, serverCallbackArgs: serverCallbackArgs) { (linkResult, error) in
                                         if let error = error {
                                             completion(nil, error)
                                         }
