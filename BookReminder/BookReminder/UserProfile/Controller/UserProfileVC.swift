@@ -241,7 +241,10 @@ extension UserProfileVC: UIImagePickerControllerDelegate & UINavigationControlle
       
       userProfileView.profileImageView.image = selectedImage
       
-      userVM.removeUserProfileImageAtStorage(userVM.user.profileImageUrl)
+      if userVM.user.profileImageUrl != "" {
+        userVM.removeUserProfileImageAtStorage(userVM.user.profileImageUrl)
+      }
+      
       userVM.uploadUserProfileImageAtStorage(selectedImage) { newUserDate in
         userVM.user = newUserDate
       }
