@@ -314,7 +314,9 @@ class MyBookView: UIView {
   }
   
   func configureUserGuideLabels() {
-    emptyBookUserGuideTitle.isHidden = !isBookOverCount
-    emptyBookUserGuide.isHidden  = !(isBookOverCount && multibuttomActive)
+    DispatchQueue.main.async {
+      self.emptyBookUserGuideTitle.isHidden = !self.isBookOverCount
+      self.emptyBookUserGuide.isHidden  = !(self.isBookOverCount && self.multibuttomActive)
+    }
   }
 }

@@ -81,13 +81,12 @@ class MainVC: UIViewController {
   
   private func getMarkedBookList() {
     Book.fetchMarkedBookIndex()
-      .debug()
       .subscribe {
         self.tempMarkedBooksIndex = $0
         
         if $0.isEmpty {
           
-          self.markedBookListVM.books = []
+          self.markedBookListVM.books = [MarkedBookModel(Book.empty())]
           self.colletionViewBinding()
           self.markedBookListVM.reloadData()
           self.mainView.activityIndicator.stopAnimating()
@@ -107,7 +106,6 @@ class MainVC: UIViewController {
                   return MarkedBookModel(book)
                 }
                 
-                //self.markedBookListVM.allcase.accept(markedBookModels)
                 self.markedBookListVM.books = markedBookModels
                 self.colletionViewBinding()
                 self.markedBookListVM.reloadData()
@@ -173,7 +171,6 @@ class MainVC: UIViewController {
   
   private func configureCollectionViewDataSource() {
     
-    // 
     collectionViewDelegateBag.dispose()
     
     collectionViewDelegateBag = markedBookListVM.allcase
@@ -189,7 +186,6 @@ class MainVC: UIViewController {
                                                         for: indexPath) as! CollecionViewCustomCell
           if item == 0 {
             cell.isSelected = true
-            print("true Setting")
           }
           
           cell.bookThumbnailImageView.loadImage(urlString: markedBook.book.thumbnail)
@@ -314,7 +310,6 @@ class MainVC: UIViewController {
         let okAction = UIAlertAction(title: "완독 처리", style: .destructive) { [unowned self] (_) in
           
           self.markedBookListVM.completeBook(self.userSelectedBookIndex)
-            .debug()
             .subscribe(onNext: {
               
               if $0 == false { // 오류 메시지

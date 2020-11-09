@@ -161,8 +161,7 @@ extension Book {
       }
     }
     
-    return Observable.create { observer -> Disposable in      
-//      DB_REF_MARKBOOKS.child(uid).observeSingleEvent(of: .value) { snapshot in
+    return Observable.create { observer -> Disposable in
       DB_REF_MARKBOOKS.child(uid).observe(.value) { snapshot in
         
         if let markedBookIndex = snapshot.value as? [String: Int] {
@@ -171,6 +170,8 @@ extension Book {
             return "\(key)"
           }
           observer.onNext(isbnCodeArray)
+        } else {
+          observer.onNext([])
         }
       }
       return Disposables.create()

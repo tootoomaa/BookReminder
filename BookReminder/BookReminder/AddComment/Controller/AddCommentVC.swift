@@ -8,7 +8,6 @@
 
 import UIKit
 import SnapKit
-import Firebase
 import MobileCoreServices
 import RxSwift
 import RxCocoa

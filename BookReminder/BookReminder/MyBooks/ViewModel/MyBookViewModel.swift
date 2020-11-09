@@ -12,6 +12,7 @@ import RxCocoa
 import FirebaseAuth
 import Firebase
 
+// MARK: - MyBookListViewModel
 struct MyBookListViewModel {
   
   var myBooks: [MyBookViewModel]
@@ -81,6 +82,51 @@ extension MyBookListViewModel {
     })
   }
   
+  func bookMarkAdd(_ isbnCode: String) {
+    guard let uid = Auth.auth().currentUser?.uid else { return }
+    DB_REF_MARKBOOKS.child(uid).updateChildValues([isbnCode:1])
+  }
+  
+  func bookMarkRemove(_ isbnCode: String) {
+    guard let uid = Auth.auth().currentUser?.uid else { return }
+    DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue()
+  }
+  
+  func isBookCompleted(_ isbnCode: String) -> Observable<Bool> {
+    guard let uid = Auth.auth().currentUser?.uid else { return Observable.just(true) }
+    
+    return Observable.create { observer -> Disposable in
+      
+      DB_REF_COMPLITEBOOKS.child(uid).child(isbnCode).observe(.value) { (snapshot) in
+        let value = snapshot.value as? Int
+        if value == 1 {
+          observer.onNext(true)
+        } else {
+          observer.onNext(false)
+        }
+      }
+      
+      return Disposables.create()
+    }
+    
+  }
+  
+  func isBookMarked(_ isbnCode: String) -> Observable<Bool> {
+    guard let uid = Auth.auth().currentUser?.uid else { return Observable.just(true) }
+    
+    return Observable<Bool>.create { observer -> Disposable in
+      DB_REF_MARKBOOKS.child(uid).child(isbnCode).observe(.value) { (snapshot) in
+        let value = snapshot.value as? Int
+        if value == 1 {
+          observer.onNext(true)
+        } else {
+          observer.onNext(false)
+        }
+      }
+      return Disposables.create()
+    }
+  }
+  
   func markBookListChangingByRemoveBookMarkButton() -> Observable<Bool> {
     guard let uid = Auth.auth().currentUser?.uid else { return Observable.just(false) }
     return Observable<Bool>.create { observer -> Disposable in
@@ -92,9 +138,9 @@ extension MyBookListViewModel {
       return Disposables.create()
     }
   }
-  
 }
 
+// MARK: - MyBookViewModel
 struct MyBookViewModel {
   let book: Book
   

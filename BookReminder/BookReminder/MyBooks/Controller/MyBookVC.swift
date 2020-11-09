@@ -359,17 +359,14 @@ class MyBookVC: UIViewController {
       guard let naviController = tabBarController.viewControllers?.first as? UINavigationController,
             let mainVC = naviController.visibleViewController as? MainVC else { return }
       
-      guard let isbnCode = bookDetailInfo.isbn,
-            let uid = Auth.auth().currentUser?.uid else { return }
+      guard let isbnCode = bookDetailInfo.isbn else { return }
       
       if !isMarked  {
-        DB_REF_MARKBOOKS.child(uid).updateChildValues([isbnCode:1])
-        mainVC.markedBookListVM.addMarkedBook(bookDetailInfo)
+        myBookListVM.bookMarkAdd(isbnCode)
       } else {
-        DB_REF_MARKBOOKS.child(uid).child(isbnCode).removeValue()
-        mainVC.markedBookListVM.removeMarkedBook(MarkedBookModel(bookDetailInfo))
+        mainVC.userSelectedBookIndex = IndexPath(item: 0, section: 0)
+        myBookListVM.bookMarkRemove(isbnCode)
       }
-//      mainVC.markedBookListVM.allcase.accept(mainVC.markedBookListVM.books)
 
     } else if buttonName == MyBookCellButtonTitle.comment.rawValue {
       
