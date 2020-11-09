@@ -93,7 +93,6 @@ extension CommentViewModel {
           
           observer.onNext(commentList)
         } else {
-          print("non VBalu")
           observer.onNext([])
         }
       }

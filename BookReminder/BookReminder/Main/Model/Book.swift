@@ -161,19 +161,17 @@ extension Book {
       }
     }
     
-    return Observable.create { observer -> Disposable in      
-      DB_REF_MARKBOOKS.child(uid).observeSingleEvent(of: .value) { snapshot in
+    return Observable.create { observer -> Disposable in
+      DB_REF_MARKBOOKS.child(uid).observe(.value) { snapshot in
+        
         if let markedBookIndex = snapshot.value as? [String: Int] {
           
           let isbnCodeArray = markedBookIndex.map { key, value -> String in
             return "\(key)"
           }
           observer.onNext(isbnCodeArray)
-          observer.onCompleted()
         } else {
-          
           observer.onNext([])
-          observer.onCompleted()
         }
       }
       return Disposables.create()

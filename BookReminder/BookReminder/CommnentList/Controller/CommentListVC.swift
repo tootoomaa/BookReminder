@@ -7,7 +7,6 @@
 //
 
 import UIKit
-import Firebase
 import RxSwift
 import RxCocoa
 

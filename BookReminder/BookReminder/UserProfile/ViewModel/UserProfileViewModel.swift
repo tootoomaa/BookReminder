@@ -56,7 +56,7 @@ extension UserProfileViewModel {
        let userEnrollBookCount = userProfile.enrollBookCount {
       
       if userEnrollBookCount != 0 {
-        let completeRatio = Double(userCompleteBookCount) / Double(userEnrollBookCount)
+        let completeRatio = Double(userCompleteBookCount) / Double(userEnrollBookCount) * 100
         let completeRatioText = String(format: "%.1f", arguments: [completeRatio]) + " %"
         
         completeBookCountRatioString = completeRatioText

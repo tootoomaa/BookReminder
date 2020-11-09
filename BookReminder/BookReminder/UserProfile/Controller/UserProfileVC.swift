@@ -7,9 +7,7 @@
 //
 
 import UIKit
-import Firebase
-import FirebaseAuth
-import FirebaseStorage
+import FirebaseAuth // 로그아웃 기능
 import MobileCoreServices
 import RxSwift
 import RxCocoa
@@ -79,7 +77,6 @@ class UserProfileVC: UIViewController {
   // MARK: - User Data Binding
   private func userDataBinding() {
     userVM?.nickName.asDriver(onErrorJustReturn: "")
-      .debug()
       .drive(self.userProfileView.nameLabel.rx.text)
       .disposed(by: disposeBag)
     

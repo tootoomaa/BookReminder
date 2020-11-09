@@ -52,7 +52,7 @@ class NetworkServices {
         do {
           
           let bookInfo = try JSONDecoder().decode(SearchBookList.self, from: data)
-          
+          guard !bookInfo.documents.isEmpty else { return }
           if type == .isbn {
             let creationDate = Int(NSDate().timeIntervalSince1970)
             let documents = bookInfo.documents[0]

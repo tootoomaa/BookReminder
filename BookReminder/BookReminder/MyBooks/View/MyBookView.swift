@@ -22,9 +22,7 @@ class MyBookView: UIView {
   var isBookOverCount: Bool = false {
     didSet {
       // 사용자 가이드문 표시 on/off
-      emptyBookUserGuideTitle.isHidden = !isBookOverCount
-      emptyBookUserGuide.isHidden  = !(isBookOverCount && multibuttomActive)
-      
+      configureUserGuideLabels()
     }
   }
   
@@ -115,7 +113,7 @@ class MyBookView: UIView {
     let plusImg = NSAttributedString(string: " 버튼을 눌러 메뉴를 확인해주세요")
     let downImg = NSAttributedString(attachment: NSTextAttachment(image: downImage))
     let infoText = NSAttributedString(
-      string: "\n        (해당 안내문은 2권이상 등록시 사라집니다)",
+      string: "\n        (해당 안내문은 3권이상 등록시 사라집니다)",
       attributes: [NSAttributedString.Key.foregroundColor: UIColor.gray,        NSAttributedString.Key.font: UIFont.systemFont(ofSize: 12)])
     
     guideAttString.append(plus)
@@ -312,6 +310,13 @@ class MyBookView: UIView {
       self.bookSearchButton.center.x += self.featureButtonSize*1.5 - self.bounceDistance
       self.barcodeButton.center.y += self.featureButtonSize*2 - self.bounceDistance
       self.multiButton.transform = .identity
+    }
+  }
+  
+  func configureUserGuideLabels() {
+    DispatchQueue.main.async {
+      self.emptyBookUserGuideTitle.isHidden = !self.isBookOverCount
+      self.emptyBookUserGuide.isHidden  = !(self.isBookOverCount && self.multibuttomActive)
     }
   }
 }
