@@ -56,7 +56,6 @@ class MyBookVC: UIViewController {
       } else {
         self?.myBookListVM.addMyBook(Book(isbnCode: isbnCode, dictionary: bookDicValue),
                                           value: bookDicValue)
-        self?.myBookView.initializationMultiButton()
       }
     }
   }
