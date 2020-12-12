@@ -36,6 +36,7 @@ extension UserViewModel {
   var profileImageUrl: Observable<String> {
     return Observable<String>.just(self.user.profileImageUrl)
   }
+    
 }
 
 extension UserViewModel {

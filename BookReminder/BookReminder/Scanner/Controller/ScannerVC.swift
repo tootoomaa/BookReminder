@@ -14,7 +14,7 @@ class ScannerVC: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
   // MARK: - Properties
   let scannerView = ScannerView()
   
-  let networkServices = NetworkServices()
+  let networkServices = KakaoWebService()
   var saveBookClosure:((String, [String: AnyObject]) -> ())? // handle Result return closure
   
   // MARK: - Life Cycle

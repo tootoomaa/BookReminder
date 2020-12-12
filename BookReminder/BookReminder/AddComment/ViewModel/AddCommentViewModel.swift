@@ -7,6 +7,7 @@
 //
 
 import Firebase
+import UIKit
 
 struct AddCommentViewModel {
   var comment: Comment
