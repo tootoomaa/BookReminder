@@ -16,6 +16,7 @@ target 'BookReminder' do
   pod 'RxDataSources', '~> 4.0'
   pod 'RxSwift', '~> 5.0'
   pod 'RxCocoa', '~> 5.0'
+  pod 'ReactorKit'
 end
 
 target 'BookReminderTests' do

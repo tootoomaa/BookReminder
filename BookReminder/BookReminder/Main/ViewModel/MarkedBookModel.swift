@@ -23,7 +23,7 @@ struct MarkedBookListModel {
     }
 }
 
-extension MarkedBookListModel: MainViewModelCommendProtocol {
+extension MarkedBookListModel {
     
     mutating func reloadData() {
         allcase.accept(books.count == 0 ? [MarkedBookModel(Book.empty())] : books)
@@ -32,11 +32,6 @@ extension MarkedBookListModel: MainViewModelCommendProtocol {
     func getMarkedBookInfo(_ index: Int) -> Book? {
         guard !self.books.isEmpty else { return nil }
         return books[index].book
-    }
-    
-    func bookAt(_ index: Int) -> MarkedBookModel? {
-        guard !self.books.isEmpty else { return nil }
-        return books[index]
     }
     
     mutating func addMarkedBook(_ addBook: Book) {
@@ -48,7 +43,7 @@ extension MarkedBookListModel: MainViewModelCommendProtocol {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         //    guard let isbnCode = removeBookModel.book.isbn else { return }
         
-        guard let isbnCode = bookAt(index)?.book.isbn else { return }
+        guard let isbnCode = getMarkedBookInfo(index)?.isbn else { return }
         
         /* [ 북마크된 책이 삭제될때 같이 지워져야 되는 사항
          1. 등록 권수 통계 값 -1

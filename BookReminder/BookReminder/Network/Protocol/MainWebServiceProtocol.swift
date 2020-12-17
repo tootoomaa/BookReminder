@@ -15,4 +15,5 @@ protocol MainWebServiceProtocol {
     func getUserProfileData(completion: @escaping ((UserViewModel)->Void))
     func completeMarkedBook(_ userSelectedMarkedBook: Book) -> Observable<Bool>
     func completeBookInformationUpdateToServer(_ uid: String, _ ibsn: String)
+    func fetchMarkedBookCommentCountAt(_ isbnCode: String) -> Observable<NSAttributedString>
 }

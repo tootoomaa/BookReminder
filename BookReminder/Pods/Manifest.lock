@@ -132,6 +132,9 @@ PODS:
   - nanopb/decode (2.30906.0)
   - nanopb/encode (2.30906.0)
   - PromisesObjC (1.2.11)
+  - ReactorKit (2.1.1):
+    - RxSwift (~> 5.0)
+    - WeakMapTable (~> 1.1)
   - RxCocoa (5.1.1):
     - RxRelay (~> 5)
     - RxSwift (~> 5)
@@ -142,6 +145,7 @@ PODS:
   - RxRelay (5.1.1):
     - RxSwift (~> 5)
   - RxSwift (5.1.1)
+  - WeakMapTable (1.2.0)
 
 DEPENDENCIES:
   - Firebase/Analytics
@@ -150,6 +154,7 @@ DEPENDENCIES:
   - Firebase/Storage
   - GoogleSignIn
   - KakaoSDK (~> 2.0.0-beta.7)
+  - ReactorKit
   - RxCocoa (~> 5.0)
   - RxDataSources (~> 4.0)
   - RxSwift (~> 5.0)
@@ -185,10 +190,12 @@ SPEC REPOS:
     - leveldb-library
     - nanopb
     - PromisesObjC
+    - ReactorKit
     - RxCocoa
     - RxDataSources
     - RxRelay
     - RxSwift
+    - WeakMapTable
 
 SPEC CHECKSUMS:
   Alamofire: 2c792affbdc2f18016e08fdbcacd60aebe1ba593
@@ -220,11 +227,13 @@ SPEC CHECKSUMS:
   leveldb-library: 55d93ee664b4007aac644a782d11da33fba316f7
   nanopb: 1bf24dd71191072e120b83dd02d08f3da0d65e53
   PromisesObjC: 8c196f5a328c2cba3e74624585467a557dcb482f
+  ReactorKit: 6d894a20c3d508344320901cd8e386fde92df4b6
   RxCocoa: 32065309a38d29b5b0db858819b5bf9ef038b601
   RxDataSources: efee07fa4de48477eca0a4611e6d11e2da9c1114
   RxRelay: d77f7d771495f43c556cbc43eebd1bb54d01e8e9
   RxSwift: 81470a2074fa8780320ea5fe4102807cb7118178
+  WeakMapTable: 05c694ce8439a7a9ebabb56187287a63c57673d6
 
-PODFILE CHECKSUM: 237f1e932ba9d2c6c58bad7b306375bd73432637
+PODFILE CHECKSUM: f99dcfb4c1cd84583cbd4863dfb9561429df1e7c
 
 COCOAPODS: 1.10.0

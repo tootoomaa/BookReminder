@@ -23,8 +23,10 @@ class TabBarVC: UITabBarController {
   func configureViewController() {
     let mainVC = MainVC()
     let myBookVC = MyBookVC()
+    let mainVCReactor = MainVCReactor()
     
     mainVC.tabBarItem = UITabBarItem(title: "Main", image: UIImage(systemName: "bookmark"), tag: 0)
+    mainVC.reactor = mainVCReactor
     myBookVC.tabBarItem = UITabBarItem(title: "MyBooks", image: UIImage(systemName: "book"), tag: 1)
     
     let mainVCNavi = UINavigationController(rootViewController: mainVC)

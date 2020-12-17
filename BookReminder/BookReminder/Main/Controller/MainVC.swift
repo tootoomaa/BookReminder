@@ -8,434 +8,462 @@
 
 import UIKit
 import SnapKit
-//import Firebase
 import RxSwift
 import RxCocoa
 import RxDataSources
+import ReactorKit
 
-class MainVC: UIViewController {
-    // MARK: - Properties
-    let mainView = MainView()
+class MainVC: UIViewController, View {
+  // MARK: - Properties
+  let mainView = MainView()
+  
+  let mainWebService = MainWebService()
+  
+  var userVM: UserViewModel!
+  var markedBookListVM: MarkedBookListModel!
+  
+  var disposeBag = DisposeBag()
+  var collectionViewDelegateBag = Disposables.create()
+  
+  var tempMarkedBooksIndex: [String] = []
+  var tempMarkedBookList: [Book] = []
+  
+  var userSelectedBookIndex: IndexPath = IndexPath(row: 0, section: 0) {
+    didSet {
+      setupSelectedMarkedBookCommentCount()
+    }
+  }
+  
+  // MARK: - Life Cycle
+  override func viewDidLoad() {
+    super.viewDidLoad()
     
-    let mainWebService = MainWebService()
+    //    if (Auth.auth().currentUser?.uid) != nil {
+    //      let firebaseAuth = Auth.auth()
+    //      do { // Firebase 계정 로그아웃
+    //        try firebaseAuth.signOut()
+    //        print("Success logout")
+    //
+    //        let loginVC = LoginVC()
+    //        loginVC.modalPresentationStyle = .fullScreen
+    //        present(loginVC, animated: true)
+    //
+    //      } catch let signOutError as NSError {
+    //        print ("Error signing out: %@", signOutError)
+    //      }
+    //    }
     
-    var userVM: UserViewModel!
-    var markedBookListVM: MarkedBookListModel!
+    markedBookListVM = MarkedBookListModel([Book.empty()])
     
-    let dispoeBag = DisposeBag()
-    var collectionViewDelegateBag = Disposables.create()
+    configureCollectionViewOptionSetting()
     
-    var tempMarkedBooksIndex: [String] = []
-    var tempMarkedBookList: [Book] = []
+    getUserData()
+    getMarkedBookList()
+    configureButtonBinding()
+  }
+  
+  override func loadView() {
+    view = mainView
+  }
+  
+  override func viewWillAppear(_ animated: Bool) {
+    navigationController?.navigationBar.isHidden = true
+  }
+  
+  override func viewDidDisappear(_ animated: Bool) {
+    navigationController?.navigationBar.isHidden = false
+  }
+  
+  // MARK: - Binder
+  func bind(reactor: MainVCReactor) {
     
-    var userSelectedBookIndex: IndexPath = IndexPath(row: 0, section: 0) {
-        didSet {
-            setupSelectedMarkedBookCommentCount()
+    // Action
+    mainView.collectionView.rx
+      .itemSelected
+      .map { Reactor.Action.selectMarkedBook($0.row) }
+      .bind(to: reactor.action )
+      .disposed(by: disposeBag)
+    
+    // State
+    reactor.state.map { $0.bookCountAttString }
+      .distinctUntilChanged()
+      .bind(to: mainView.mainConrtollMenu.commentLabel.rx.attributedText)
+      .disposed(by: disposeBag)
+    
+  }
+  
+  // MARK: - Network handler
+  private func getUserData() {
+    mainView.activityIndicator.startAnimating()
+    
+    mainWebService.getUserProfileData { [weak self] (userVM) in
+      self?.userVM = userVM
+      self?.initialUserDataBinding()
+    }
+  }
+  
+  private func getMarkedBookList() {
+    mainWebService.fetchUserMarekedBooIndexList()
+      .subscribe {
+        self.tempMarkedBooksIndex = $0
+        
+        if $0.isEmpty {
+          
+          self.markedBookListVM.books = [MarkedBookModel(Book.empty())]
+          self.colletionViewBinding()
+          self.markedBookListVM.reloadData()
+          self.mainView.activityIndicator.stopAnimating()
+          
+        } else {
+          
+          $0.forEach { isbnCode in
+            
+            self.mainWebService.fetchMarkedBooks(isbnCode).subscribe(onNext: { [unowned self] value in
+              
+              self.tempMarkedBookList.append(value)
+              
+              if self.tempMarkedBookList.count == self.tempMarkedBooksIndex.count {
+                
+                self.tempMarkedBookList.sort(by: { $0.creationDate > $1.creationDate })
+                
+                let markedBookModels = tempMarkedBookList.map { book -> MarkedBookModel in
+                  return MarkedBookModel(book)
+                }
+                
+                self.markedBookListVM.books = markedBookModels
+                self.colletionViewBinding()
+                self.markedBookListVM.reloadData()
+                self.tempMarkedBookList.removeAll()
+                self.mainView.activityIndicator.stopAnimating()
+              }
+              
+            }).disposed(by: self.disposeBag)
+          }
         }
-    }
+      } onError: { error in
+        print(error)
+      }.disposed(by: disposeBag)
+  }
+  
+  // MARK: - UserData Binding
+  private func initialUserDataBinding() {
+    self.markedBookListVM = MarkedBookListModel(tempMarkedBookList)
     
-    // MARK: - Life Cycle
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        
-        //    if (Auth.auth().currentUser?.uid) != nil {
-        //      let firebaseAuth = Auth.auth()
-        //      do { // Firebase 계정 로그아웃
-        //        try firebaseAuth.signOut()
-        //        print("Success logout")
-        //
-        //        let loginVC = LoginVC()
-        //        loginVC.modalPresentationStyle = .fullScreen
-        //        present(loginVC, animated: true)
-        //
-        //      } catch let signOutError as NSError {
-        //        print ("Error signing out: %@", signOutError)
-        //      }
-        //    }
-        
-        markedBookListVM = MarkedBookListModel([Book.empty()])
-        
-        configureCollectionViewOptionSetting()
-        
-        getUserData()
-        getMarkedBookList()
-        configureButtonBinding()
-    }
+    userVM.nickName.asDriver(onErrorJustReturn: "NickName")
+      .drive(mainView.nameLabel.rx.text)
+      .disposed(by: disposeBag)
     
-    override func loadView() {
-        view = mainView
-    }
+    mainView.profileImageView.loadProfileImage(urlString: userVM.user.profileImageUrl)
     
-    override func viewWillAppear(_ animated: Bool) {
-        navigationController?.navigationBar.isHidden = true
-    }
+    let imageViewWidth = mainView.profileImageView.frame.width
     
-    override func viewDidDisappear(_ animated: Bool) {
-        navigationController?.navigationBar.isHidden = false
-    }
+    mainView.profileImageView.layer.cornerRadius = imageViewWidth/2
+    mainView.profileImageView.clipsToBounds = true
+  }
+  
+  private func setupSelectedMarkedBookCommentCount() {
+//    let userSelectBookIndex = userSelectedBookIndex.row
+//
+//    guard let isbnCode = markedBookListVM.getMarkedBookInfo(userSelectBookIndex)?.isbn else { return }
+//    mainWebService.fetchMarkedBookCommentCountAt(isbnCode)
+//      .asDriver(onErrorJustReturn: NSAttributedString(string: "0"))
+//      .drive(mainView.mainConrtollMenu.commentLabel.rx.attributedText)
+//      .disposed(by: disposeBag)
+  }
+  
+  // MARK: - collectionView Setting
+  private func configureCollectionViewOptionSetting() {
+    mainView.collectionView.backgroundColor = .white
+    mainView.collectionView.allowsMultipleSelection = false
     
-    // MARK: - Network handler
-    private func getUserData() {
-        mainView.activityIndicator.startAnimating()
+    mainView.collectionView.rx.setDelegate(self)
+      .disposed(by: disposeBag)
+    
+    mainView.collectionView.register(CollecionViewCustomCell.self,
+                                     forCellWithReuseIdentifier: CollecionViewCustomCell.identifier)
+    
+    mainView.collectionView.register(CollectionViewNoDataCell.self,
+                                     forCellWithReuseIdentifier: CollectionViewNoDataCell.identifier)
+  }
+  
+  // MARK: - CollectionView Binding
+  
+  private func colletionViewBinding() {
+    configureCollectionViewDataSource()
+    configureCollectionViewDelegate()
+    configureCollectionViewWillAppear()
+    setupSelectedMarkedBookCommentCount()
+  }
+  
+  private func configureCollectionViewDataSource() {
+    
+    collectionViewDelegateBag.dispose()
+    
+    collectionViewDelegateBag = markedBookListVM.allcase
+      .bind(to: mainView.collectionView.rx.items) { [weak self] (collectionView, item, markedBook) -> UICollectionViewCell in
+        let indexPath = IndexPath(item: item, section: 0)
         
-        mainWebService.getUserProfileData { [weak self] (userVM) in
-            self?.userVM = userVM
-            self?.initialUserDataBinding()
+        if self?.markedBookListVM.allcase.value.first?.book == Book.empty() {
+          let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CollectionViewNoDataCell.identifier, for: indexPath) as! CollectionViewNoDataCell
+          return cell
+        } else {
+          let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CollecionViewCustomCell.identifier,
+                                                        for: indexPath) as! CollecionViewCustomCell
+          if item == 0 {
+            cell.isSelected = true
+          }
+          
+          cell.bookThumbnailImageView.loadBookImage(urlString: markedBook.book.thumbnail)
+          return cell
         }
-    }
-    
-    private func getMarkedBookList() {
+      }
+  }
+  
+  private func configureCollectionViewDelegate() {
+    mainView.collectionView.rx
+      .itemSelected
+      .subscribe(onNext: { [unowned self] indexPath in
+        guard let cell = self.mainView.collectionView.cellForItem(at: indexPath) as? CollecionViewCustomCell else { return }
         
-        mainWebService.fetchUserMarekedBooIndexList()
-            .subscribe {
-                self.tempMarkedBooksIndex = $0
-                
-                if $0.isEmpty {
-                    
-                    self.markedBookListVM.books = [MarkedBookModel(Book.empty())]
-                    self.colletionViewBinding()
-                    self.markedBookListVM.reloadData()
-                    self.mainView.activityIndicator.stopAnimating()
-                    
-                } else {
-                    
-                    $0.forEach { isbnCode in
-                        
-                        self.mainWebService.fetchMarkedBooks(isbnCode).subscribe(onNext: { [unowned self] value in
-                            
-                            self.tempMarkedBookList.append(value)
-                            
-                            if self.tempMarkedBookList.count == self.tempMarkedBooksIndex.count {
-                                
-                                self.tempMarkedBookList.sort(by: { $0.creationDate > $1.creationDate })
-                                
-                                let markedBookModels = tempMarkedBookList.map { book -> MarkedBookModel in
-                                    return MarkedBookModel(book)
-                                }
-                                
-                                self.markedBookListVM.books = markedBookModels
-                                self.colletionViewBinding()
-                                self.markedBookListVM.reloadData()
-                                self.tempMarkedBookList.removeAll()
-                                self.mainView.activityIndicator.stopAnimating()
-                            }
-                            
-                        }).disposed(by: self.dispoeBag)
-                    }
+        self.mainView.collectionView.visibleCells.forEach {
+          guard let cell = $0 as? CollecionViewCustomCell else { return }
+          cell.selectedimageView.isHidden = true
+        }
+        
+        if cell.selectedimageView.isHidden == true {
+          cell.selectedimageView.isHidden.toggle()
+//          self.userSelectedBookIndex = indexPath
+        }
+        
+      }).disposed(by: disposeBag)
+    
+    mainView.collectionView.rx
+      .itemDeselected
+      .subscribe(onNext: { [weak self] indexPath in
+        guard let cell = self?.mainView.collectionView.cellForItem(at: indexPath) as? CollecionViewCustomCell else { return }
+        cell.selectedimageView.isHidden = true
+      }).disposed(by: disposeBag)
+  }
+  
+  private func configureCollectionViewWillAppear() {
+    mainView.collectionView.rx
+      .willDisplayCell
+      .subscribe(onNext: { [unowned self] event in
+        guard let cell = event.cell as? CollecionViewCustomCell else { return }
+        
+        let isUserSelected = event.at == self.userSelectedBookIndex ? false : true
+        
+        cell.selectedimageView.isHidden = isUserSelected
+        cell.isSelected = isUserSelected
+        
+      }).disposed(by: disposeBag)
+  }
+  
+  // MARK: - Configure Button Binder
+  
+  private func configureButtonBinding() {
+    userProfileTapGuesture()
+    addCommentButtonBinding()
+    commentEditButtonBinding()
+    completeButtonBinding()
+    deleteBookMarkButtonBinding()
+    showCommentsButtonBind()
+  }
+  
+  private func userProfileTapGuesture() {
+    let imageViewGesture = UITapGestureRecognizer()
+    mainView.profileImageView.addGestureRecognizer(imageViewGesture)
+    
+    imageViewGesture.rx.event.bind (onNext: { [weak self] recognizer in
+      self?.presentUserProfileVC()
+    }).disposed(by: disposeBag)
+    
+    let nameLabelGesture = UITapGestureRecognizer()
+    mainView.nameLabel.addGestureRecognizer(nameLabelGesture)
+    
+    nameLabelGesture.rx.event.bind (onNext: { [weak self] recognizer in
+      self?.presentUserProfileVC()
+    }).disposed(by: disposeBag)
+    
+    mainView.detailProfileButton.rx.tap
+      .bind { [weak self] in
+        self?.presentUserProfileVC()
+      }.disposed(by: disposeBag)
+  }
+  
+  private func presentUserProfileVC() {
+    let userProfileVC = UserProfileVC()
+    userProfileVC.userVM = self.userVM
+    navigationController?.pushViewController(userProfileVC, animated: true)
+  }
+  
+  private func addCommentButtonBinding() {
+    mainView.mainConrtollMenu.commentAddButton.rx.tap
+      .subscribe(onNext: { [weak self] in
+        guard let index = self?.userSelectedBookIndex.item else { return }
+        
+        if let book = self?.markedBookListVM.getMarkedBookInfo(index) {
+          let addCommentVC = AddCommentVC(book.isbn, nil)
+          addCommentVC.isCommentEditing = true
+          self?.navigationController?.pushViewController(addCommentVC, animated: true)
+        } else {
+          self?.popErrorAlertController()
+        }
+      }).disposed(by: disposeBag)
+  }
+  
+  private func commentEditButtonBinding() {
+    mainView.mainConrtollMenu.commentEditButton.rx.tap
+      .subscribe(onNext: { [weak self] in
+        guard let index = self?.userSelectedBookIndex.item else { return }
+        
+        if let book = self?.markedBookListVM.getMarkedBookInfo(index) {
+          let commentListVC = CommentListVC(book, true)
+          self?.navigationController?.pushViewController(commentListVC, animated: true)
+        } else {
+          self?.popErrorAlertController()
+        }
+      }).disposed(by: disposeBag)
+  }
+  
+  private func completeButtonBinding() {
+    mainView.mainConrtollMenu.compliteButton.rx.tap
+      .subscribe(onNext: { [unowned self] in
+        
+        let okAction = UIAlertAction(title: "완독 처리", style: .destructive) { [unowned self] (_) in
+          
+          if let userSelectedMarkedBook = self.markedBookListVM.getMarkedBookInfo(self.userSelectedBookIndex.row) {
+            
+            mainWebService.completeMarkedBook(userSelectedMarkedBook)
+              .subscribe(onNext: {
+                if $0 == false { // 오류 메시지
+                  self.present(UIAlertController.defaultSetting(title: "오류", message: "이미 완독된 책 입니다"),
+                               animated: true, completion: nil)
+                } else { // 완료 성공 - > 리로드
+                  markedBookListVM.reloadData()
                 }
-            } onError: { error in
-                print(error)
-            }.disposed(by: dispoeBag)
-    }
-    
-    // MARK: - UserData Binding
-    private func initialUserDataBinding() {
-        self.markedBookListVM = MarkedBookListModel(tempMarkedBookList)
+              }).disposed(by: disposeBag)
+            
+            
+            //                        self.mainWebService.completeMarkedBook(userSelectedMarkedBook)
+            //                            .subscribe(onNext: {
+            //
+            //                                if $0 == false { // 오류 메시지
+            //                                    self.present(UIAlertController.defaultSetting(title: "오류", message: "이미 완독된 책 입니다"),
+            //                                                 animated: true, completion: nil)
+            //                                } else { // 완료 성공 - > 리로드
+            //                                    markedBookListVM.reloadData()
+            //                                }
+            //
+            //                            }).disposed(by: dispoeBag)
+          }
+        }
         
-        userVM.nickName.asDriver(onErrorJustReturn: "NickName")
-            .drive(mainView.nameLabel.rx.text)
-            .disposed(by: dispoeBag)
+        let message = "해당 책을 완독 처리하시겠습니까?\n 완독한 책은 Main메뉴에서 삭제됩니다."
+        let alertController = UIAlertController.okCancelSetting(title: "완독 처리", message: message, okAction: okAction)
+        self.present(alertController, animated: true, completion: nil)
         
-        mainView.profileImageView.loadProfileImage(urlString: userVM.user.profileImageUrl)
+      }).disposed(by: disposeBag)
+  }
+  
+  private func deleteBookMarkButtonBinding() {
+    let bookMarkTapGuesture = UITapGestureRecognizer()
+    mainView.mainConrtollMenu.bookMarkLabel.addGestureRecognizer(bookMarkTapGuesture)
+    
+    bookMarkTapGuesture.rx.event
+      .bind (onNext: { [weak self] recognizer in
+        guard let index = self?.userSelectedBookIndex.item else { return }
         
-        let imageViewWidth = mainView.profileImageView.frame.width
+        if let bookTitle = self?.markedBookListVM.getMarkedBookInfo(index)?.title {
+          
+          let okAction = UIAlertAction(title: "북마크 제거", style: .destructive) { [weak self] (_) in
+            
+            self?.markedBookListVM.removeMarkedBook(index)
+            self?.userSelectedBookIndex = IndexPath(row: 0, section: 0)
+            self?.markedBookListVM.reloadData()
+          }
+          
+          let alert = UIAlertController.okCancelSetting(title: "북마크 제거", message: "\(bookTitle) 책을 북마크에서 제거 합니다.", okAction: okAction)
+          
+          self?.present(alert, animated: true, completion: nil)
+          
+        } else {
+          self?.popErrorAlertController()
+        }
         
-        mainView.profileImageView.layer.cornerRadius = imageViewWidth/2
-        mainView.profileImageView.clipsToBounds = true
-    }
+      }).disposed(by: disposeBag)
+  }
+  
+  private func showCommentsButtonBind() {
+    let commentLabelTapGuesture = UITapGestureRecognizer()
+    mainView.mainConrtollMenu.commentLabel.addGestureRecognizer(commentLabelTapGuesture)
     
-    private func setupSelectedMarkedBookCommentCount() {
-        guard let userSelectedMarkedBook = markedBookListVM.bookAt(userSelectedBookIndex.row)?.book else { return }
-        mainWebService.fetchMarkedBookCommentCountAt(userSelectedMarkedBook)
-            .asDriver(onErrorJustReturn: NSAttributedString(string: "0"))
-            .drive(mainView.mainConrtollMenu.commentLabel.rx.attributedText)
-            .disposed(by: dispoeBag)
-    }
-    
-    // MARK: - collectionView Setting
-    private func configureCollectionViewOptionSetting() {
-        mainView.collectionView.backgroundColor = .white
-        mainView.collectionView.allowsMultipleSelection = false
+    commentLabelTapGuesture.rx.event
+      .bind (onNext: { [weak self] _ in
+        guard let index = self?.userSelectedBookIndex.item else { return }
         
-        mainView.collectionView.rx.setDelegate(self)
-            .disposed(by: dispoeBag)
-        
-        mainView.collectionView.register(CollecionViewCustomCell.self,
-                                         forCellWithReuseIdentifier: CollecionViewCustomCell.identifier)
-        
-        mainView.collectionView.register(CollectionViewNoDataCell.self,
-                                         forCellWithReuseIdentifier: CollectionViewNoDataCell.identifier)
-    }
+        if let book = self?.markedBookListVM.getMarkedBookInfo(index) {
+          
+          let commentListVC = CommentListVC(book, false)
+          commentListVC.isCommentEditing = false
+          self?.navigationController?.pushViewController(commentListVC, animated: true)
+          
+        } else {
+          
+          self?.popErrorAlertController()
+          
+        }
+      }).disposed(by: disposeBag)
+  }
+  
+  // MARK: - Handler
+  
+  private func popErrorAlertController() {
+    present(UIAlertController.defaultSetting(title: "오류 ", message: "북마크된 책이 선택되지 않았습니다."),
+            animated: true,
+            completion: nil)
+  }
+  
+  private func reloadMyBookCollectionView() {
+    guard let window = UIApplication.shared.delegate?.window,
+          let tabBarController = window?.rootViewController as? UITabBarController else { return }
     
-    // MARK: - CollectionView Binding
+    guard let naviController = tabBarController.viewControllers?[1] as? UINavigationController,
+          let myBookVC = naviController.visibleViewController as? MyBookVC else { return }
     
-    private func colletionViewBinding() {
-        configureCollectionViewDataSource()
-        configureCollectionViewDelegate()
-        configureCollectionViewWillAppear()
-        setupSelectedMarkedBookCommentCount()
-    }
-    
-    private func configureCollectionViewDataSource() {
-        
-        collectionViewDelegateBag.dispose()
-        
-        collectionViewDelegateBag = markedBookListVM.allcase
-            .bind(to: mainView.collectionView.rx.items) { [weak self] (collectionView, item, markedBook) -> UICollectionViewCell in
-                let indexPath = IndexPath(item: item, section: 0)
-                
-                if self?.markedBookListVM.allcase.value.first?.book == Book.empty() {
-                    let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CollectionViewNoDataCell.identifier, for: indexPath) as! CollectionViewNoDataCell
-                    return cell
-                } else {
-                    let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CollecionViewCustomCell.identifier,
-                                                                  for: indexPath) as! CollecionViewCustomCell
-                    if item == 0 {
-                        cell.isSelected = true
-                    }
-                    
-                    cell.bookThumbnailImageView.loadBookImage(urlString: markedBook.book.thumbnail)
-                    return cell
-                }
-            }
-    }
-    
-    private func configureCollectionViewDelegate() {
-        mainView.collectionView.rx
-            .itemSelected
-            .subscribe(onNext: { [unowned self] indexPath in
-                guard let cell = self.mainView.collectionView.cellForItem(at: indexPath) as? CollecionViewCustomCell else { return }
-                
-                self.mainView.collectionView.visibleCells.forEach {
-                    guard let cell = $0 as? CollecionViewCustomCell else { return }
-                    cell.selectedimageView.isHidden = true
-                }
-                
-                if cell.selectedimageView.isHidden == true {
-                    cell.selectedimageView.isHidden.toggle()
-                    self.userSelectedBookIndex = indexPath
-                }
-                
-            }).disposed(by: dispoeBag)
-        
-        mainView.collectionView.rx
-            .itemDeselected
-            .subscribe(onNext: { [weak self] indexPath in
-                guard let cell = self?.mainView.collectionView.cellForItem(at: indexPath) as? CollecionViewCustomCell else { return }
-                cell.selectedimageView.isHidden = true
-            }).disposed(by: dispoeBag)
-    }
-    
-    private func configureCollectionViewWillAppear() {
-        mainView.collectionView.rx
-            .willDisplayCell
-            .subscribe(onNext: { [unowned self] event in
-                guard let cell = event.cell as? CollecionViewCustomCell else { return }
-                
-                let isUserSelected = event.at == self.userSelectedBookIndex ? false : true
-                
-                cell.selectedimageView.isHidden = isUserSelected
-                cell.isSelected = isUserSelected
-                
-            }).disposed(by: dispoeBag)
-    }
-    
-    // MARK: - Configure Button Binder
-    
-    private func configureButtonBinding() {
-        userProfileTapGuesture()
-        addCommentButtonBinding()
-        commentEditButtonBinding()
-        completeButtonBinding()
-        deleteBookMarkButtonBinding()
-        showCommentsButtonBind()
-    }
-    
-    private func userProfileTapGuesture() {
-        let imageViewGesture = UITapGestureRecognizer()
-        mainView.profileImageView.addGestureRecognizer(imageViewGesture)
-        
-        imageViewGesture.rx.event.bind (onNext: { [weak self] recognizer in
-            self?.presentUserProfileVC()
-        }).disposed(by: dispoeBag)
-        
-        let nameLabelGesture = UITapGestureRecognizer()
-        mainView.nameLabel.addGestureRecognizer(nameLabelGesture)
-        
-        nameLabelGesture.rx.event.bind (onNext: { [weak self] recognizer in
-            self?.presentUserProfileVC()
-        }).disposed(by: dispoeBag)
-        
-        mainView.detailProfileButton.rx.tap
-            .bind { [weak self] in
-                self?.presentUserProfileVC()
-            }.disposed(by: dispoeBag)
-    }
-    
-    private func presentUserProfileVC() {
-        let userProfileVC = UserProfileVC()
-        userProfileVC.userVM = self.userVM
-        navigationController?.pushViewController(userProfileVC, animated: true)
-    }
-    
-    private func addCommentButtonBinding() {
-        mainView.mainConrtollMenu.commentAddButton.rx.tap
-            .subscribe(onNext: { [weak self] in
-                guard let index = self?.userSelectedBookIndex.item else { return }
-                
-                if let book = self?.markedBookListVM.bookAt(index)?.book {
-                    let addCommentVC = AddCommentVC(book.isbn, nil)
-                    addCommentVC.isCommentEditing = true
-                    self?.navigationController?.pushViewController(addCommentVC, animated: true)
-                } else {
-                    self?.popErrorAlertController()
-                }
-            }).disposed(by: dispoeBag)
-    }
-    
-    private func commentEditButtonBinding() {
-        mainView.mainConrtollMenu.commentEditButton.rx.tap
-            .subscribe(onNext: { [weak self] in
-                guard let index = self?.userSelectedBookIndex.item else { return }
-                
-                if let book = self?.markedBookListVM.bookAt(index)?.book {
-                    let commentListVC = CommentListVC(book, true)
-                    self?.navigationController?.pushViewController(commentListVC, animated: true)
-                } else {
-                    self?.popErrorAlertController()
-                }
-            }).disposed(by: dispoeBag)
-    }
-    
-    private func completeButtonBinding() {        
-        mainView.mainConrtollMenu.compliteButton.rx.tap
-            .subscribe(onNext: { [unowned self] in
-                
-                let okAction = UIAlertAction(title: "완독 처리", style: .destructive) { [unowned self] (_) in
-                    
-                    if let userSelectedMarkedBook = self.markedBookListVM.getMarkedBookInfo(self.userSelectedBookIndex.row) {
-                        
-                        self.mainWebService.completeMarkedBook(userSelectedMarkedBook)
-                            .subscribe(onNext: {
-                                
-                                if $0 == false { // 오류 메시지
-                                    self.present(UIAlertController.defaultSetting(title: "오류", message: "이미 완독된 책 입니다"),
-                                                 animated: true, completion: nil)
-                                } else { // 완료 성공 - > 리로드
-                                    markedBookListVM.reloadData()
-                                }
-                                
-                            }).disposed(by: dispoeBag)
-                    }
-                }
-                
-                let message = "해당 책을 완독 처리하시겠습니까?\n 완독한 책은 Main메뉴에서 삭제됩니다."
-                let alertController = UIAlertController.okCancelSetting(title: "완독 처리", message: message, okAction: okAction)
-                self.present(alertController, animated: true, completion: nil)
-                
-            }).disposed(by: dispoeBag)
-    }
-    
-    private func deleteBookMarkButtonBinding() {
-        let bookMarkTapGuesture = UITapGestureRecognizer()
-        mainView.mainConrtollMenu.bookMarkLabel.addGestureRecognizer(bookMarkTapGuesture)
-        
-        bookMarkTapGuesture.rx.event
-            .bind (onNext: { [weak self] recognizer in
-                guard let index = self?.userSelectedBookIndex.item else { return }
-                
-                if let bookModel = self?.markedBookListVM.bookAt(index) {
-                    
-                    
-                    
-                    let okAction = UIAlertAction(title: "북마크 제거", style: .destructive) { [weak self] (_) in
-                        
-                        self?.markedBookListVM.removeMarkedBook(index)
-                        self?.userSelectedBookIndex = IndexPath(row: 0, section: 0)
-                        self?.markedBookListVM.reloadData()
-                    }
-                    
-                    let alert = UIAlertController.okCancelSetting(title: "북마크 제거", message: "\(bookModel.book.title ?? "") 책을 북마크에서 제거 합니다.", okAction: okAction)
-                    
-                    self?.present(alert, animated: true, completion: nil)
-                    
-                } else {
-                    self?.popErrorAlertController()
-                }
-                
-            }).disposed(by: dispoeBag)
-    }
-    
-    private func showCommentsButtonBind() {
-        let commentLabelTapGuesture = UITapGestureRecognizer()
-        mainView.mainConrtollMenu.commentLabel.addGestureRecognizer(commentLabelTapGuesture)
-        
-        commentLabelTapGuesture.rx.event
-            .bind (onNext: { [weak self] _ in
-                guard let index = self?.userSelectedBookIndex.item else { return }
-                
-                if let book = self?.markedBookListVM.bookAt(index)?.book {
-                    
-                    let commentListVC = CommentListVC(book, false)
-                    commentListVC.isCommentEditing = false
-                    self?.navigationController?.pushViewController(commentListVC, animated: true)
-                    
-                } else {
-                    
-                    self?.popErrorAlertController()
-                    
-                }
-            }).disposed(by: dispoeBag)
-    }
-    
-    // MARK: - Handler
-    
-    private func popErrorAlertController() {
-        present(UIAlertController.defaultSetting(title: "오류 ", message: "북마크된 책이 선택되지 않았습니다."),
-                animated: true,
-                completion: nil)
-    }
-    
-    private func reloadMyBookCollectionView() {
-        guard let window = UIApplication.shared.delegate?.window,
-              let tabBarController = window?.rootViewController as? UITabBarController else { return }
-        
-        guard let naviController = tabBarController.viewControllers?[1] as? UINavigationController,
-              let myBookVC = naviController.visibleViewController as? MyBookVC else { return }
-        
-        myBookVC.myBookListVM.reloadData()
-    }
+    myBookVC.myBookListVM.reloadData()
+  }
 }
 
 // MARK: - UICollectionViewDelegateFlowLayout
 extension MainVC: UICollectionViewDelegateFlowLayout {
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAt section: Int) -> CGFloat {
-        return 10
+  func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAt section: Int) -> CGFloat {
+    return 10
+  }
+  
+  func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAt section: Int) -> CGFloat {
+    return 0
+  }
+  
+  func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, insetForSectionAt section: Int) -> UIEdgeInsets {
+    return UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
+  }
+  
+  func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+    
+    var mySize = CGSize(width: 0, height: 0)
+    
+    if markedBookListVM.allcase.value.first?.book == Book.empty() {
+      
+      let width: CGFloat = UIScreen.main.bounds.width - 10 - 10
+      let height: CGFloat = 200
+      
+      mySize = CGSize(width: width, height: height)
+      
+    } else {
+      mySize = CGSize(width: 138, height: 200)
     }
     
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAt section: Int) -> CGFloat {
-        return 0
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, insetForSectionAt section: Int) -> UIEdgeInsets {
-        return UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        
-        var mySize = CGSize(width: 0, height: 0)
-        
-        if markedBookListVM.allcase.value.first?.book == Book.empty() {
-            
-            let width: CGFloat = UIScreen.main.bounds.width - 10 - 10
-            let height: CGFloat = 200
-            
-            mySize = CGSize(width: width, height: height)
-            
-        } else {
-            mySize = CGSize(width: 138, height: 200)
-        }
-        
-        return mySize
-    }
+    return mySize
+  }
 }
